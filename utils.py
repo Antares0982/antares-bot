@@ -31,7 +31,13 @@ def getchatid(update: Update) -> int:
 
 def getmsgid(update: Update) -> int:
     """返回message_id"""
-    return update.message.message_id
+    if update.message is not None:
+        return update.message.message_id
+    if update.channel_post is not None:
+        return update.channel_post.message_id
+    if update.edited_channel_post is not None:
+        return update.edited_channel_post.message_id
+    raise ValueError("无法从update获取msgid")
 
 
 def isprivate(update: Update) -> bool:
@@ -58,6 +64,9 @@ class handleStatus(object):
         return self.block
 
 
+handlePassed = handleStatus(True, False)
+
+
 @final
 class handleBlocked(handleStatus):
     def __init__(self, normal: bool = True) -> None:
@@ -65,15 +74,6 @@ class handleBlocked(handleStatus):
 
     def __bool__(self):
         return self.normal
-
-
-@final
-class handlePassed(handleStatus):
-    def __init__(self) -> None:
-        super().__init__(True, False)
-
-    def __bool__(self):
-        return True
 
 
 @final
@@ -115,6 +115,10 @@ class commandCallbackMethod(object):
                 if type(kwargs[key]) is Update:
                     self.preExcute(kwargs[key])
                     break
+        inst = self.instance
+        if any(x in inst.blacklist for x in (inst.lastchat, inst.lastuser)):
+            inst.errorInfo("你在黑名单中，无法使用任何功能")
+            return
         return self.__wrapped__(self.instance, *args, **kwargs)
 
     def preExcute(self, update: Update) -> None:

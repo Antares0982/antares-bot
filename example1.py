@@ -23,18 +23,23 @@ class exampleBot1(baseBot):
 
     # 范例
     def textHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         if not self.cond():
-            return handlePassed()
+            return handlePassed
         self.dosth()
         return handleBlocked()
 
     def buttonHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         ...
-        return handlePassed()
+        return handlePassed
 
     def photoHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         ...
-        return handlePassed()
+        return handlePassed
+
+    def channelHandler(self, update: Update, context: CallbackContext) -> handleStatus:
+        ...
+        return handlePassed
+    
+    def editedChannelHandler(self, update: Update, context: CallbackContext) -> handleStatus:
+        ...
+        return handlePassed

@@ -6,6 +6,7 @@ __all__ = [
     "proxy",
     "proxy_url",
     "MYID",
+    "blacklistdatabase"
 ]
 
 cfgparser = ConfigParser()
@@ -16,5 +17,6 @@ token = cfgparser["settings"]["token"]
 proxy = cfgparser.getboolean("settings", "proxy")
 proxy_url = cfgparser["settings"]["proxy_url"]
 MYID = cfgparser.getint("settings", "myid")
+blacklistdatabase = cfgparser["settings"]["blacklistdatabase"]
 
 del cfgparser

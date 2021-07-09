@@ -11,16 +11,13 @@ class exampleBot2(baseBot):
         ...
 
     def textHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         ...
-        return handlePassed()
+        return handlePassed
 
     def buttonHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         ...
-        return handlePassed()
+        return handlePassed
 
     def photoHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        self.renewStatus(update)
         ...
-        return handlePassed()
+        return handlePassed

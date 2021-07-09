@@ -1,10 +1,12 @@
 import os
+import sqlite3
 import time
+import traceback
 from signal import SIGINT
 from typing import Dict, Optional
 
-from telegram import Bot, CallbackQuery
-from telegram.error import NetworkError, TimedOut
+from telegram import Bot, CallbackQuery, Update
+from telegram.error import BadRequest, NetworkError, TimedOut
 from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, Filters, MessageHandler, Updater)
 
@@ -25,6 +27,8 @@ class baseBot(object):
         self.lastchat: int = MYID
         self.lastuser: int = MYID
         self.lastmsgid: int = -1  # 默认-1，如果是按钮响应需要调整到-1
+        self.blacklist = []
+        self.readblacklist()
 
     def start(self) -> None:
         self.importHandlers()
@@ -32,12 +36,37 @@ class baseBot(object):
         self.updater.start_polling(drop_pending_updates=True)
         self.updater.idle()
 
+    def readblacklist(self):
+        conn = sqlite3.connect(blacklistdatabase)
+        c = conn.cursor()
+        cur = c.execute("SELECT * FROM BLACKLIST;")
+        ans = cur.fetchall()
+        conn.close()
+        for tgid in ans:
+            self.blacklist.append(tgid)
+
+    def addblacklist(self, id):
+        if id in self.blacklist:
+            return
+        self.blacklist.append(id)
+        conn = sqlite3.connect(blacklistdatabase)
+        c = conn.cursor()
+        c.execute(f"""INSERT INTO BLACKLIST(TGID)
+        VALUES(id);""")
+        conn.commit()
+        conn.close()
+
     def renewStatus(self, update: Update) -> None:
         """在每个command Handler前调用，是指令的前置函数"""
         self.lastchat = getchatid(update)
+
         if update.callback_query is None:
-            self.lastuser = getfromid(update)
+            if ischannel(update):
+                self.lastuser = -1
+            else:
+                self.lastuser = getfromid(update)
             self.lastmsgid = getmsgid(update)
+
         else:
             self.lastuser = update.callback_query.from_user.id
             self.lastmsgid = -1
@@ -145,7 +174,11 @@ class baseBot(object):
 
     @staticmethod
     def queryError(query: CallbackQuery) -> False:
-        query.edit_message_text(text="(*￣︿￣) 这个按钮请求已经无效了", reply_markup=None)
+        try:
+            query.edit_message_text(
+                text="(*￣︿￣) 这个按钮请求已经无效了", reply_markup=None)
+        except BadRequest:
+            query.delete_message()
         return False
 
     def importHandlers(self) -> bool:
@@ -157,11 +190,17 @@ class baseBot(object):
 
         self.updater.dispatcher.add_handler(
             MessageHandler(Filters.text & (~Filters.command) & (~Filters.video) & (
-                ~Filters.photo) & (~Filters.sticker), self.textHandler))
+                ~Filters.photo) & (~Filters.sticker) & (~Filters.chat_type.channel), self.textHandler))
+
+        self.updater.dispatcher.add_handler(MessageHandler(
+            Filters.chat_type.channel, self.channelHandler))
+
+        self.updater.dispatcher.add_handler(MessageHandler(
+            (Filters.photo | Filters.sticker) & (~Filters.chat_type.channel), self.photoHandler))
+
         self.updater.dispatcher.add_handler(
             CallbackQueryHandler(self.buttonHandler))
-        self.updater.dispatcher.add_handler(MessageHandler(
-            Filters.photo | Filters.sticker, self.photoHandler))
+
         self.updater.dispatcher.add_error_handler(self.errorHandler)
 
     # 指令
@@ -196,15 +235,23 @@ class baseBot(object):
 
     def textHandler(self, update: Update, context: CallbackContext) -> handleStatus:
         """Override"""
-        return handlePassed()
-
-    def buttonHandler(self, update: Update, context: CallbackContext) -> handleStatus:
-        """Override"""
-        return handlePassed()
+        return handlePassed
 
     def photoHandler(self, update: Update, context: CallbackContext) -> handleStatus:
         """Override"""
-        return handlePassed()
+        return handlePassed
+
+    def channelHandler(self, update: Update, context: CallbackContext) -> handleStatus:
+        """Override"""
+        return handlePassed
+
+    def editedChannelHandler(self, update: Update, context: CallbackContext) -> handleStatus:
+        """Override"""
+        return handlePassed
+
+    def buttonHandler(self, update: Update, context: CallbackContext) -> handleStatus:
+        """Override"""
+        return handlePassed
 
     # 错误处理
     def errorHandler(self, update: object, context: CallbackContext):
@@ -215,4 +262,4 @@ class baseBot(object):
         self.reply(
             chat_id=MYID,
             text=f"哎呀，出现了未知的错误呢……\n{err.__class__}\n\
-                {err}\ntraceback:{err.__traceback__}")
+                {err}\ntraceback:{traceback.format_exc()}")
