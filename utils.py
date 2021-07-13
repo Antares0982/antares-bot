@@ -14,9 +14,13 @@ if TYPE_CHECKING:
 RT = TypeVar('RT')
 
 
+def chatisfromme(update: Update) -> bool:
+    return getchatid(update) == MYID
+
+
 def isfromme(update: Update) -> bool:
     """检查是否来自`MYID`"""
-    return getchatid(update) == MYID
+    return getfromid(update) == MYID
 
 
 def getfromid(update: Update) -> int:
@@ -53,6 +57,8 @@ def ischannel(update: Update) -> bool:
 
 
 class handleStatus(object):
+    __slots__ = ['block', 'normal']
+
     def __init__(self, normal: bool, block: bool) -> None:
         self.block: bool = block
         self.normal: bool = normal
@@ -69,6 +75,8 @@ handlePassed = handleStatus(True, False)
 
 @final
 class handleBlocked(handleStatus):
+    __slots__ = []
+
     def __init__(self, normal: bool = True) -> None:
         super().__init__(normal=normal, block=True)
 

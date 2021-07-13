@@ -206,10 +206,10 @@ class baseBot(object):
     # 指令
     @commandCallbackMethod
     def cancel(self, update: Update, context: CallbackContext) -> bool:
-        if self.lastuser in self.workingMethod:
-            self.workingMethod.pop(self.lastuser)
+        if self.lastchat in self.workingMethod:
+            self.workingMethod.pop(self.lastchat)
             self.reply(text="操作取消～")
-
+            
     @commandCallbackMethod
     def stop(self, update: Update, context: CallbackContext) -> bool:
         if getfromid(update) != MYID:
