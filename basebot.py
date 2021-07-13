@@ -3,7 +3,7 @@ import sqlite3
 import time
 import traceback
 from signal import SIGINT
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from telegram import Bot, CallbackQuery, Update
 from telegram.error import BadRequest, NetworkError, TimedOut
@@ -27,7 +27,7 @@ class baseBot(object):
         self.lastchat: int = MYID
         self.lastuser: int = MYID
         self.lastmsgid: int = -1  # 默认-1，如果是按钮响应需要调整到-1
-        self.blacklist = []
+        self.blacklist: List[int] = []
         self.readblacklist()
 
     def start(self) -> None:
@@ -37,6 +37,7 @@ class baseBot(object):
         self.updater.idle()
 
     def readblacklist(self):
+        self.blacklist = []
         conn = sqlite3.connect(blacklistdatabase)
         c = conn.cursor()
         cur = c.execute("SELECT * FROM BLACKLIST;")
@@ -45,7 +46,7 @@ class baseBot(object):
         for tgid in ans:
             self.blacklist.append(tgid)
 
-    def addblacklist(self, id):
+    def addblacklist(self, id: int):
         if id in self.blacklist:
             return
         self.blacklist.append(id)
@@ -181,7 +182,7 @@ class baseBot(object):
             query.delete_message()
         return False
 
-    def importHandlers(self) -> bool:
+    def importHandlers(self) -> None:
         for key in self.__dir__():
             func = getattr(self, key)
             if type(func) is commandCallbackMethod:
@@ -205,18 +206,20 @@ class baseBot(object):
 
     # 指令
     @commandCallbackMethod
-    def cancel(self, update: Update, context: CallbackContext) -> bool:
+    def cancel(self, update: Update, context: CallbackContext) -> None:
         if self.lastchat in self.workingMethod:
             self.workingMethod.pop(self.lastchat)
             self.reply(text="操作取消～")
-            
+
     @commandCallbackMethod
     def stop(self, update: Update, context: CallbackContext) -> bool:
-        if getfromid(update) != MYID:
+        if isfromme(update):
+            self.reply("你没有权限")
             return False
         self.reply(text="主人再见QAQ")
         pid = os.getpid()
         os.kill(pid, SIGINT)
+        return True
 
     @commandCallbackMethod
     def getid(self, update: Update, context: CallbackContext) -> None:

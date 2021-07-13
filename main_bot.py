@@ -34,6 +34,9 @@ class finalBot(exampleBot1, exampleBot2):  # 缁ф壙鐨勫姛鑳界被,handle鏃朵粠宸﹀
             else:
                 command = ' '.join(context.args)
 
+            if not command:
+                raise ValueError
+
             if not needReturn:
                 try:
                     exec(command)
@@ -93,7 +96,7 @@ class finalBot(exampleBot1, exampleBot2):  # 缁ф壙鐨勫姛鑳界被,handle鏃朵粠宸﹀
         self.renewStatus(update)
         if self.lastchat in self.blacklist:
             return False
-            
+
         for cls in self.__class__.__bases__:
             if update.channel_post is not None:
                 status: handleStatus = cls.channelHandler(
