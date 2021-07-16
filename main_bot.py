@@ -1,8 +1,10 @@
 #!/usr/bin/python3 -O
 import logging
+from typing import List
 
 from telegram.ext import CallbackContext
 
+from basebot import baseBot
 from example1 import exampleBot1
 from example2 import exampleBot2
 from utils import *
@@ -58,9 +60,15 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
             raise e
 
     def textHandler(self, update: Update, context: CallbackContext) -> bool:
+        if update.message.migrate_from_chat_id is not None:
+            self.chatmigrate(
+                update.message.migrate_from_chat_id, getchatid(update))
+            return True
+
         self.renewStatus(update)
         if any(x in self.blacklist for x in (self.lastuser, self.lastchat)):
             return self.errorInfo("你在黑名单中，无法使用任何功能")
+
         for cls in self.__class__.__bases__:
             status: handleStatus = cls.textHandler(self, update, context)
             if status.blocked():
@@ -70,6 +78,8 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
 
     def buttonHandler(self, update: Update, context: CallbackContext) -> bool:
         self.renewStatus(update)
+        update.callback_query.answer()
+
         if any(x in self.blacklist for x in (self.lastuser, self.lastchat)):
             return self.queryError(update.callback_query)
 
@@ -97,19 +107,45 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
         if self.lastchat in self.blacklist:
             return False
 
-        for cls in self.__class__.__bases__:
-            if update.channel_post is not None:
+        if update.channel_post is not None:
+            for cls in self.__class__.__bases__:
                 status: handleStatus = cls.channelHandler(
                     self, update, context)
-            elif update.edited_channel_post is not None:
+                if status.blocked():
+                    return status.normal
+
+        elif update.edited_channel_post is not None:
+            for cls in self.__class__.__bases__:
                 status: handleStatus = cls.editedChannelHandler(
                     self, update, context)
-            else:
-                status = handlePassed
-            if status.blocked():
-                return status.normal
+                if status.blocked():
+                    return status.normal
 
         return False
+
+    @classmethod
+    def chatmigrate(cls, oldchat: int, newchat: int, instance: 'finalBot'):
+        errs: List[Exception] = []
+        try:
+            baseBot.chatmigrate(oldchat, newchat, instance)
+        except Exception as e:
+            errs.append(e)
+
+        for kls in cls.__bases__:
+            try:
+                kls.chatmigrate(oldchat, newchat, instance)
+            except Exception as e:
+                errs.append(e)
+
+        if len(errs) != 0:
+            if len(errs) > 1:
+                errstr = '\n'.join(str(x) for x in errs)
+                raise RuntimeError(f"聊天迁移时抛出多于一个错误：{errstr}")
+            raise errs[0]
+
+    def beforestop(self):
+        for cls in self.__class__.__bases__:
+            cls.beforestop(self)
 
 
 def main():

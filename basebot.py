@@ -204,6 +204,9 @@ class baseBot(object):
 
         self.updater.dispatcher.add_error_handler(self.errorHandler)
 
+        self.updater.dispatcher.add_handler(
+            MessageHandler(Filters.command, self.unknowncommand))
+
     # 指令
     @commandCallbackMethod
     def cancel(self, update: Update, context: CallbackContext) -> None:
@@ -213,9 +216,10 @@ class baseBot(object):
 
     @commandCallbackMethod
     def stop(self, update: Update, context: CallbackContext) -> bool:
-        if isfromme(update):
+        if not isfromme(update):
             self.reply("你没有权限")
             return False
+        self.beforestop()
         self.reply(text="主人再见QAQ")
         pid = os.getpid()
         os.kill(pid, SIGINT)
@@ -266,3 +270,30 @@ class baseBot(object):
             chat_id=MYID,
             text=f"哎呀，出现了未知的错误呢……\n{err.__class__}\n\
                 {err}\ntraceback:{traceback.format_exc()}")
+
+    # 未知指令
+    def unknowncommand(self, update: Update, context: CallbackContext):
+        self.renewStatus(update)
+        try:
+            if not isfromme(update):
+                self.reply("没有这个指令")
+            else:
+                self.reply("似乎没有这个指令呢……")
+        except:
+            ...
+
+    # 聊天迁移
+    @classmethod
+    def chatmigrate(cls, oldchat: int, newchat: int, instance: 'baseBot'):
+        """Override"""
+        if cls is baseBot:
+            conn = sqlite3.connect(blacklistdatabase)
+            c = conn.cursor()
+            c.execute(f"""UPDATE BLACKLIST
+            SET TGID={newchat} WHERE TGID={oldchat}""")
+            if oldchat in instance.blacklist:
+                instance.blacklist[instance.blacklist.index(oldchat)] = newchat
+
+    def beforestop(self):
+        """Override"""
+        return
