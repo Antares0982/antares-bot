@@ -219,7 +219,10 @@ class baseBot(object):
         if not isfromme(update):
             self.reply("你没有权限")
             return False
-        self.beforestop()
+        try:
+            self.beforestop()
+        except:
+            ...
         self.reply(text="主人再见QAQ")
         pid = os.getpid()
         os.kill(pid, SIGINT)
