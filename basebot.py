@@ -152,7 +152,7 @@ class baseBot(object):
                 self.bot.delete_message(
                     chat_id=chat_id, message_id=msgid)
             except:
-                if i == 4:
+                if i == maxTries-1:
                     return False
                 continue
             break
