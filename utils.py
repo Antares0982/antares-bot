@@ -114,22 +114,22 @@ class commandCallbackMethod(object):
         numOfArgs = len(args)+len(kwargs.keys())
         if numOfArgs != 2:
             raise RuntimeError(f"指令的callback function参数个数应为2，但接受到{numOfArgs}个")
-        if len(args) > 0:
-            self.preExcute(args[0])
+
+        if len(args) == 2:
+            self.preExecute(*args)
+        elif len(args) == 1:
+            self.preExecute(args[0], **kwargs)
         else:
-            if all(type(kwargs[x]) is not Update for x in kwargs):
-                raise RuntimeError("指令接收到的参数类型有误，第一个参数应为Update")
-            for key in kwargs:
-                if type(kwargs[key]) is Update:
-                    self.preExcute(kwargs[key])
-                    break
+            self.preExecute(**kwargs)
+
         inst = self.instance
         if any(x in inst.blacklist for x in (inst.lastchat, inst.lastuser)):
             inst.errorInfo("你在黑名单中，无法使用任何功能")
             return
+
         return self.__wrapped__(self.instance, *args, **kwargs)
 
-    def preExcute(self, update: Update) -> None:
+    def preExecute(self, update: Update, context: 'CallbackContext') -> None:
         """在每个command Handler前调用，是指令的前置函数"""
         if self.instance is None:
             raise RuntimeError("command callback method还未获取实例")
