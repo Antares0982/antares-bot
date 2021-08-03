@@ -62,7 +62,7 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
     def textHandler(self, update: Update, context: CallbackContext) -> bool:
         if update.message.migrate_from_chat_id is not None:
             self.chatmigrate(
-                update.message.migrate_from_chat_id, getchatid(update))
+                update.message.migrate_from_chat_id, getchatid(update), self)
             return True
 
         self.renewStatus(update)
