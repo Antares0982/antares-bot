@@ -53,7 +53,7 @@ class baseBot(object):
         conn = sqlite3.connect(blacklistdatabase)
         c = conn.cursor()
         c.execute(f"""INSERT INTO BLACKLIST(TGID)
-        VALUES(id);""")
+        VALUES({id});""")
         conn.commit()
         conn.close()
 
@@ -117,13 +117,22 @@ class baseBot(object):
                 txts = txts[10:]
                 for i in range(5):
                     try:
+
                         ans = self.bot.send_message(**kwargs).message_id
                         if "reply_markup" in kwargs:
                             kwargs.pop("reply_markup")
+
                     except Exception as e:
+
+                        if e.__class__ is BadRequest and str(e).find("Replied message not found") != -1:
+                            kwargs.pop("reply_to_message_id")
+                            i -= 1
+                            continue
+
                         if i == 4:
                             raise e
                         time.sleep(5)
+
                     else:
                         break
 
@@ -131,11 +140,20 @@ class baseBot(object):
             kwargs["text"] = "\n".join(txts)
             for i in range(5):
                 try:
+
                     ans = self.bot.send_message(**kwargs).message_id
+
                 except Exception as e:
+
+                    if e.__class__ is BadRequest and str(e).find("Replied message not found") != -1:
+                        kwargs.pop("reply_to_message_id")
+                        i -= 1
+                        continue
+
                     if i == 4:
                         raise e
                     time.sleep(5)
+
                 else:
                     break
 
