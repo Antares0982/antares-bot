@@ -3,9 +3,9 @@ import sqlite3
 import time
 import traceback
 from signal import SIGINT
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, overload
 
-from telegram import Bot, CallbackQuery, Update
+from telegram import Bot, CallbackQuery, Update, InlineKeyboardMarkup
 from telegram.error import BadRequest, NetworkError, TimedOut
 from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, Filters, MessageHandler, Updater)
@@ -71,6 +71,18 @@ class baseBot(object):
         else:
             self.lastuser = update.callback_query.from_user.id
             self.lastmsgid = -1
+
+    @overload
+    def reply(
+        self,
+        chat_id: int,
+        text: str,
+        reply_markup: InlineKeyboardMarkup,
+        reply_to_message_id: int,
+        parse_mode: str,
+        timeout: int
+    ) -> int:
+        ...
 
     def reply(self, *args, **kwargs) -> int:
         """调用send_message方法，回复或发送消息。
