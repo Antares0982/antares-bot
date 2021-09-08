@@ -1,12 +1,12 @@
 from configparser import ConfigParser
-from typing import List, Tuple
 
 __all__ = [
     "token",
     "proxy",
     "proxy_url",
     "MYID",
-    "blacklistdatabase"
+    "blacklistdatabase",
+    "startcommand"
 ]
 
 cfgparser = ConfigParser()
@@ -18,5 +18,6 @@ proxy = cfgparser.getboolean("settings", "proxy")
 proxy_url = cfgparser["settings"]["proxy_url"]
 MYID = cfgparser.getint("settings", "myid")
 blacklistdatabase = cfgparser["settings"]["blacklistdatabase"]
+startcommand = cfgparser["settings"]["startcommand"]
 
 del cfgparser

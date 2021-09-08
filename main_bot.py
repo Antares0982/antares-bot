@@ -151,9 +151,9 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
 def main():
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-    global finalbot
-    finalbot = finalBot()
-    finalbot.start()
+    global mainbot
+    mainbot = finalBot()
+    mainbot.start()
 
 
 if __name__ == "__main__":

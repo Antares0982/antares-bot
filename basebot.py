@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import sqlite3
 import time
@@ -5,7 +6,7 @@ import traceback
 from signal import SIGINT
 from typing import Dict, List, Literal, Optional, overload
 
-from telegram import Bot, CallbackQuery, Update, InlineKeyboardMarkup
+from telegram import Bot, CallbackQuery, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest, NetworkError, TimedOut
 from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, Filters, MessageHandler, Updater)
@@ -257,6 +258,17 @@ class baseBot(object):
         pid = os.getpid()
         os.kill(pid, SIGINT)
         return True
+
+    @commandCallbackMethod
+    def restart(self, update: Update, context: CallbackContext) -> bool:
+        if not isfromme(update):
+            self.reply("你没有权限")
+            return False
+
+        mp = multiprocessing.Process(target=os.system, args=(startcommand,))
+        mp.start()
+
+        self.stop.__wrapped__(self, update, context)
 
     @commandCallbackMethod
     def getid(self, update: Update, context: CallbackContext) -> None:
