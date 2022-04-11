@@ -1,4 +1,5 @@
 #!/usr/bin/python3 -O
+# region import
 import logging
 from typing import List
 
@@ -9,9 +10,10 @@ from example1 import exampleBot1
 from example2 import exampleBot2
 from utils import *
 
+# endregion
 
-@final
-class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左到右优先级逐次降低
+
+class mainBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左到右优先级逐次降低
     def __init__(self) -> None:
         print("subclasses init")
         for cls in self.__class__.__bases__:
@@ -30,11 +32,11 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
         try:
             needReturn = False
             txt = update.message.text
-            if context.args[0] == 'r':
+            if context.args[0] == "r":
                 needReturn = True
-                command = txt[txt.find("r ")+2:]
+                command = txt[txt.find("r ") + 2 :]
             else:
-                command = ' '.join(context.args)
+                command = " ".join(context.args)
 
             if not command:
                 raise ValueError
@@ -48,8 +50,8 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
                 self.reply(text="执行成功～")
             else:
                 try:
-                    exec("t="+command)
-                    ans = locals()['t']
+                    exec("t=" + command)
+                    ans = locals()["t"]
                 except Exception as e:
                     self.reply(text="执行失败……")
                     raise e
@@ -60,71 +62,81 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
             raise e
 
     def textHandler(self, update: Update, context: CallbackContext) -> bool:
-        if update.message.migrate_from_chat_id is not None:
-            self.chatmigrate(
-                update.message.migrate_from_chat_id, getchatid(update), self)
+        fakeself = self.renewStatus(update)
+        fakeself.debuginfo(f"Text message come in, chat: {fakeself.lastchat}")
+
+        if update.message is None:
             return True
 
-        self.renewStatus(update)
-        if any(x in self.blacklist for x in (self.lastuser, self.lastchat)):
-            return self.errorInfo("你在黑名单中，无法使用任何功能")
+        if update.message.migrate_from_chat_id is not None:
+            fakeself.chatmigrate(
+                update.message.migrate_from_chat_id, getchatid(update), fakeself
+            )
+            return True
+
+        with self.lock:
+            if any(x in self.blacklist for x in (fakeself.lastuser, fakeself.lastchat)):
+                return fakeself.errorInfo("你在黑名单中，无法使用任何功能")
 
         for cls in self.__class__.__bases__:
-            status: handleStatus = cls.textHandler(self, update, context)
+            status: handleStatus = cls.textHandler(fakeself, update, context)
             if status.blocked():
                 return status.normal
 
         return False
 
     def buttonHandler(self, update: Update, context: CallbackContext) -> bool:
-        self.renewStatus(update)
+        fakeself = self.renewStatus(update)
+        fakeself.debuginfo(f"Button pressed, chat: {fakeself.lastchat}")
         update.callback_query.answer()
 
-        if any(x in self.blacklist for x in (self.lastuser, self.lastchat)):
-            return self.queryError(update.callback_query)
+        if any(x in self.blacklist for x in (fakeself.lastuser, fakeself.lastchat)):
+            return fakeself.queryError(update.callback_query)
 
         for cls in self.__class__.__bases__:
-            status: handleStatus = cls.buttonHandler(self, update, context)
+            status: handleStatus = cls.buttonHandler(fakeself, update, context)
             if status.blocked():
                 return status.normal
 
-        return self.queryError(update.callback_query)
+        return fakeself.queryError(update.callback_query)
 
     def photoHandler(self, update: Update, context: CallbackContext) -> bool:
-        self.renewStatus(update)
-        if self.lastchat in self.blacklist:
+        fakeself = self.renewStatus(update)
+        fakeself.debuginfo(f"Photo message come in, chat: {fakeself.lastchat}")
+
+        if fakeself.lastchat in self.blacklist:
             return self.errorInfo("你在黑名单中，无法使用任何功能")
 
         for cls in self.__class__.__bases__:
-            status: handleStatus = cls.photoHandler(self, update, context)
+            status: handleStatus = cls.photoHandler(fakeself, update, context)
             if status.blocked():
                 return status.normal
 
         return False
 
     def channelHandler(self, update: Update, context: CallbackContext) -> bool:
-        self.renewStatus(update)
-        if self.lastchat in self.blacklist:
+        fakeself = self.renewStatus(update)
+        if fakeself.lastchat in fakeself.blacklist:
             return False
 
         if update.channel_post is not None:
             for cls in self.__class__.__bases__:
-                status: handleStatus = cls.channelHandler(
-                    self, update, context)
+                status: handleStatus = cls.channelHandler(fakeself, update, context)
                 if status.blocked():
                     return status.normal
 
         elif update.edited_channel_post is not None:
             for cls in self.__class__.__bases__:
                 status: handleStatus = cls.editedChannelHandler(
-                    self, update, context)
+                    fakeself, update, context
+                )
                 if status.blocked():
                     return status.normal
 
         return False
 
     @classmethod
-    def chatmigrate(cls, oldchat: int, newchat: int, instance: 'finalBot'):
+    def chatmigrate(cls, oldchat: int, newchat: int, instance: "mainBot"):
         errs: List[Exception] = []
         try:
             baseBot.chatmigrate(oldchat, newchat, instance)
@@ -139,7 +151,7 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
 
         if len(errs) != 0:
             if len(errs) > 1:
-                errstr = '\n'.join(str(x) for x in errs)
+                errstr = "\n".join(str(x) for x in errs)
                 raise RuntimeError(f"聊天迁移时抛出多于一个错误：{errstr}")
             raise errs[0]
 
@@ -150,9 +162,11 @@ class finalBot(exampleBot1, exampleBot2):  # 继承的功能类,handle时从左�
 
 def main():
     logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
+    )
     global mainbot
-    mainbot = finalBot()
+    mainbot = mainBot()
     mainbot.start()
 
 
