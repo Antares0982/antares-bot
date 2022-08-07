@@ -3,14 +3,21 @@ from typing import Generator, List, Type
 
 
 class BotConfig(object):
+    """
+    A bot config class to load configs.
+    If more config fields are needed, inherit this class and override :method:`parse` method.
+    Then call :method:`load` to load your config. The config classes can be inherited more than once.
+
+    Note:
+        * Don't need to call the :method:`parse` method in subclasses. It will be called automatically.
+        * Not supporting multi inheritance.
+    """
     admin_id: int
     bot_token: str
     is_use_proxy: bool
     proxy_url: str
     startcommand: str
     blacklistdatabase: str
-    ##
-    __parser: ConfigParser = None
 
     def __init__(self) -> None:
         ...
@@ -18,6 +25,8 @@ class BotConfig(object):
     def parse(self, parser: ConfigParser) -> None:
         """
         Override this method to load personalized config.
+        Overriding methods should not call this method; 
+        this method is called automatically.
         """
         self.admin_id = parser.getint("settings", "adminid")
         self.bot_token = parser["settings"]["token"]
@@ -27,25 +36,31 @@ class BotConfig(object):
         self.blacklistdatabase = parser["settings"]["blacklistdatabase"]
 
     def load(instance, path: str) -> None:
-        BotConfig.__parser = ConfigParser()
-        BotConfig.__parser.read(path)
+        """
+        Load config.
+        The superclasses will be iterated and :method:`parse` will be called.
+        """
+        parser = ConfigParser()
+        parser.read(path)
 
         klses: List[Type[BotConfig]] = list(
             BotConfig.__iterate_over_classes(type(instance))
         )
 
-        for kls in klses:
-            kls.parse(instance, BotConfig.__parser)
+        for kls in reversed(klses):
+            kls.parse(instance, parser)
 
     @staticmethod
     def __check_subclass(kls: type) -> None:
         if not issubclass(kls, BotConfig):
-            raise TypeError("registered class is not a subclass of BotConfig")
+            raise TypeError(
+                "Input class is not a subclass of BotConfig, or multi inheritance detected"
+            )
 
     @staticmethod
     def __iterate_over_classes(start_class: type) -> Generator[type, None, None]:
-        BotConfig.__check_subclass(start_class)
         kls = start_class
+        BotConfig.__check_subclass(kls)
         while kls != BotConfig:
             yield kls
             kls = kls.__base__

@@ -5,6 +5,8 @@ from typing import Any, Callable, Dict, List, Tuple, TypeVar
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
+from bot_framework.utils.workflow import (HandleBlocked, HandleStatus,
+                                          handleIgnore)
 from cfg import *
 
 try:
@@ -18,96 +20,6 @@ if TYPE_CHECKING:
 
     from basebot import baseBot
 # endregion
-
-# region const
-RT = TypeVar("RT")
-# endregion
-
-# region function
-
-
-def chatisfromme(update: Update) -> bool:
-    return getchatid(update) == MYID
-
-
-def isfromme(update: Update) -> bool:
-    """检查是否来自`MYID`"""
-    return getfromid(update) == MYID
-
-
-def getfromid(update: Update) -> int:
-    """返回`from_user.id`"""
-    return update.message.from_user.id
-
-
-def getchatid(update: Update) -> int:
-    """返回`chat_id`"""
-    return update.effective_chat.id
-
-
-def getmsgid(update: Update) -> int:
-    """返回message_id"""
-    if update.message is not None:
-        return update.message.message_id
-    if update.channel_post is not None:
-        return update.channel_post.message_id
-    if update.edited_channel_post is not None:
-        return update.edited_channel_post.message_id
-    raise ValueError("无法从update获取msgid")
-
-
-def isprivate(update: Update) -> bool:
-    return update.effective_chat.type == "private"
-
-
-def isgroup(update: Update) -> bool:
-    return update.effective_chat.type.find("group") != -1
-
-
-def ischannel(update: Update) -> bool:
-    return update.effective_chat.type == "channel"
-
-
-def flattenButton(
-    buttons: List[InlineKeyboardButton], numberInOneLine: int
-) -> InlineKeyboardMarkup:
-    btl: List[List[InlineKeyboardButton]] = []
-    while len(buttons) > numberInOneLine:
-        btl.append(buttons[:numberInOneLine])
-        buttons = buttons[numberInOneLine:]
-    if len(buttons) > 0:
-        btl.append(buttons)
-    return InlineKeyboardMarkup(btl)
-
-
-# endregion
-
-
-class handleStatus(object):
-    __slots__ = ["block", "normal"]
-
-    def __init__(self, normal: bool, block: bool) -> None:
-        self.block: bool = block
-        self.normal: bool = normal
-
-    def __bool__(self):
-        ...
-
-    def blocked(self):
-        return self.block
-
-
-handlePassed = handleStatus(True, False)
-
-
-class handleBlocked(handleStatus):
-    __slots__ = []
-
-    def __init__(self, normal: bool = True) -> None:
-        super().__init__(normal=normal, block=True)
-
-    def __bool__(self):
-        return self.normal
 
 
 class fakeBotObject(object):
@@ -160,51 +72,6 @@ class commandCallback(object):
         return self
 
 
-class commandCallbackMethod(object):
-    """表示一个指令的callback函数，仅限于类的成员方法。
-    调用时，会执行一次指令的前置函数。"""
-
-    def __init__(self, func: Callable[[Update, "CallbackContext"], RT]) -> None:
-        wraps(func)(self)
-        self.instance: "baseBot" = None
-
-    def __call__(self, *args, **kwargs):
-        numOfArgs = len(args) + len(kwargs.keys())
-        if numOfArgs != 2:
-            raise RuntimeError(f"指令的callback function参数个数应为2，但接受到{numOfArgs}个")
-
-        if len(args) == 2:
-            fakeinstance = self.preExecute(*args)
-        elif len(args) == 1:
-            fakeinstance = self.preExecute(args[0], **kwargs)
-        else:
-            fakeinstance = self.preExecute(**kwargs)
-
-        inst = self.instance
-        with inst.lock:
-            if any(
-                x in inst.blacklist
-                for x in (fakeinstance.lastchat, fakeinstance.lastuser)
-            ):
-                fakeinstance.errorInfo("你在黑名单中，无法使用任何功能")
-                return
-
-        return self.__wrapped__(fakeinstance, *args, **kwargs)
-
-    def preExecute(self, update: Update, context: "CallbackContext") -> "baseBot":
-        """在每个command Handler前调用，是指令的前置函数"""
-        if self.instance is None:
-            raise RuntimeError("command callback method还未获取实例")
-        return self.instance.renewStatus(update)
-
-    def __get__(self, instance, cls):
-        if instance is None:
-            raise TypeError("该装饰器仅适用于方法")
-        if self.instance is None:
-            self.instance = instance
-        return self
-
-
 class buttonQueryHandleMethod(object):
     """
     用于相应按钮请求分发的装饰器。
@@ -230,7 +97,7 @@ class buttonQueryHandleMethod(object):
 
     def __call__(
         self, instance: "baseBot", update: Update, context: "CallbackContext", **kwargs
-    ) -> handleStatus:
+    ) -> HandleStatus:
         query: "CallbackQuery" = update.callback_query
 
         args = query.data.split(" ")
@@ -247,11 +114,11 @@ class buttonQueryHandleMethod(object):
             self.matchdict = self.__wrapped__(instance)
 
         if callback not in self.matchdict:
-            return handlePassed
+            return handleIgnore
 
         if workingmethod != self.matchdict[callback][0]:
-            return handleBlocked(instance.queryError(query))
+            return HandleBlocked(instance.queryError(query))
 
         utilfunc = self.matchdict[callback][1]
 
-        return handleBlocked(utilfunc(instance, query, args))
+        return HandleBlocked(utilfunc(instance, query, args))
