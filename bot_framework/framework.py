@@ -19,7 +19,12 @@ class BotFramework(object):
         """
         for module in modules:
             # TODO
-            pass
+            if type(module) is str:
+                ...
+                # load file
+            else:
+                # load class
+                ...
 
     def start(self) -> None:
         self.bot.start()
