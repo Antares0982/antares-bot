@@ -1,24 +1,33 @@
+import importlib
+import sys
+from typing import Type
+
+
 class Locale:
-    locale: "Locale" = None
+    locale: Type["Locale"] = None
     button_invalid: str
     welcome: str
 
+    @staticmethod
+    def setCurrentLocale(mod):
+        importlib.reload(mod)
+
     @classmethod
-    def setCurrentLocale(kls):
+    def internalSetLocale(kls):
         if kls == Locale:
             raise TypeError("Cannot set base locale")
         Locale.locale = kls
 
+    def __getattr__(self, name):
+        return getattr(Locale.locale, name)
 
-def _locale_getattr(k, name):
-    if Locale.locale is None:
-        raise RuntimeError("locale not set")
-    return getattr(Locale.locale, name)
+
+locale = Locale()
 
 
 if __name__ != "__main__":
     if Locale.locale is None:
-        import bot_framework.locale.zh_CN  # default
-        setattr(Locale, "__getattr__", _locale_getattr)
-    if Locale.locale is None:
-        raise ImportError("Error when setting locale")
+        try:
+            import bot_framework.locale.zh_CN  # default
+        except Exception:
+            ...

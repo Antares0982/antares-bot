@@ -1,4 +1,4 @@
-from bot_framework.locale.general import Locale
+from bot_framework.locale.general import Locale, locale
 
 
 class EN_US(Locale):
@@ -7,4 +7,4 @@ class EN_US(Locale):
 
 
 if __name__ != "__main__":
-    EN_US.setCurrentLocale()
+    EN_US.internalSetLocale()

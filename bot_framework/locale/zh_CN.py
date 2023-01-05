@@ -1,4 +1,4 @@
-from bot_framework.locale.general import Locale
+from bot_framework.locale.general import Locale, locale
 
 
 class ZH_CN(Locale):
@@ -7,4 +7,4 @@ class ZH_CN(Locale):
 
 
 if __name__ != "__main__":
-    ZH_CN.setCurrentLocale()
+    ZH_CN.internalSetLocale()

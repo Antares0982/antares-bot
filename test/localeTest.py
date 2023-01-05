@@ -5,15 +5,24 @@ import unittest
 
 class LocaleTest(unittest.TestCase):
     def test_locale(self):
-        from bot_framework.locale.en_US import Locale
+        from bot_framework.locale.general import locale
+        # default import zh_CN
+        chinese = locale.button_invalid
+        self.assertIn("按钮", chinese)
 
-        print(Locale.locale.button_invalid)
+        import bot_framework.locale.en_US as EN_US
+        english = locale.button_invalid
+        self.assertIn("button", english)
 
-        from bot_framework.locale.zh_CN import ZH_CN
+        import bot_framework.locale.zh_CN as ZH_CN
+        # import does not take effect here
+        self.assertEqual(locale.button_invalid, english)
 
-        ZH_CN.setCurrentLocale()
-        print(dir(Locale))
-        print(Locale.button_invalid)
+        locale.setCurrentLocale(ZH_CN)
+        self.assertEqual(locale.button_invalid, chinese)
+
+        locale.setCurrentLocale(EN_US)
+        self.assertEqual(locale.button_invalid, english)
 
 
 if __name__ == "__main__":
