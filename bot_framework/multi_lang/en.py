@@ -1,0 +1,1 @@
+STARTUP = "Bot is live!"

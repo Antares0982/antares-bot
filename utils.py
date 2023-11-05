@@ -21,41 +21,6 @@ if TYPE_CHECKING:
     from basebot import baseBot
 # endregion
 
-
-class fakeBotObject(object):
-    """
-    bot instance的伪装类。
-    在并发情形下，bot object会在一个command callback函数执行完成之前获取
-    新的lastuser，lastchat等信息。在一个update的范围内，如果需要保证这些
-    参数是不会发生改变的，使用这个类来伪装成一个botinstance传给callback
-    method。注意：除了上述三个数据不会发生改变以外，其他数据是会发生改变的。
-    """
-
-    __slots__ = ["_real_bot_obj", "lastchat", "lastuser", "lastmsgid"]
-
-    def __init__(self, bot) -> None:
-        self._real_bot_obj = bot
-        self.lastchat = 0
-        self.lastuser = 0
-        self.lastmsgid = -1
-
-    def __getattr__(self, attr):
-        x = getattr(self._real_bot_obj, attr)
-        if callable(x) and not isinstance(x, types.FunctionType):
-
-            def wraped_func(*args, **kwargs):
-                return getattr(type(self._real_bot_obj), attr)(self, *args, **kwargs)
-
-            return wraped_func
-        return x
-
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name in ["lastchat", "lastuser", "lastmsgid", "_real_bot_obj"]:
-            object.__setattr__(self, __name, __value)
-            return
-        self._real_bot_obj.__dict__[__name] = __value
-
-
 class commandCallback(object):
     def __init__(self, func: Callable) -> None:
         wraps(func)(self)
