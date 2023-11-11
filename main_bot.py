@@ -2,6 +2,7 @@
 import logging
 import os
 
+# should not import anything other than python stdlib here
 
 def script_init():
     DIR = os.path.dirname(os.path.realpath(__file__))
@@ -22,10 +23,12 @@ def main():
     script_init()
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.INFO,
+        level=logging.WARN,
     )
     from bot_framework import language
     print(language.STARTUP)
+    from bot_inst import MainBotApp
+    bot_app = MainBotApp()
 
 
 if __name__ == "__main__":

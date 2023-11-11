@@ -9,17 +9,15 @@ class TelegramBotBase(object):
 
 
 class TelegramBotModuleBase(TelegramBotBase):
+
     def __init__(self, parent: "TelegramBot") -> None:
         self.parent = parent
 
     def do_init(self) -> None:
         raise NotImplementedError("Should be implemented in subclass")
 
-    def __getattr__(self, name: str):
-        return getattr(self.parent, name)
+    # def __getattr__(self, name: str):
+    #     return getattr(self.parent, name)
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name == "parent":
-            super().__setattr__(name, value)
-        else:
-            setattr(self.parent, name, value)
+    # def __setattr__(self, name: str, value: Any) -> None:
+    #     setattr(self.parent, name, value)

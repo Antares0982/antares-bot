@@ -3,10 +3,11 @@ import sys
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar
 
+from basebot import TelegramBotModuleBase
+
 if TYPE_CHECKING:
-    from basebot import TelegramBotModuleBase
     from bot_inst import TelegramBot
-_T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
+_T = TypeVar("_T", bound=TelegramBotModuleBase, covariant=True)
 
 MODULE_PRIORITY = "MODULE_PRIORITY"
 VALID_MODULE_RANGE = (0, 256)
@@ -52,9 +53,9 @@ class ModuleKeeper(object):
     def __init__(self) -> None:
         self._ordered_modules: List[TelegramBotModuleDesc] = []
         self._modules_dict: Dict[str, TelegramBotModuleDesc] = dict()
-        self._class2module_dict: Dict[Type["TelegramBotModuleBase"], TelegramBotModuleDesc] = dict()
+        self._class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc] = dict()
         self._disabled_modules_dict: Dict[str, TelegramBotModuleDesc] = dict()
-        self._disabled_class2module_dict: Dict[Type["TelegramBotModuleBase"], TelegramBotModuleDesc] = dict()
+        self._disabled_class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc] = dict()
 
     def load_all(self) -> None:
         """
@@ -66,7 +67,7 @@ class ModuleKeeper(object):
         self.clear()
         self.load_all()
 
-    def get_module(self, top_name: str) -> Optional["TelegramBotModuleBase"]:
+    def get_module(self, top_name: str) -> Optional[TelegramBotModuleBase]:
         py_module = self._find_module_internal(top_name, self._STR)
         if py_module is not None:
             return py_module.module_instance
@@ -135,8 +136,8 @@ class ModuleKeeper(object):
         self._ordered_modules.remove(module)
 
     @staticmethod
-    def _import_all_modules() -> Dict[str, Type["TelegramBotModuleBase"]]:
-        ret: Dict[str, Type["TelegramBotModuleBase"]] = dict()
+    def _import_all_modules() -> Dict[str, Type[TelegramBotModuleBase]]:
+        ret: Dict[str, Type[TelegramBotModuleBase]] = dict()
         import importlib
 
         for dirname, _, filenames in os.walk("modules"):
@@ -155,14 +156,15 @@ class ModuleKeeper(object):
                         else:
                             print(f"Loading {module_full_name}")
                             module = importlib.import_module(module_full_name)
-                    except Exception:
+                    except Exception as e:
+                        print(e)
                         continue
                     _names = module_top_name.split("_")
                     class_name = ''.join([name.capitalize() for name in _names])
                     kls = getattr(module, class_name, None)
                     try:
                         assert kls is not None
-                        if not issubclass(kls, TelegramBot):  # type: ignore
+                        if not issubclass(kls, TelegramBotModuleBase):  # type: ignore
                             continue
                     except Exception:
                         continue
@@ -171,7 +173,7 @@ class ModuleKeeper(object):
         return ret
 
     @staticmethod
-    def _sort_modules(klss: Dict[str, Type["TelegramBotModuleBase"]]) -> List[TelegramBotModuleDesc]:
+    def _sort_modules(klss: Dict[str, Type[TelegramBotModuleBase]]) -> List[TelegramBotModuleDesc]:
         modules: List[TelegramBotModuleDesc] = []
         temp_dict: defaultdict[int, List[TelegramBotModuleDesc]] = defaultdict(list)
         for top_name, kls in klss.items():
@@ -185,7 +187,7 @@ class ModuleKeeper(object):
             modules.extend(temp_dict[k])
         return modules
 
-    def _sort_and_set_modules(self, klss: Dict[str, Type["TelegramBotModuleBase"]]):
+    def _sort_and_set_modules(self, klss: Dict[str, Type[TelegramBotModuleBase]]):
         sorted_modules = self._sort_modules(klss)
         #
         self._add_modules(sorted_modules)

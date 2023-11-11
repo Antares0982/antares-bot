@@ -1,3 +1,5 @@
+# should not import anything other than python stdlib here
+
 def generate_language(locale: str):
     from bot_default_cfg import LOCALE as default_locale
     if locale != default_locale:

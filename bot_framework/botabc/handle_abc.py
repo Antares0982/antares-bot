@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext
-from bot_framework.utils.workflow import HandleStatus, handleIgnore
+from bot_framework.workflow import HandleStatus, handleIgnore
 
 
 class BotHandleABC(object):
