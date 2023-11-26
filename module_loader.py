@@ -1,15 +1,18 @@
 import os
 import sys
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, cast
 
-from basebot import TelegramBotModuleBase
+from bot_framework.module_base import TelegramBotModuleBase
+from bot_logging import error, warn
+
 
 if TYPE_CHECKING:
     from bot_inst import TelegramBot
-_T = TypeVar("_T", bound=TelegramBotModuleBase, covariant=True)
+_T = TypeVar("_T", bound=TelegramBotModuleBase)
 
-MODULE_PRIORITY = "MODULE_PRIORITY"
+MODULE_PRIORITY_STR = "MODULE_PRIORITY"
+MODULE_SKIP_LOAD = "MODULE_SKIP_LOAD_STR"
 VALID_MODULE_RANGE = (0, 256)
 
 
@@ -26,7 +29,7 @@ class TelegramBotModuleDesc(Generic[_T]):
 
     @property
     def priority(self) -> int:
-        return getattr(self.kls, MODULE_PRIORITY, 128)
+        return getattr(self.kls, MODULE_PRIORITY_STR, 128)
 
     @property
     def enabled(self) -> bool:
@@ -36,7 +39,7 @@ class TelegramBotModuleDesc(Generic[_T]):
         l, r = VALID_MODULE_RANGE
         priority = self.priority
         if priority < l or priority >= r:
-            raise ValueError(f"{MODULE_PRIORITY} of {self.top_name} is invalid, should be in [{l}, {r})")
+            raise ValueError(f"{MODULE_PRIORITY_STR} of {self.top_name} is invalid, should be in [{l}, {r})")
 
     def do_init(self, parent: "TelegramBot") -> None:
         self.module_instance = self.kls(parent)
@@ -51,11 +54,11 @@ class ModuleKeeper(object):
     _TYPE = 2
 
     def __init__(self) -> None:
-        self._ordered_modules: List[TelegramBotModuleDesc] = []
-        self._modules_dict: Dict[str, TelegramBotModuleDesc] = dict()
-        self._class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc] = dict()
-        self._disabled_modules_dict: Dict[str, TelegramBotModuleDesc] = dict()
-        self._disabled_class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc] = dict()
+        self._ordered_modules: List[TelegramBotModuleDesc[TelegramBotModuleBase]] = []
+        self._modules_dict: Dict[str, TelegramBotModuleDesc[TelegramBotModuleBase]] = dict()
+        self._class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc[TelegramBotModuleBase]] = dict()
+        self._disabled_modules_dict: Dict[str, TelegramBotModuleDesc[TelegramBotModuleBase]] = dict()
+        self._disabled_class2module_dict: Dict[Type[TelegramBotModuleBase], TelegramBotModuleDesc[TelegramBotModuleBase]] = dict()
 
     def load_all(self) -> None:
         """
@@ -76,13 +79,13 @@ class ModuleKeeper(object):
     def get_module_by_class(self, cls: Type[_T]) -> Optional[_T]:
         py_module = self._find_module_internal(cls, self._TYPE)
         if py_module is not None:
-            return py_module.module_instance
+            return cast(_T, py_module.module_instance)
         return None
 
-    def get_all_enabled_modules(self) -> List[TelegramBotModuleDesc]:
+    def get_all_enabled_modules(self) -> List[TelegramBotModuleDesc[TelegramBotModuleBase]]:
         return self._ordered_modules
 
-    def run_over(self, func: Callable[[TelegramBotModuleDesc], Any]):
+    def run_over(self, func: Callable[[TelegramBotModuleDesc[TelegramBotModuleBase]], Any]):
         for module in self._ordered_modules:
             func(module)
 
@@ -97,13 +100,13 @@ class ModuleKeeper(object):
         self._modules_dict.clear()
         self._class2module_dict.clear()
 
-    def _find_module_internal(self, k, _type: int) -> Optional[TelegramBotModuleDesc]:
+    def _find_module_internal(self, k, _type: int) -> Optional[TelegramBotModuleDesc[TelegramBotModuleBase]]:
         if _type == self._STR:
             return self._find_module_from(self._modules_dict, self._disabled_modules_dict, k)
         return self._find_module_from(self._class2module_dict, self._disabled_class2module_dict, k)
 
     @staticmethod
-    def _find_module_from(d1: dict, d2: dict, k) -> Optional[TelegramBotModuleDesc]:
+    def _find_module_from(d1: dict, d2: dict, k) -> Optional[TelegramBotModuleDesc[TelegramBotModuleBase]]:
         py_module = d1.get(k, None)
         if py_module is not None:
             return py_module
@@ -123,7 +126,9 @@ class ModuleKeeper(object):
         d1: Dict[Any, TelegramBotModuleDesc],
         d2: Dict[Any, TelegramBotModuleDesc],
         k
-    ) -> Optional[TelegramBotModuleDesc]:
+    ) -> Optional[TelegramBotModuleDesc[TelegramBotModuleBase]]:
+        # TODO
+        raise NotImplementedError
         module = d1.get(k, None)
         if module is not None:
             module.set_enabled(False)
@@ -132,7 +137,7 @@ class ModuleKeeper(object):
             return module
         return None
 
-    def _remove_from_sorted_modules(self, module: TelegramBotModuleDesc) -> None:
+    def _remove_from_sorted_modules(self, module: TelegramBotModuleDesc[TelegramBotModuleBase]) -> None:
         self._ordered_modules.remove(module)
 
     @staticmethod
@@ -145,19 +150,19 @@ class ModuleKeeper(object):
                 if filename.endswith(".py") and filename != "__init__.py":
                     module_top_name = filename[:-3]
                     if module_top_name in ret:
-                        print(f"Warning: {module_top_name} is duplicated")
+                        error(f"{module_top_name} is duplicated")
                         continue
                     module_full_name = os.path.join(dirname, filename).replace(os.path.sep, ".")[:-3]
                     try:
                         if module_full_name in sys.modules:
                             # reload
-                            print(f"Reloading {module_full_name}")
+                            is_reload = True
                             module = importlib.reload(sys.modules[module_full_name])
                         else:
-                            print(f"Loading {module_full_name}")
+                            is_reload = False
                             module = importlib.import_module(module_full_name)
                     except Exception as e:
-                        print(e)
+                        error(e)
                         continue
                     _names = module_top_name.split("_")
                     class_name = ''.join([name.capitalize() for name in _names])
@@ -168,14 +173,20 @@ class ModuleKeeper(object):
                             continue
                     except Exception:
                         continue
+                    skip = getattr(kls, MODULE_SKIP_LOAD, False)
+                    if skip:
+                        continue
+                    #
+                    _load_str = "reloaded" if is_reload else "loaded"
+                    warn(f"{_load_str} module {module_top_name}")
                     ret[module_top_name] = kls
 
         return ret
 
     @staticmethod
-    def _sort_modules(klss: Dict[str, Type[TelegramBotModuleBase]]) -> List[TelegramBotModuleDesc]:
-        modules: List[TelegramBotModuleDesc] = []
-        temp_dict: defaultdict[int, List[TelegramBotModuleDesc]] = defaultdict(list)
+    def _sort_modules(klss: Dict[str, Type[TelegramBotModuleBase]]):
+        modules: List[TelegramBotModuleDesc[TelegramBotModuleBase]] = []
+        temp_dict: defaultdict[int, List[TelegramBotModuleDesc[TelegramBotModuleBase]]] = defaultdict(list)
         for top_name, kls in klss.items():
             module = TelegramBotModuleDesc(top_name, kls)
             module.check_priority_valid()
@@ -192,14 +203,14 @@ class ModuleKeeper(object):
         #
         self._add_modules(sorted_modules)
 
-    def _add_module(self, module: TelegramBotModuleDesc):
+    def _add_module(self, module: TelegramBotModuleDesc[TelegramBotModuleBase]):
         self._maintain_add_module_internal(module)
 
-    def _add_modules(self, modules: List[TelegramBotModuleDesc]):
+    def _add_modules(self, modules: List[TelegramBotModuleDesc[TelegramBotModuleBase]]):
         for module in modules:
             self._maintain_add_module_internal(module)
 
-    def _maintain_add_module_internal(self, module: TelegramBotModuleDesc):
+    def _maintain_add_module_internal(self, module: TelegramBotModuleDesc[TelegramBotModuleBase]):
         if module.enabled:
             self._ordered_modules.append(module)
             self._modules_dict[module.top_name] = module

@@ -26,7 +26,6 @@ def main():
         level=logging.WARN,
     )
     from bot_framework import language
-    print(language.STARTUP)
     from bot_inst import MainBotApp
     bot_app = MainBotApp()
 

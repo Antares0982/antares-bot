@@ -10,9 +10,6 @@ if TYPE_CHECKING:
 
 
 class Echo(TelegramBotModuleBase):
-    def do_init(self) -> None:
-        pass
-
     @command_callback_wrapper
     async def echo(self, update: "Update", context: "RichCallbackContext") -> bool:
         assert update.message is not None
@@ -20,5 +17,5 @@ class Echo(TelegramBotModuleBase):
         text = update.message.text.strip()
         if text.startswith("/echo"):
             text = text[len("/echo"):].strip()
-        await update.message.reply_text(text)
+        await self.reply(update.message, text)
         return True

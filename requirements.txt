@@ -1,2 +1,1 @@
-typing_extensions
-python-telegram-bot
+python-telegram-bot[job-queue]

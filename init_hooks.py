@@ -9,7 +9,8 @@ def generate_language(locale: str):
             new_language = importlib.import_module(f"bot_framework.multi_lang.{locale}")
         except ImportError:
             import sys
-            print(f"language {locale} not found! Exiting.", file=sys.stderr)
+            from bot_logging import error
+            error(f"language {locale} not found! Exiting.")
             exit(1)
         from bot_framework import language
         for k, v in new_language.__dict__.items():

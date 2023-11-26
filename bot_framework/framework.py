@@ -1,23 +1,43 @@
+import importlib
 from functools import wraps
-from typing import TYPE_CHECKING, Optional, Protocol, overload
+from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, Type, overload
 
 from telegram import Update
-from telegram.ext import filters
+from telegram.ext import CommandHandler, filters
+
+from bot_framework.module_analyze_utils import get_module_class_from_name
+from bot_framework.module_base import TelegramBotModuleBase
+from bot_logging import warn
+from context_manager import ContextHelper
+
 
 if TYPE_CHECKING:
-    from context import RichCallbackContext
+    from telegram.ext import BaseHandler
+
+    from bot_framework.context import RichCallbackContext
 
 
-class CommandCallbackMethodProtocol(Protocol):
-    def __call__(_, self, update: Update, context: "RichCallbackContext"):
-        ...
+class CallbackBase(object):
+    handler_type: Type["BaseHandler"]
 
+    def __init__(self, func, *args, **kwargs):
+        self._instance = None
+        self.on_init(*args, **kwargs)
+        self._register_and_wrap(func)
 
-class CommandCallback(object):
-    def __init__(self, func: CommandCallbackMethodProtocol, filters, block):
-        self.filters = filters
-        self.block = block
-        self.__instance = None
+    def on_init(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def _register_and_wrap(self, func):
+        # try:
+        #     module_name = func.__module__
+        #     kls = get_module_class_from_name(module_name, TelegramBotModuleBase)
+        #     if kls is None:
+        #         warn("class is None, skip register")
+        #     else:
+        #         kls.register_new_handler(func)
+        # except Exception as e:
+        #     warn("_register_and_wrap:" + repr(e))
         wraps(func)(self)
 
     async def __call__(self, update: Update, context: "RichCallbackContext"):
@@ -26,14 +46,42 @@ class CommandCallback(object):
 
         # check blacklist
         # pass
-        return await self.__wrapped__(self.__instance, update, context)
+        with ContextHelper(context):
+            if self._instance is not None:
+                return await self.__wrapped__(self._instance, update, context)  # type: ignore
+            else:
+                return await self.__wrapped__(update, context)  # type: ignore
 
     def __get__(self, instance, cls):
-        if instance is None:
-            raise TypeError("Should only be used on methods.")
-        if self.__instance is None:
-            self.__instance = instance
+        if instance is not None:
+            self._instance = instance
         return self
+
+    def to_handler(self, **kwds):
+        kwds.update(self.kwargs)
+        return self.handler_type(callback=self, **kwds)
+
+
+class CommandCallback(CallbackBase):
+    handler_type = CommandHandler
+
+    def on_init(self, filters, block):
+        self.filters = filters
+        self.block = block
+
+    @property
+    def kwargs(self):
+        return {
+            "filters": self.filters,
+            "block": self.block,
+            "command": self.__wrapped__.__name__,
+        }
+
+
+class GeneralCallback(CallbackBase):
+    def on_init(self, handler_type, kwargs):
+        self.handler_type = handler_type
+        self.kwargs = kwargs
 
 
 class _CommandCallbackMethodDecor(object):
@@ -49,7 +97,7 @@ class _CommandCallbackMethodDecor(object):
         self.filters = filters
         self.block = block
 
-    def __call__(self, func: CommandCallbackMethodProtocol):
+    def __call__(self, func):
         return CommandCallback(func, self.filters, self.block)
 
     # def _on_handle(self, update: Update, context: "RichCallbackContext"):
@@ -97,15 +145,45 @@ class _CommandCallbackMethodDecor(object):
     #     return self
 
 
+class GeneralCallbackWrapper(object):
+    """
+    Internal decorator for command callback functions.
+    """
+
+    def __init__(
+        self,
+        handler_type, **kwargs
+    ):
+        self.handler_type = handler_type
+        self.kwargs = kwargs
+
+    def __call__(self, func):
+        return CommandCallback(func, self.handler_type, self.kwargs)
+
+
 @overload
-def command_callback_wrapper(func: CommandCallbackMethodProtocol) -> CommandCallback:
+def command_callback_wrapper(func: Callable) -> CommandCallback:
     ...
 
 
+@overload
 def command_callback_wrapper(
-        block: bool = False,
-        filters: Optional[filters.BaseFilter] = None,
+    block: bool = False,
+    filters: Optional[filters.BaseFilter] = None,
+) -> CommandCallback:
+    ...
+
+
+def command_callback_wrapper(  # type: ignore
+    block: Any = False,
+    filters: Optional[filters.BaseFilter] = None,
 ):
     if callable(block):
         return _CommandCallbackMethodDecor()(block)
     return _CommandCallbackMethodDecor(filters, block)
+
+
+def general_callback_wrapper(handler_type, **kwargs):
+    if not callable(handler_type):
+        raise TypeError("general_callback_wrapper use first argument to identify handler type")
+    return GeneralCallbackWrapper(handler_type, **kwargs)

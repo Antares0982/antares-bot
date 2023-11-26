@@ -11,13 +11,10 @@ if TYPE_CHECKING:
 
 
 class Timer(TelegramBotModuleBase):
-    def do_init(self) -> None:
-        pass
-
     @command_callback_wrapper
     async def timer(self, update: "Update", context: "RichCallbackContext") -> bool:
         assert update.message is not None
         assert update.message.text is not None
         await asyncio.sleep(5)
-        await update.message.reply_text("time up!")
+        await self.reply_to(update.message, "time up!")
         return True
