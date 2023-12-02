@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Type, TypeVar, Union
 
 from telegram import Update
 from telegram.ext import Application, ContextTypes
 
 from bot_cfg import TOKEN
 from bot_framework.bot_base import TelegramBotBase
+from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
 from bot_framework.framework import CallbackBase
 from bot_framework.patching.application_ex import ApplicationEx
@@ -42,6 +43,8 @@ class TelegramBot(TelegramBotBase):
         self.bot = self.application.bot
         self.updater = self.application.updater
         self.job_queue = self.application.job_queue
+        #
+        self.callback_manager = CallbackDataManager()
 
     def start(self):
         self._module_keeper.load_all()

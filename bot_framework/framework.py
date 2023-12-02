@@ -1,13 +1,10 @@
-import importlib
+import re
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, Type, overload
+from typing import TYPE_CHECKING, Any, Callable, Optional, Pattern, Type, Union, overload
 
 from telegram import Update
-from telegram.ext import CommandHandler, filters
+from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from bot_framework.module_analyze_utils import get_module_class_from_name
-from bot_framework.module_base import TelegramBotModuleBase
-from bot_logging import warn
 from context_manager import ContextHelper
 
 
@@ -24,6 +21,7 @@ class CallbackBase(object):
         self._instance = None
         self.on_init(*args, **kwargs)
         self._register_and_wrap(func)
+        self._pre_executer = None
 
     def on_init(self, *args, **kwargs):
         raise NotImplementedError
@@ -42,7 +40,7 @@ class CallbackBase(object):
 
     async def __call__(self, update: Update, context: "RichCallbackContext"):
         # pre execute
-        # pass
+        await self.pre_execute(update, context)
 
         # check blacklist
         # pass
@@ -60,6 +58,10 @@ class CallbackBase(object):
     def to_handler(self, **kwds):
         kwds.update(self.kwargs)
         return self.handler_type(callback=self, **kwds)
+
+    async def pre_execute(self, update: Update, context: "RichCallbackContext"):
+        if self._pre_executer:
+            await self._pre_executer(update, context)
 
 
 class CommandCallback(CallbackBase):
@@ -79,9 +81,13 @@ class CommandCallback(CallbackBase):
 
 
 class GeneralCallback(CallbackBase):
+    PRE_EXUCUTER_KW = 'pre_executer'
+
     def on_init(self, handler_type, kwargs):
         self.handler_type = handler_type
         self.kwargs = kwargs
+        if self.PRE_EXUCUTER_KW in kwargs:
+            self._pre_executer = kwargs[self.PRE_EXUCUTER_KW]
 
 
 class _CommandCallbackMethodDecor(object):
@@ -158,7 +164,7 @@ class GeneralCallbackWrapper(object):
         self.kwargs = kwargs
 
     def __call__(self, func):
-        return CommandCallback(func, self.handler_type, self.kwargs)
+        return GeneralCallback(func, self.handler_type, self.kwargs)
 
 
 @overload
@@ -183,7 +189,27 @@ def command_callback_wrapper(  # type: ignore
     return _CommandCallbackMethodDecor(filters, block)
 
 
-def general_callback_wrapper(handler_type, **kwargs):
+def general_callback_wrapper(handler_type, block=False, **kwargs):
     if not callable(handler_type):
         raise TypeError("general_callback_wrapper use first argument to identify handler type")
+    if 'block' not in kwargs:
+        kwargs['block'] = block
     return GeneralCallbackWrapper(handler_type, **kwargs)
+
+
+async def _btn_pre_executer(update: Update, context: "RichCallbackContext"):
+    query = update.callback_query
+    assert query is not None and query.data is not None
+    await query.answer()
+
+
+def btn_click_wrapper(
+        pattern: Optional[Union[str, Pattern[str], type, Callable[[object], Optional[bool]]]] = None
+):
+    if isinstance(pattern, str):
+        # startswith `pattern`
+        pattern = re.compile(f"^{pattern}")
+    return general_callback_wrapper(CallbackQueryHandler, pre_executer=_btn_pre_executer, pattern=pattern)
+
+
+msg_handle_wrapper = general_callback_wrapper(MessageHandler)

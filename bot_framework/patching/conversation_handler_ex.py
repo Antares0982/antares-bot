@@ -53,7 +53,7 @@ class ConversationHandlerEx(ConversationHandler[CCT]):
         )
         self._locks_holder = dict()
 
-    def _get_lock(self, key: Tuple[Any, ...]) -> Any:
+    def _get_lock(self, key: Tuple[Any, ...]) -> asyncio.Lock:
         # asyncio run in single thread, so we can use dict as lock holder
         lk = self._locks_holder.get(key, None)
         if lk is None:

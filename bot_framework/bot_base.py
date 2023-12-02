@@ -20,8 +20,8 @@ class TelegramBotBase(object):
     RETRY_TIMES = 3
     RETRY_SLEEP_TIME = 1.
 
-    @staticmethod
-    def _get_context() -> "RichCallbackContext":
+    @classmethod
+    def get_context(cls) -> "RichCallbackContext":
         context = context_manager.get_context()
         if context is None:
             raise RuntimeError("No context found")
@@ -90,7 +90,7 @@ class TelegramBotBase(object):
 
     @classmethod
     async def _reply(cls, text: str, **kwargs):
-        context = cls._get_context()
+        context = cls.get_context()
         chat_id: int = kwargs.get('chat_id', context.chat_id)
         kwargs.setdefault('chat_id', chat_id)
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
@@ -118,7 +118,7 @@ class TelegramBotBase(object):
 
     @classmethod
     async def _send_to(cls, chat_id: int, text: str, **kwargs):
-        context = cls._get_context()
+        context = cls.get_context()
         texts = longtext_split(text)
         kwargs['chat_id'] = chat_id
         async for m in cls._sequence_send(context.bot.send_message, texts, **kwargs):
