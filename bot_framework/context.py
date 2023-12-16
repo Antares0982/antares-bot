@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Self, cast
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, Optional, Self, cast
 
 from telegram import Update
 from telegram.constants import ChatType

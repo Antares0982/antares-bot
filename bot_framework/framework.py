@@ -88,9 +88,11 @@ class GeneralCallback(CallbackBase):
         self.kwargs = kwargs
         if self.PRE_EXUCUTER_KW in kwargs:
             self._pre_executer = kwargs[self.PRE_EXUCUTER_KW]
+            kwargs.pop(self.PRE_EXUCUTER_KW)
 
 
 class _CommandCallbackMethodDecor(object):
+
     """
     Internal decorator for command callback functions.
     """
@@ -212,4 +214,4 @@ def btn_click_wrapper(
     return general_callback_wrapper(CallbackQueryHandler, pre_executer=_btn_pre_executer, pattern=pattern)
 
 
-msg_handle_wrapper = general_callback_wrapper(MessageHandler)
+msg_handle_wrapper = general_callback_wrapper(MessageHandler, filters=None)

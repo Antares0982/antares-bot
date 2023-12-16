@@ -7,12 +7,11 @@ from telegram.ext._utils.types import CCT
 from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
 
-UT = TypeVar("UT")
 if TYPE_CHECKING:
     from bot_framework.patching.application_ex import ApplicationEx
 
 
-class AtomHandler(Protocol[UT, CCT]):
+class AtomHandler(Protocol[CCT]):
     async def do_process_atom(
         self,
         context: Optional[CCT],

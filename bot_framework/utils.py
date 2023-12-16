@@ -1,10 +1,7 @@
-from typing import List, Optional, TypeVar
+from typing import List, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatType
-
-_K = TypeVar("_K")
-_V = TypeVar("_V")
 
 
 class ObjectDict(dict):

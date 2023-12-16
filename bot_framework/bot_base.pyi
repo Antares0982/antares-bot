@@ -5,8 +5,14 @@ from telegram._utils.defaultvalue import DEFAULT_NONE
 from telegram._utils.types import DVInput, JSONDict, ODVInput, ReplyMarkup
 from telegram.ext._utils.types import RLARGS
 
+from bot_framework.context import RichCallbackContext
+
 
 class TelegramBotBase(object):
+    @classmethod
+    def get_context(cls) -> "RichCallbackContext":
+        ...
+
     @classmethod
     async def success_info(
         cls,
@@ -53,6 +59,14 @@ class TelegramBotBase(object):
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
     ) -> Literal[False]:
+        ...
+
+    @classmethod
+    async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
+        ...
+
+    @classmethod
+    def debug_info(cls, msg:str, *args):
         ...
 
     @classmethod

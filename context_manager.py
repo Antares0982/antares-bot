@@ -30,10 +30,10 @@ class ContextHelper:
         self.token = None
 
     def __enter__(self):
-        self.token = context_manager.set(self.context)
+        self.token = set_context(self.context)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        context_manager.reset(self.token)
+        reset_context(self.token)
         self.token = None
         return False

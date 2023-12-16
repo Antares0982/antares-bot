@@ -1,4 +1,18 @@
 # should not import anything other than python stdlib here
+import os
+import shutil
+
+def hook_cfg():
+    DIR = os.path.dirname(os.path.realpath(__file__))
+    cfg_path = os.path.join(DIR, "bot_cfg.py")
+    if not os.path.exists(cfg_path):
+        shutil.copyfile(os.path.join(DIR, "bot_default_cfg.py"), cfg_path)
+    import bot_cfg as cfg
+    import bot_default_cfg
+    for k in bot_default_cfg.__all__:
+        if not hasattr(cfg, k):
+            setattr(cfg, k, getattr(bot_default_cfg, k))
+
 
 def generate_language(locale: str):
     from bot_default_cfg import LOCALE as default_locale
@@ -9,6 +23,7 @@ def generate_language(locale: str):
             new_language = importlib.import_module(f"bot_framework.multi_lang.{locale}")
         except ImportError:
             import sys
+
             from bot_logging import error
             error(f"language {locale} not found! Exiting.")
             exit(1)

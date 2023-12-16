@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
 import context_manager
+from bot_logging import info
 from text_splitter import longtext_split
-
+from telegram import CallbackQuery
 
 if TYPE_CHECKING:
     from telegram import Message
@@ -45,6 +46,29 @@ class TelegramBotBase(object):
     async def error_info(cls, text: str, **kwargs):
         await cls.reply(text, **kwargs)
         return False
+
+    @classmethod
+    async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
+        context = cls.get_context()
+        if maxTries <= 0:
+            raise ValueError("无效的重试次数")
+
+        for i in range(maxTries):
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=msgid)
+            except TelegramError:
+                if i == maxTries - 1:
+                    return False
+                continue
+            break
+
+        return True
+
+    @classmethod
+    def debug_info(cls, msg, *args):
+        if True:  # cls.debug:  # TODO
+            info(msg, *args)
+
     ##############################
 
     @classmethod

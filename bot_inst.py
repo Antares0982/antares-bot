@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union
 
 from telegram import Update
 from telegram.ext import Application, ContextTypes
@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     from bot_framework.module_base import TelegramBotModuleBase
 
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
-# _KT = TypeVar("_KT")
-# _VT = TypeVar("_VT")
 
 
 class TelegramBot(TelegramBotBase):
@@ -42,9 +40,11 @@ class TelegramBot(TelegramBotBase):
             .build()
         self.bot = self.application.bot
         self.updater = self.application.updater
+        assert self.application.job_queue
         self.job_queue = self.application.job_queue
         #
         self.callback_manager = CallbackDataManager()
+        self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
 
     def start(self):
         self._module_keeper.load_all()
@@ -59,45 +59,40 @@ class TelegramBot(TelegramBotBase):
                     self.application.add_handler(func.to_handler())  # , group=func.group)
                 else:
                     self.application.add_handler(func)
-                warn(f"added handler, name: {func.__name__}")
-            # for command_callbacks_name in dir(module_inst):
-            #     if command_callbacks_name.startswith("_"):
-            #         continue
-            #     try:
-            #         func = getattr(module_inst, command_callbacks_name)
-            #     except RuntimeError:
-            #         continue
-            #     if isinstance(func, CommandCallback):
-            #         self.application.add_handler(func.to_handler(command=command_callbacks_name))
-            #         warn(f"added handler for {command_callbacks_name}")
-        # TODO
+                warn(f"added handler, name: {func}")
 
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    def stop(self):
+        self.application.stop()
 
     def get_module(self, top_name_or_clsss: Union[str, Type[_T]]) -> Optional[_T]:
         if isinstance(top_name_or_clsss, str):
             return self._module_keeper.get_module(top_name_or_clsss)  # type: ignore
         return self._module_keeper.get_module_by_class(top_name_or_clsss)
 
-
-class MainBotApp(object):
-    def __init__(self, **kwargs) -> None:
-        self.bot_instance = TelegramBot(**kwargs)
-        self.bot_instance.start()
-
-
-__bot_app_singleton = None
-
-
-def get_bot_app_instance() -> MainBotApp:
-    global __bot_app_singleton
-    if __bot_app_singleton is None:
-        __bot_app_singleton = MainBotApp()
-    return __bot_app_singleton
+    def remove_job_if_exists(self, name: str) -> bool:
+        """Remove job with given name. Returns whether job was removed."""
+        current_jobs = self.job_queue.get_jobs_by_name(name)
+        if not current_jobs:
+            return False
+        for job in current_jobs:
+            job.schedule_removal()
+        return True
 
 
-def destroy_bot_app_instance():
-    global __bot_app_singleton
-    if __bot_app_singleton is not None:
-        __bot_app_singleton.stop()
-        __bot_app_singleton = None
+__bot_singleton = None
+
+
+def destroy_bot_instance():
+    global __bot_singleton
+    if __bot_singleton is not None:
+        __bot_singleton.stop()
+        __bot_singleton = None
+
+
+def get_bot_instance() -> TelegramBot:
+    global __bot_singleton
+    if __bot_singleton is None:
+        __bot_singleton = TelegramBot()
+    return __bot_singleton
