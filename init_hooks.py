@@ -2,6 +2,7 @@
 import os
 import shutil
 
+
 def hook_cfg():
     DIR = os.path.dirname(os.path.realpath(__file__))
     cfg_path = os.path.join(DIR, "bot_cfg.py")
@@ -24,8 +25,7 @@ def generate_language(locale: str):
         except ImportError:
             import sys
 
-            from bot_logging import error
-            error(f"language {locale} not found! Exiting.")
+            print(f"language {locale} not found! Exiting.", file=sys.stderr)
             exit(1)
         from bot_framework import language
         for k, v in new_language.__dict__.items():

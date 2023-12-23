@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
 import context_manager
-from bot_logging import info
+from bot_logging import get_logger
 from text_splitter import longtext_split
-from telegram import CallbackQuery
+
 
 if TYPE_CHECKING:
     from telegram import Message
@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 _T = TypeVar("_T")
+
+DEBUG_LOGGER = get_logger("debug")
 
 
 class TelegramBotBase(object):
@@ -66,8 +68,7 @@ class TelegramBotBase(object):
 
     @classmethod
     def debug_info(cls, msg, *args):
-        if True:  # cls.debug:  # TODO
-            info(msg, *args)
+        DEBUG_LOGGER.debug(msg, *args)
 
     ##############################
 

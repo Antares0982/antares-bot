@@ -1,11 +1,15 @@
 from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload, Any, Awaitable, Callable, Coroutine, TypeVar
 
 
 if TYPE_CHECKING:
     from contextvars import Token
 
     from bot_framework.context import RichCallbackContext
+
+_JobCallback = Callable[["RichCallbackContext"], Awaitable[Any]]
+_CoroutineJobCallback = Callable[["RichCallbackContext"], Coroutine[Any, Any, Any]]
+_T = TypeVar("_T", _JobCallback, _CoroutineJobCallback)
 
 context_manager: ContextVar['RichCallbackContext'] = ContextVar('RichCallbackContext', default=None)  # type: ignore
 
@@ -22,6 +26,34 @@ def reset_context(token: "Token[RichCallbackContext]"):
     context_manager.reset(token)
 
 
+@overload
+def callback_job_wrapper(context: "RichCallbackContext") -> Callable[[_T], _T]:
+    ...
+
+
+@overload
+def callback_job_wrapper(func: _T) -> _T:
+    ...
+
+
+def callback_job_wrapper(arg):
+    if isinstance(arg, RichCallbackContext):
+        def wrapper(func):
+            async def wrapped(*args, **kwargs):
+                with ContextHelper(arg):
+                    return await func(*args, **kwargs)
+            return wrapped
+        return wrapper
+
+    # is function
+    _ct = get_context()
+
+    async def wrapped(*args, **kwargs):
+        with ContextHelper(_ct):
+            return await arg(*args, **kwargs)
+    return wrapped
+
+
 class ContextHelper:
     __slots__ = ("context", "token")
 
@@ -35,5 +67,19 @@ class ContextHelper:
 
     def __exit__(self, exc_type, exc_value, traceback):
         reset_context(self.token)
+        self.token = None
+        return False
+
+
+class ContextReverseHelper:
+    def __init__(self):
+        self.token = None
+
+    def __enter__(self):
+        self.token = context_manager.set(None)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        context_manager.reset(self.token)
         self.token = None
         return False

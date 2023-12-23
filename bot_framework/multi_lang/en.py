@@ -1,2 +1,5 @@
 STARTUP = "Bot is live!"
 CANCELLED = "Cancelled~"
+ASK_ALARM_TYPE = "What type of alarm do you want to set?"
+UNKNOWN_ERROR = "Oops, an unknown error occurred..."
+ALARM_SELECT_DEL = "Please select the alarm to delete~"

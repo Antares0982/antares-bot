@@ -1,10 +1,14 @@
 import importlib
 import sys
-from typing import Optional, Type, TypeVar, cast
 from types import ModuleType
-from bot_logging import error
+from typing import Optional, Type, TypeVar, cast
+
+from bot_logging import get_logger
+
 
 _T = TypeVar("_T")
+
+_LOGGER = get_logger(__name__)
 
 
 def get_module_from_name(module_name: str):
@@ -21,7 +25,7 @@ def get_module_from_name(module_name: str):
         else:
             return importlib.import_module(module_name), False
     except Exception as e:
-        error(e)
+        _LOGGER.error(e)
         return None, False
 
 

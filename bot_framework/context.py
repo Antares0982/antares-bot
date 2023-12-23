@@ -1,13 +1,10 @@
-from typing import TYPE_CHECKING, Any, Coroutine, Dict, Optional, Self, cast
+from typing import Any, Dict, Optional, Self, cast
 
 from telegram import Update
 from telegram.constants import ChatType
 from telegram.ext import Application, CallbackContext, ExtBot
 
 from bot_framework.utils import ObjectDict, get_msg_id, get_reply_to_msg_id
-
-if TYPE_CHECKING:
-    from telegram.ext._utils.types import CCT
 
 
 class ChatData:
@@ -36,7 +33,6 @@ class RichCallbackContext(CallbackContext[ExtBot, UserData, ChatData, dict]):
     @classmethod
     def from_update(cls, update: object, application: "Application") -> Self:
         """Override from_update to set _message_id."""
-        # Make sure to call super()
         context = super().from_update(update, application)
         if isinstance(update, Update):
             context._last_message_id = get_msg_id(update)

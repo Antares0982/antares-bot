@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Set, Union
+from typing import TYPE_CHECKING
 
 from bot_framework.module_base import TelegramBotModuleBase
 from bot_framework.framework import command_callback_wrapper
@@ -7,7 +7,6 @@ if TYPE_CHECKING:
     from telegram import Update
 
     from bot_framework.context import RichCallbackContext
-    from bot_framework.framework import CallbackBase
 
 
 class Echo(TelegramBotModuleBase):
@@ -21,5 +20,6 @@ class Echo(TelegramBotModuleBase):
         text = update.message.text.strip()
         if text.startswith("/echo"):
             text = text[len("/echo"):].strip()
-        await self.reply(text)
+        if text:
+            await self.reply(text)
         return True

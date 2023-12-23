@@ -1,15 +1,15 @@
-import asyncio
-from typing import TYPE_CHECKING, Set
+import time
+from typing import TYPE_CHECKING
 
 from bot_framework.framework import command_callback_wrapper
 from bot_framework.module_base import TelegramBotModuleBase
+from context_manager import callback_job_wrapper
 
 
 if TYPE_CHECKING:
     from telegram import Update
 
     from bot_framework.context import RichCallbackContext
-    from bot_framework.framework import CallbackBase
 
 
 class Timer(TelegramBotModuleBase):
@@ -21,17 +21,8 @@ class Timer(TelegramBotModuleBase):
         assert update.message is not None
         assert update.message.text is not None
 
-        # async def _timer_callback(context2: "RichCallbackContext"):
-        #     ct = self.get_context()
-        #     print(id(ct))
-        #     print(id(context2))
-        #     await context.bot.send_message(context.chat_id, "Time up!")
-        self.job_queue.run_once(self._timer_callback, 5)
-        return True
-
-    async def _timer_callback(self, context2: "RichCallbackContext"):
-        ct = self.get_context()
-        print(id(ct))
-        print(id(context2))
-        # await context2.bot.send_message(context2.chat_id, "Time up!")
+        @callback_job_wrapper
+        async def cb(_):
+            await self.reply("Time up!")
+        self.job_queue.run_once(cb, 5, name=f"{time.time()}")
         return True

@@ -1,7 +1,7 @@
 from typing import Any, Coroutine, Optional, Union
 
 from telegram._utils.defaultvalue import DEFAULT_TRUE
-from telegram._utils.logging import get_logger
+from bot_logging import get_logger
 from telegram.ext import Application, ApplicationHandlerStop, BaseHandler, ExtBot
 
 from telegram.ext._utils.types import BD, BT, CCT, CD, JQ, UD

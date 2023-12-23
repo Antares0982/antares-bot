@@ -4,16 +4,20 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, cast
 
 from bot_framework.module_base import TelegramBotModuleBase
-from bot_logging import error, warn
+from bot_logging import get_logger
 
 
 if TYPE_CHECKING:
     from bot_inst import TelegramBot
+
 _T = TypeVar("_T", bound=TelegramBotModuleBase)
 
 MODULE_PRIORITY_STR = "MODULE_PRIORITY"
 MODULE_SKIP_LOAD = "MODULE_SKIP_LOAD_STR"
 VALID_MODULE_RANGE = (0, 256)
+
+
+_LOGGER = get_logger(__name__)
 
 
 class TelegramBotModuleDesc(Generic[_T]):
@@ -150,7 +154,7 @@ class ModuleKeeper(object):
                 if filename.endswith(".py") and filename != "__init__.py":
                     module_top_name = filename[:-3]
                     if module_top_name in ret:
-                        error(f"{module_top_name} is duplicated")
+                        _LOGGER.error(f"{module_top_name} is duplicated")
                         continue
                     module_full_name = os.path.join(dirname, filename).replace(os.path.sep, ".")[:-3]
                     try:
@@ -162,7 +166,7 @@ class ModuleKeeper(object):
                             is_reload = False
                             module = importlib.import_module(module_full_name)
                     except Exception as e:
-                        error(e)
+                        _LOGGER.error(e)
                         continue
                     _names = module_top_name.split("_")
                     class_name = ''.join([name.capitalize() for name in _names])
@@ -178,7 +182,7 @@ class ModuleKeeper(object):
                         continue
                     #
                     _load_str = "reloaded" if is_reload else "loaded"
-                    warn(f"{_load_str} module {module_top_name}")
+                    _LOGGER.warn(f"{_load_str} module {module_top_name}")
                     ret[module_top_name] = kls
 
         return ret

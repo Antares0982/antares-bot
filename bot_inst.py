@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from telegram import Update
 from telegram.ext import Application, ContextTypes
@@ -9,7 +9,8 @@ from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
 from bot_framework.framework import CallbackBase
 from bot_framework.patching.application_ex import ApplicationEx
-from bot_logging import warn
+from bot_framework.patching.job_quque_ex import JobQueueEx
+from bot_logging import get_logger
 from module_loader import ModuleKeeper
 
 
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
     from bot_framework.module_base import TelegramBotModuleBase
 
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
+
+_LOGGER = get_logger(__name__)
 
 
 class TelegramBot(TelegramBotBase):
@@ -37,6 +40,7 @@ class TelegramBot(TelegramBotBase):
             .application_class(ApplicationEx)\
             .token(TOKEN)\
             .context_types(context_types)\
+            .job_queue(JobQueueEx())\
             .build()
         self.bot = self.application.bot
         self.updater = self.application.updater
@@ -59,7 +63,7 @@ class TelegramBot(TelegramBotBase):
                     self.application.add_handler(func.to_handler())  # , group=func.group)
                 else:
                     self.application.add_handler(func)
-                warn(f"added handler, name: {func}")
+                _LOGGER.warn(f"added handler, name: {func}")
 
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
 

@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Tuple, T
 
 from telegram import Update
 from telegram._utils.defaultvalue import DEFAULT_TRUE
-from telegram._utils.logging import get_logger
 from telegram._utils.types import DVType
 from telegram.ext import CallbackContext, ConversationHandler
 from telegram.ext._basehandler import BaseHandler
 from telegram.ext._conversationhandler import PendingState
+
+from bot_logging import get_logger
 
 
 CCT = TypeVar("CCT", bound="CallbackContext[Any, Any, Any, Any]")
