@@ -27,15 +27,6 @@ class CallbackBase(object):
         raise NotImplementedError
 
     def _register_and_wrap(self, func):
-        # try:
-        #     module_name = func.__module__
-        #     kls = get_module_class_from_name(module_name, TelegramBotModuleBase)
-        #     if kls is None:
-        #         warn("class is None, skip register")
-        #     else:
-        #         kls.register_new_handler(func)
-        # except Exception as e:
-        #     warn("_register_and_wrap:" + repr(e))
         wraps(func)(self)
 
     async def __call__(self, update: Update, context: "RichCallbackContext"):
@@ -62,6 +53,13 @@ class CallbackBase(object):
     async def pre_execute(self, update: Update, context: "RichCallbackContext"):
         if self._pre_executer:
             await self._pre_executer(update, context)
+
+    def __repr__(self) -> str:
+        try:
+            name = self.__name__  # type: ignore
+        except AttributeError:
+            name = self.__class__.__name__
+        return f"{name}, of type {self.handler_type.__name__}"
 
 
 class CommandCallback(CallbackBase):

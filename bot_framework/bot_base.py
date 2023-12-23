@@ -6,7 +6,7 @@ from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, Re
 import context_manager
 from bot_logging import get_logger
 from text_splitter import longtext_split
-
+from bot_framework.permission_check import CheckLevel, ConditionLimit, permission_check
 
 if TYPE_CHECKING:
     from telegram import Message
@@ -19,9 +19,19 @@ _T = TypeVar("_T")
 DEBUG_LOGGER = get_logger("debug")
 
 
+class UserPermissionError(Exception):
+    pass
+
+
 class TelegramBotBase(object):
     RETRY_TIMES = 3
     RETRY_SLEEP_TIME = 1.
+
+    ##############################
+    @classmethod
+    def check(cls, level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL) -> None:
+        if not permission_check(cls.get_context(), level, limit):
+            raise UserPermissionError
 
     @classmethod
     def get_context(cls) -> "RichCallbackContext":

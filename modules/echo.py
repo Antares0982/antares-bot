@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class Echo(TelegramBotModuleBase):
     def mark_handlers(self):
-        return {self.echo}
+        return [self.echo]
 
     @command_callback_wrapper
     async def echo(self, update: "Update", context: "RichCallbackContext") -> bool:

@@ -6,9 +6,18 @@ from telegram._utils.types import DVInput, JSONDict, ODVInput, ReplyMarkup
 from telegram.ext._utils.types import RLARGS
 
 from bot_framework.context import RichCallbackContext
+from bot_framework.permission_check import CheckLevel, ConditionLimit
+
+
+class UserPermissionError(Exception):
+    ...
 
 
 class TelegramBotBase(object):
+    @classmethod
+    def check(cls, level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL) -> None:
+        ...
+
     @classmethod
     def get_context(cls) -> "RichCallbackContext":
         ...
@@ -66,7 +75,7 @@ class TelegramBotBase(object):
         ...
 
     @classmethod
-    def debug_info(cls, msg:str, *args):
+    def debug_info(cls, msg: str, *args):
         ...
 
     @classmethod

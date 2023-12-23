@@ -1,21 +1,25 @@
 import logging
-import sys
+import threading
 from logging import Handler, getLevelName
 from types import GenericAlias
-from typing import Optional
+from typing import Optional, cast
 
 
 try:
     from rabbitmq_interface import PikaMessageQueue
 
-    __pika_msg_queue = PikaMessageQueue()
     PIKA_SUPPORTED = True
 except ImportError:
     PIKA_SUPPORTED = False
 
 __logger_top_name = "TelegramBot"
+__logger_inited = False
+__root_logger = None
+
 
 if PIKA_SUPPORTED:
+    _pika_msg_queue = PikaMessageQueue()
+
     class PikaHandler(Handler):
         def emit(self, record):
             """
@@ -30,7 +34,7 @@ if PIKA_SUPPORTED:
             """
             try:
                 msg = self.format(record)
-                __pika_msg_queue.push("logging." + self.name, msg)
+                _pika_msg_queue.push("logging." + self.name, msg)
             except RecursionError:  # See issue 36272
                 raise
             except Exception:
@@ -48,17 +52,39 @@ if PIKA_SUPPORTED:
         __class_getitem__ = classmethod(GenericAlias)  # type: ignore
 
 
-def log_start(logger_top_name: Optional[str] = None):
+def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
+    global __logger_inited, __root_logger
+    if __logger_inited:
+        return cast(logging.Logger, __root_logger)
+    __logger_inited = True
     if logger_top_name is not None:
         global __logger_top_name
         __logger_top_name = logger_top_name
-    top_logger = logging.getLogger(logger_top_name)
+
+    __root_logger = logging.getLogger(__logger_top_name)
     if PIKA_SUPPORTED:
-        top_logger.addHandler(PikaHandler())
+        threading.Thread(target=_pika_msg_queue.run).start()
+    return __root_logger
 
 
 def get_logger(module_name: str):
-    logger = logging.getLogger(__logger_top_name + "." + module_name)
+    if not __logger_inited:
+        raise RuntimeError("logger not inited")
+    name = __logger_top_name + "." + module_name
+    logger = logging.getLogger(name)
     if PIKA_SUPPORTED:
-        logger.addHandler(PikaHandler())
+        handler = PikaHandler()
+        handler.name = name
+        logger.addHandler(handler)
     return logger
+
+
+def get_root_logger():
+    if not __logger_inited:
+        raise RuntimeError("logger not inited")
+    return __root_logger
+
+
+def stop_logger():
+    if PIKA_SUPPORTED:
+        _pika_msg_queue.stop()

@@ -1,24 +1,23 @@
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, overload, Any, Awaitable, Callable, Coroutine, TypeVar
-
+from bot_framework.context import RichCallbackContext
 
 if TYPE_CHECKING:
     from contextvars import Token
 
-    from bot_framework.context import RichCallbackContext
 
-_JobCallback = Callable[["RichCallbackContext"], Awaitable[Any]]
-_CoroutineJobCallback = Callable[["RichCallbackContext"], Coroutine[Any, Any, Any]]
+_JobCallback = Callable[[RichCallbackContext], Awaitable[Any]]
+_CoroutineJobCallback = Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]
 _T = TypeVar("_T", _JobCallback, _CoroutineJobCallback)
 
-context_manager: ContextVar['RichCallbackContext'] = ContextVar('RichCallbackContext', default=None)  # type: ignore
+context_manager: ContextVar[RichCallbackContext] = ContextVar('RichCallbackContext', default=None)  # type: ignore
 
 
 def get_context():
     return context_manager.get()
 
 
-def set_context(context: "RichCallbackContext"):
+def set_context(context: RichCallbackContext):
     return context_manager.set(context)
 
 
@@ -27,7 +26,7 @@ def reset_context(token: "Token[RichCallbackContext]"):
 
 
 @overload
-def callback_job_wrapper(context: "RichCallbackContext") -> Callable[[_T], _T]:
+def callback_job_wrapper(context: RichCallbackContext) -> Callable[[_T], _T]:
     ...
 
 
@@ -57,7 +56,7 @@ def callback_job_wrapper(arg):
 class ContextHelper:
     __slots__ = ("context", "token")
 
-    def __init__(self, context: "RichCallbackContext"):
+    def __init__(self, context: RichCallbackContext):
         self.context = context
         self.token = None
 

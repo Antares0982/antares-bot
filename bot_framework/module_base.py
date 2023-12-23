@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Self, Set, Union, cast, Tuple
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Self, Set, Tuple, Union, cast
 
 from bot_framework import language
 from bot_framework.bot_base import TelegramBotBase
@@ -15,34 +15,34 @@ if TYPE_CHECKING:
 
 class TelegramBotModuleBase(TelegramBotBase):
     if TYPE_CHECKING:
-        HANDLERS: Set[Union["CallbackBase", "BaseHandler"]]
         INST: Any
-
-    def __init__(self, parent: "TelegramBot") -> None:
-        self.parent = parent
-        self._register_inst()
-
-    def do_init(self) -> None:
-        ...
 
     @classmethod
     def get_inst(cls) -> Self:
         return cast(Self, cls.INST)
 
+    def __init__(self, parent: "TelegramBot") -> None:
+        self.parent = parent
+        self._register_inst()
+        self._handlers: Optional[List[Union["CallbackBase", "BaseHandler"]]] = None
+
+    def do_init(self) -> None:
+        ...
+
     def _register_inst(self):
         self.__class__.INST = self
 
-    def collect_handlers(self) -> None:
-        cls = self.__class__
-        handlers = getattr(cls, "HANDLERS", None)
-        if handlers is not None:
-            return
-        cls.HANDLERS = self.mark_handlers()
+    def collect_handlers(self):
+        if self._handlers is None:
+            self._handlers = self.mark_handlers()
+        return self._handlers
 
-    def mark_handlers(self) -> Set[Union["CallbackBase", "BaseHandler"]]:
+    def mark_handlers(self) -> List[Union["CallbackBase", "BaseHandler"]]:
         """Override to mark all handlers that will be collected."""
-        return set()
+        return []
 
+    # -------------------------helper functions-------------------------
+    # -------------------------DO NOT OVERRIDE--------------------------
     def make_btn_callback(self, key: str, data: Iterable) -> Tuple[List[str], List[str]]:
         """
         return a list of callback data strings, which can be used to retrieve data later.
@@ -94,3 +94,4 @@ class TelegramBotModuleBase(TelegramBotBase):
             return await query.message.delete()
         #
         return await query.message.edit_text(text, reply_markup=reply_markup)
+    # -----------------------helper functions end-----------------------

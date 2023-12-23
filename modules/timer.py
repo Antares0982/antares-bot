@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class Timer(TelegramBotModuleBase):
     def mark_handlers(self):
-        return {self.timer}
+        return [self.timer]
 
     @command_callback_wrapper
     async def timer(self, update: "Update", context: "RichCallbackContext") -> bool:

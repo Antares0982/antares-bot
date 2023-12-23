@@ -15,6 +15,15 @@ def hook_cfg():
             setattr(cfg, k, getattr(bot_default_cfg, k))
 
 
+def init_pika():
+    command = 'curl https://api.github.com/repos/Antares0982/RabbitMQInterface/contents/rabbitmq_interface.py | jq -r ".content" | base64 --decode > rabbitmq_interface.py'
+    import subprocess
+    code = subprocess.call(command, shell=True)
+    if code != 0:
+        import sys
+        print("failed to download rabbitmq_interface.py", file=sys.stderr)
+
+
 def generate_language(locale: str):
     from bot_default_cfg import LOCALE as default_locale
     if locale != default_locale:

@@ -52,6 +52,9 @@ class TelegramBotModuleDesc(Generic[_T]):
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled
 
+    def py_module(self):
+        return sys.modules[self.kls.__module__]
+
 
 class ModuleKeeper(object):
     _STR = 1
