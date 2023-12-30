@@ -70,12 +70,17 @@ class ContextHelper:
         return False
 
 
+class _InvalidContext:
+    def __getattr__(self, _):
+        raise RuntimeError("Invalid context. Did you forget to use `callback_job_wrapper` when creating callback?")
+
+
 class ContextReverseHelper:
     def __init__(self):
         self.token = None
 
     def __enter__(self):
-        self.token = context_manager.set(None)
+        self.token = context_manager.set(_InvalidContext())
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

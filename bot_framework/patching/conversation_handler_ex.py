@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 from telegram.ext._basehandler import BaseHandler
 from telegram.ext._conversationhandler import PendingState
 
-from bot_logging import get_logger
+from bot_framework.bot_logging import get_logger
 
 
 CCT = TypeVar("CCT", bound="CallbackContext[Any, Any, Any, Any]")

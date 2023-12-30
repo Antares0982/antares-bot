@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from bot_framework.framework import command_callback_wrapper
 from bot_framework.module_base import TelegramBotModuleBase
-from context_manager import callback_job_wrapper
+from bot_framework.context_manager import callback_job_wrapper
 
 
 if TYPE_CHECKING:

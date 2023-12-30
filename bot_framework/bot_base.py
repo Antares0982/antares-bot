@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
-import context_manager
-from bot_logging import get_logger
-from text_splitter import longtext_split
+import bot_framework.context_manager as context_manager
+from bot_framework.bot_logging import get_logger
+from bot_framework.text_splitter import longtext_split
 from bot_framework.permission_check import CheckLevel, ConditionLimit, permission_check
 
 if TYPE_CHECKING:
@@ -61,13 +61,13 @@ class TelegramBotBase(object):
 
     @classmethod
     async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
-        context = cls.get_context()
+        from bot_framework.bot_inst import get_bot_instance
         if maxTries <= 0:
             raise ValueError("无效的重试次数")
 
         for i in range(maxTries):
             try:
-                await context.bot.delete_message(chat_id=chat_id, message_id=msgid)
+                await get_bot_instance().bot.delete_message(chat_id=chat_id, message_id=msgid)
             except TelegramError:
                 if i == maxTries - 1:
                     return False
@@ -153,10 +153,10 @@ class TelegramBotBase(object):
 
     @classmethod
     async def _send_to(cls, chat_id: int, text: str, **kwargs):
-        context = cls.get_context()
+        from bot_framework.bot_inst import get_bot_instance
         texts = longtext_split(text)
         kwargs['chat_id'] = chat_id
-        async for m in cls._sequence_send(context.bot.send_message, texts, **kwargs):
+        async for m in cls._sequence_send(get_bot_instance().bot.send_message, texts, **kwargs):
             yield m
     ##############################
 

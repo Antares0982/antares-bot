@@ -4,11 +4,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, cast
 
 from bot_framework.module_base import TelegramBotModuleBase
-from bot_logging import get_logger
+from bot_framework.bot_logging import get_logger
 
 
 if TYPE_CHECKING:
-    from bot_inst import TelegramBot
+    from bot_framework.bot_inst import TelegramBot
 
 _T = TypeVar("_T", bound=TelegramBotModuleBase)
 

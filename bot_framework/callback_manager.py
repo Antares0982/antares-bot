@@ -130,6 +130,7 @@ class PersistKeyboards(Generic[_DataType]):
         for k in self.cb_data_keys:
             self.cb_manager.pop_data(k)
         self.cb_data_keys = []
+        self._idx_map.clear()
         self.repr_cb = None
 
     def __len__(self) -> int:

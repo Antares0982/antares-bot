@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Self, Set, Tupl
 from bot_framework import language
 from bot_framework.bot_base import TelegramBotBase
 from bot_framework.framework import command_callback_wrapper
+from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
 
 if TYPE_CHECKING:
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
     from telegram.ext import BaseHandler
 
     from bot_framework.framework import CallbackBase
-    from bot_inst import TelegramBot
+    from bot_framework.bot_inst import TelegramBot
 
 
 class TelegramBotModuleBase(TelegramBotBase):
@@ -68,8 +69,9 @@ class TelegramBotModuleBase(TelegramBotBase):
 
     @property
     def cancel(self):
-        def cancel(x, y):
-            self.reply(language.CANCELLED)
+        async def cancel(x, y):
+            await self.reply(language.CANCELLED)
+            return ConversationHandlerEx.END
         return command_callback_wrapper(cancel)
 
     @property

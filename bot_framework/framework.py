@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Pattern, Type, Union,
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from context_manager import ContextHelper
+from bot_framework.context_manager import ContextHelper
 
 
 if TYPE_CHECKING:

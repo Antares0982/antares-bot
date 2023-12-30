@@ -1,10 +1,12 @@
+import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from telegram import Update
+from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, ContextTypes
 
-from bot_cfg import TOKEN
+from bot_cfg import MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
@@ -12,8 +14,8 @@ from bot_framework.framework import CallbackBase, command_callback_wrapper
 from bot_framework.patching.application_ex import ApplicationEx
 from bot_framework.patching.job_quque_ex import JobQueueEx
 from bot_framework.permission_check import CheckLevel
-from bot_logging import get_logger, get_root_logger
-from module_loader import ModuleKeeper
+from bot_framework.bot_logging import get_logger, get_root_logger
+from bot_framework.module_loader import ModuleKeeper
 
 
 if TYPE_CHECKING:
@@ -22,6 +24,27 @@ if TYPE_CHECKING:
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
 
 _LOGGER = get_logger("main")
+
+
+def format_traceback(err: Exception) -> str:
+    return '\n'.join(traceback.format_tb(err.__traceback__))
+
+
+async def exception_handler(update, context: RichCallbackContext):
+    try:
+        err = context.error
+        if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
+            return  # 直接吃掉
+        tb = format_traceback(err)
+        log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
+        _LOGGER.error(log_text)
+        text = f"哎呀，出现了未知的错误呢……"
+        await get_bot_instance().send_to(MASTER_ID, text)
+    except Exception as _e:
+        try:
+            _LOGGER.error(format_traceback(_e))
+        except Exception:
+            pass
 
 
 class TelegramBot(TelegramBotBase):
@@ -82,6 +105,8 @@ class TelegramBot(TelegramBotBase):
         for handler in main_handlers:
             self.application.add_handler(handler.to_handler())
             _LOGGER.warn(f"added handler: {handler}")
+
+        self.application.add_error_handler(exception_handler)
 
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
 
