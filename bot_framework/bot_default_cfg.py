@@ -1,3 +1,5 @@
+# note that this file must be in the same folder with init_hooks.py
+
 # general
 LOCALE = 'zh-cn'
 TOKEN = "abcdef:123456"
