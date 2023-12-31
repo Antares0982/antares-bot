@@ -11,13 +11,14 @@ from bot_framework.bot_base import TelegramBotBase
 from bot_framework.bot_logging import get_logger, get_root_logger
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
+from bot_framework.context_manager import get_context
 from bot_framework.error import UserPermissionException
 from bot_framework.framework import CallbackBase, command_callback_wrapper
 from bot_framework.module_loader import ModuleKeeper
 from bot_framework.patching.application_ex import ApplicationEx
 from bot_framework.patching.job_quque_ex import JobQueueEx
 from bot_framework.permission_check import CheckLevel
-from bot_framework.context_manager import get_context
+
 
 if TYPE_CHECKING:
     from bot_framework.module_base import TelegramBotModuleBase
@@ -106,7 +107,8 @@ class TelegramBot(TelegramBotBase):
 
         main_handlers = [
             self.stop,
-            self.debug_mode
+            self.debug_mode,
+            self.exec,
         ]
 
         for handler in main_handlers:
@@ -147,17 +149,36 @@ class TelegramBot(TelegramBotBase):
         else:
             self._old_log_level = old_level
             root_logger.setLevel(LOGLEVEL_DEBUG)
-        await self.reply
+        # TODO
+
+    async def _internal_exec(self, command: str):
+        if not command:
+            await self.error_info("没有接收到命令诶")
+            return
+        codes = command.split("\n")
+        try:
+            code_string = f'async def __t(self=get_bot_instance()):' + ''.join(f'\n    {l}' for l in codes)
+            exec(code_string)
+            ans = await locals()["__t"]()
+        except Exception as e:
+            await self.reply("执行失败……")
+            raise e.__class__ from e
+        await self.reply(f"执行成功，返回值：{ans}")
 
     @command_callback_wrapper
-    async def exec(self, update, context):
+    async def exec(self, update: Update, context: RichCallbackContext):
         self.check(CheckLevel.MASTER)
-        try:
-            exec(context.args[0])
-        except Exception as e:
-            await self.reply(f"执行失败：{e}")
-        else:
-            await self.reply("执行成功")
+        assert context.args is not None
+        if len(context.args) == 0:
+            await self.error_info("没有接收到命令诶")
+            return
+        assert update.message is not None and update.message.text is not None
+        command = update.message.text
+        if command.startswith("/exec"):
+            command = command[5:]
+        command = command.strip()
+
+        await self._internal_exec(command)
 
 
 __bot_singleton = None
