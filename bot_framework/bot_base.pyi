@@ -9,10 +9,6 @@ from bot_framework.context import RichCallbackContext
 from bot_framework.permission_check import CheckLevel, ConditionLimit
 
 
-class UserPermissionError(Exception):
-    ...
-
-
 class TelegramBotBase(object):
     @classmethod
     def check(cls, level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL) -> None:

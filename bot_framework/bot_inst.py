@@ -8,15 +8,16 @@ from telegram.ext import Application, ContextTypes
 
 from bot_cfg import MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
+from bot_framework.bot_logging import get_logger, get_root_logger
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
+from bot_framework.error import UserPermissionException
 from bot_framework.framework import CallbackBase, command_callback_wrapper
+from bot_framework.module_loader import ModuleKeeper
 from bot_framework.patching.application_ex import ApplicationEx
 from bot_framework.patching.job_quque_ex import JobQueueEx
 from bot_framework.permission_check import CheckLevel
-from bot_framework.bot_logging import get_logger, get_root_logger
-from bot_framework.module_loader import ModuleKeeper
-
+from bot_framework.context_manager import get_context
 
 if TYPE_CHECKING:
     from bot_framework.module_base import TelegramBotModuleBase
@@ -35,6 +36,12 @@ async def exception_handler(update, context: RichCallbackContext):
         err = context.error
         if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
             return  # 直接吃掉
+        if err.__class__ is UserPermissionException:
+            if get_context() is None:
+                _LOGGER.error("No context found")
+                return
+            await get_bot_instance().reply("你没有权限哦")
+            return
         tb = format_traceback(err)
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
         _LOGGER.error(log_text)
@@ -141,6 +148,16 @@ class TelegramBot(TelegramBotBase):
             self._old_log_level = old_level
             root_logger.setLevel(LOGLEVEL_DEBUG)
         await self.reply
+
+    @command_callback_wrapper
+    async def exec(self, update, context):
+        self.check(CheckLevel.MASTER)
+        try:
+            exec(context.args[0])
+        except Exception as e:
+            await self.reply(f"执行失败：{e}")
+        else:
+            await self.reply("执行成功")
 
 
 __bot_singleton = None
