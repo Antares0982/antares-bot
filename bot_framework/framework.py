@@ -169,3 +169,5 @@ def btn_click_wrapper(
 
 
 msg_handle_wrapper = general_callback_wrapper(MessageHandler, filters=None)
+
+photo_handle_wrapper = general_callback_wrapper(MessageHandler, filters=filters.PHOTO & (~filters.ChatType.CHANNEL))

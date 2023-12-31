@@ -437,3 +437,8 @@ class TelegramBotBase(object):
         rate_limit_args: Optional[RLARGS] = None,
     ) -> Generator[Message, Any, None]:
         ...
+    ##############################
+
+    @classmethod
+    def is_master(cls) -> bool:
+        ...

@@ -42,7 +42,7 @@ def get_msg_id(update: Update) -> Optional[int]:
     if update.message is not None:
         return update.message.message_id
     if update.callback_query is not None:
-        return update.callback_query.message.message_id
+        return update.callback_query.message.message_id  # type: ignore
     if update.channel_post is not None:
         return update.channel_post.message_id
     if update.edited_channel_post is not None:
@@ -53,8 +53,8 @@ def get_msg_id(update: Update) -> Optional[int]:
 def get_reply_to_msg_id(update: Update) -> Optional[int]:
     if update.message is not None and update.message.reply_to_message is not None:
         return update.message.reply_to_message.message_id
-    if update.callback_query is not None and update.callback_query.message.reply_to_message is not None:
-        return update.callback_query.message.reply_to_message.message_id
+    if update.callback_query is not None and update.callback_query.message.reply_to_message is not None:  # type: ignore
+        return update.callback_query.message.reply_to_message.message_id  # type: ignore
     if update.channel_post is not None and update.channel_post.reply_to_message is not None:
         return update.channel_post.reply_to_message.message_id
     if update.edited_channel_post is not None and update.edited_channel_post.reply_to_message is not None:
@@ -63,15 +63,15 @@ def get_reply_to_msg_id(update: Update) -> Optional[int]:
 
 
 def is_private(update: Update) -> bool:
-    return update.effective_chat.type == ChatType.PRIVATE
+    return update.effective_chat.type == ChatType.PRIVATE  # type: ignore
 
 
 def is_group(update: Update) -> bool:
-    return update.effective_chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]
+    return update.effective_chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]  # type: ignore
 
 
 def is_channel(update: Update) -> bool:
-    return update.effective_chat.type == ChatType.CHANNEL
+    return update.effective_chat.type == ChatType.CHANNEL  # type: ignore
 
 
 def flatten_button(

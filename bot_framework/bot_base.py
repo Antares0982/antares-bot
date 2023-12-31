@@ -5,8 +5,9 @@ from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, Re
 
 import bot_framework.context_manager as context_manager
 from bot_framework.bot_logging import get_logger
-from bot_framework.text_splitter import longtext_split
 from bot_framework.permission_check import CheckLevel, ConditionLimit, permission_check
+from bot_framework.text_splitter import longtext_split
+
 
 if TYPE_CHECKING:
     from telegram import Message
@@ -201,3 +202,9 @@ class TelegramBotBase(object):
                     raise BadRequest(e.message) from e
                 return await cls._send_ignore_parsemode_or_replyto_exceptions(interface_func, **kwargs)
             raise BadRequest(e.message) from e
+    ##############################
+
+    @classmethod
+    def is_master(cls) -> bool:
+        from bot_cfg import MASTER_ID
+        return cls.get_context().chat_id == MASTER_ID or cls.get_context().user_id == MASTER_ID
