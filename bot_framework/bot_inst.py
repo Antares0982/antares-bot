@@ -1,3 +1,4 @@
+import os
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, TypeVar, Union
@@ -6,12 +7,12 @@ from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, ContextTypes
 
-from bot_cfg import MASTER_ID, TOKEN
+from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
 from bot_framework.bot_logging import get_logger, get_root_logger
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
-from bot_framework.context_manager import get_context
+from bot_framework.context_manager import ContextHelper, get_context
 from bot_framework.error import UserPermissionException
 from bot_framework.framework import CallbackBase, command_callback_wrapper
 from bot_framework.module_loader import ModuleKeeper
@@ -34,20 +35,23 @@ def format_traceback(err: Exception) -> str:
 
 async def exception_handler(update, context: RichCallbackContext):
     try:
-        err = context.error
-        if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
-            return  # 直接吃掉
-        if err.__class__ is UserPermissionException:
-            if get_context() is None:
-                _LOGGER.error("No context found")
+        with ContextHelper(context):
+            err = context.error
+            if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
+                return  # 直接吃掉
+            if err.__class__ is UserPermissionException:
+                # in case of didn't catching UserPermissionException properly
+                # generally, catching permission exception here greatly affects the performance
+                if get_context() is None:
+                    _LOGGER.error("No context found")
+                    return
+                await get_bot_instance().reply("你没有权限哦")
                 return
-            await get_bot_instance().reply("你没有权限哦")
-            return
-        tb = format_traceback(err)
-        log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
-        _LOGGER.error(log_text)
-        text = f"哎呀，出现了未知的错误呢……"
-        await get_bot_instance().send_to(MASTER_ID, text)
+            tb = format_traceback(err)
+            log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
+            _LOGGER.error(log_text)
+            text = f"哎呀，出现了未知的错误呢……"
+            await get_bot_instance().send_to(MASTER_ID, text)
     except Exception as _e:
         try:
             _LOGGER.error(format_traceback(_e))
@@ -144,12 +148,15 @@ class TelegramBot(TelegramBotBase):
         root_logger = get_root_logger()
         old_level = root_logger.level
         if old_level == LOGLEVEL_DEBUG:
+            self.debug_info("debug off")
             root_logger.setLevel(self._old_log_level)
             self._old_log_level = None
+            await self.reply("已关闭debug模式")
         else:
             self._old_log_level = old_level
             root_logger.setLevel(LOGLEVEL_DEBUG)
-        # TODO
+            self.debug_info("debug on")
+            await self.reply("已开启debug模式")
 
     async def _internal_exec(self, command: str):
         if not command:
@@ -179,6 +186,9 @@ class TelegramBot(TelegramBotBase):
         command = command.strip()
 
         await self._internal_exec(command)
+
+    def data_dir(self):
+        return os.path.join(os.path.curdir, DEFAULT_DATA_DIR)
 
 
 __bot_singleton = None

@@ -5,13 +5,18 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Pattern, Type, Union,
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
+from bot_framework import language
+from bot_framework.bot_logging import get_logger
 from bot_framework.context_manager import ContextHelper
+from bot_framework.error import UserPermissionException
 
 
 if TYPE_CHECKING:
     from telegram.ext import BaseHandler
 
     from bot_framework.context import RichCallbackContext
+
+_LOGGER = get_logger(__name__)
 
 
 class CallbackBase(object):
@@ -36,10 +41,17 @@ class CallbackBase(object):
         # check blacklist
         # pass
         with ContextHelper(context):
-            if self._instance is not None:
-                return await self.__wrapped__(self._instance, update, context)  # type: ignore
-            else:
-                return await self.__wrapped__(update, context)  # type: ignore
+            try:
+                if self._instance is not None:
+                    return await self.__wrapped__(self._instance, update, context)  # type: ignore
+                else:
+                    return await self.__wrapped__(update, context)  # type: ignore
+            except UserPermissionException:
+                try:
+                    from bot_framework.bot_inst import get_bot_instance
+                    await get_bot_instance().reply(language.NO_PERMISSION)
+                except Exception:
+                    _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
 
     def __get__(self, instance, cls):
         if instance is not None:

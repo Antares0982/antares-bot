@@ -4,6 +4,7 @@ ASK_ALARM_TYPE = "需要设置一个什么类型的闹钟呢？"
 UNKNOWN_ERROR = "哎呀，出现了未知的错误呢……"
 END = "结束"
 SHORTSEP = "、"
+NO_PERMISSION = "你没有权限哦"
 #
 ALARM_SELECT_DEL = "请选择要删除的闹钟～"
 ONLY_ONCE_CLOCK = "仅一次"

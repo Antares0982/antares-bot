@@ -48,6 +48,8 @@ class TelegramBotModuleBase(TelegramBotBase):
         """
         return a list of callback data strings, which can be used to retrieve data later.
         Need to call `cache_cb_keys` to cache the keys after the message is sent.
+
+        Return: cb_keys, cb_datas.
         """
         raw_keys = []
         keys = []
