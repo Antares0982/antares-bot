@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatType
+import logging
 
 
 class ObjectDict(dict):
@@ -84,3 +85,20 @@ def flatten_button(
     if len(buttons) > 0:
         btl.append(buttons)
     return InlineKeyboardMarkup(btl)
+
+
+async def exception_manual_handle(logger: logging.Logger, e: Exception):
+    try:
+        logger.debug("exception catched, manually handling it")
+        from bot_framework.bot_inst import exception_handler, format_traceback
+        from bot_framework.context_manager import get_context
+        context = get_context()
+        context.error = e
+    except Exception as _e:
+        try:
+            logger.error("when manually handling exception, another exception raised: %s", format_traceback(_e))
+        except Exception:
+            pass
+        return
+    # exception_handler does not raise
+    await exception_handler(None, context)

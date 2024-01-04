@@ -1,7 +1,7 @@
 import os
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
@@ -33,25 +33,26 @@ def format_traceback(err: Exception) -> str:
     return '\n'.join(traceback.format_tb(err.__traceback__))
 
 
-async def exception_handler(update, context: RichCallbackContext):
+async def exception_handler(update: Any, context: RichCallbackContext):
+    update = None  # force ignore `update` to make exception_handler more generic
     try:
-        with ContextHelper(context):
-            err = context.error
-            if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
-                return  # 直接吃掉
-            if err.__class__ is UserPermissionException:
-                # in case of didn't catching UserPermissionException properly
-                # generally, catching permission exception here greatly affects the performance
-                if get_context() is None:
-                    _LOGGER.error("No context found")
-                    return
-                await get_bot_instance().reply("你没有权限哦")
+        err = context.error
+        if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
+            return  # 直接吃掉
+        if err.__class__ is UserPermissionException:
+            # in case of didn't catching UserPermissionException properly
+            # generally, catching permission exception here greatly affects the performance
+            if get_context() is None:
+                _LOGGER.error("No context found")
                 return
-            tb = format_traceback(err)
-            log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
-            _LOGGER.error(log_text)
-            text = f"哎呀，出现了未知的错误呢……"
-            await get_bot_instance().send_to(MASTER_ID, text)
+            with ContextHelper(context):
+                await get_bot_instance().reply("你没有权限哦")
+            return
+        tb = format_traceback(err)
+        log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
+        _LOGGER.error(log_text)
+        text = f"哎呀，出现了未知的错误呢……"
+        await get_bot_instance().send_to(MASTER_ID, text)
     except Exception as _e:
         try:
             _LOGGER.error(format_traceback(_e))
