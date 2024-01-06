@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Iterable, List, Optional, TypeVar, Union, cast
+import bisect
+import time
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union, cast
 
 from telegram import InlineKeyboardButton
 
@@ -11,15 +13,34 @@ if TYPE_CHECKING:
 _DataType = TypeVar("_DataType")
 
 
+class CallbackHistoryManager:
+    __slots__ = ("history_queue")
+
+    def __init__(self) -> None:
+        self.history_queue: List[Tuple[float, int]] = []
+
+    def enqueue(self, key: int) -> None:
+        self.history_queue.append((time.time(), key))
+
+    def pop_before_keys(self, before: float):
+        history_queue = self.history_queue
+        idx = bisect.bisect_left(history_queue, (before, 0))
+        if idx > 0:
+            self.history_queue = history_queue[idx:]
+        yield from (k for _, k in history_queue[:idx])
+
+
 class CallbackDataManager:
-    __slots__ = ("id", "_dict")
+    __slots__ = ("id", "_dict", "history")
 
     def __init__(self) -> None:
         self.id = 0
         self._dict: Dict[int, Any] = {}
+        self.history = CallbackHistoryManager()
 
     def set_data(self, data=None) -> str:
         self._dict[self.id] = data
+        self.history.enqueue(self.id)
         self.id += 1
         return str(self.id - 1)
 
@@ -34,37 +55,6 @@ class CallbackDataManager:
     def modify_data(self, _id: Union[str, int], data: Any) -> None:
         n_id = int(_id)
         self._dict[n_id] = data
-# class KeyboardStateManager:
-#     STATE_DEFAULT = 0
-
-#     def __init__(self, callback_manager: CallbackDataManager) -> None:
-#         # cb key -> state
-#         self.callback_manager = callback_manager
-#         self.data_states: Dict[str, int] = {}
-
-#     def set_refs(self, data_keys: Iterable[str]):
-#         for k in data_keys:
-#             self.data_states[k] = self.STATE_DEFAULT
-
-#     def clear_refs(self):
-#         for k in self.data_states.keys():
-#             self.callback_manager.get_data(k)
-#         self.data_states = {}
-
-#     def ref_keys(self):
-#         yield from self.data_states.keys()
-
-#     def get_markup(self, btn_per_row: int) -> Optional["InlineKeyboardMarkup"]:
-#         btns = self.get_markup_buttons()
-#         if len(btns) == 0:
-#             return None
-#         return flatten_button(btns, btn_per_row)
-
-#     def fix(self, key: str, new_key: str, additional_data: Optional[Any] = None):
-#         raise NotImplementedError
-
-#     def get_markup_buttons(self) -> List[InlineKeyboardButton]:
-#         raise NotImplementedError
 
 
 class PersistKeyboards(Generic[_DataType]):

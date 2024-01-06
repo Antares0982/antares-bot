@@ -1,7 +1,9 @@
+import datetime
 import os
+import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
@@ -27,6 +29,13 @@ if TYPE_CHECKING:
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
 
 _LOGGER = get_logger("main")
+TIME_IN_A_DAY = 24 * 60 * 60
+
+_INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
+async def __t(self=get_bot_instance()):
+    from bot_framework.test_commands import *
+    from bot_cfg import *
+"""
 
 
 def format_traceback(err: Exception) -> str:
@@ -38,7 +47,7 @@ async def exception_handler(update: Any, context: RichCallbackContext):
     try:
         err = context.error
         if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
-            return  # 直接吃掉
+            return  # ignore them
         if err.__class__ is UserPermissionException:
             # in case of didn't catching UserPermissionException properly
             # generally, catching permission exception here greatly affects the performance
@@ -88,6 +97,7 @@ class TelegramBot(TelegramBotBase):
         self.callback_manager = CallbackDataManager()
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
+        self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
 
     def run(self):
         self._module_keeper.load_all()
@@ -121,6 +131,8 @@ class TelegramBot(TelegramBotBase):
             _LOGGER.warn(f"added handler: {handler}")
 
         self.application.add_error_handler(exception_handler)
+
+        self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
 
@@ -165,7 +177,7 @@ class TelegramBot(TelegramBotBase):
             return
         codes = command.split("\n")
         try:
-            code_string = f'async def __t(self=get_bot_instance()):' + ''.join(f'\n    {l}' for l in codes)
+            code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {l}' for l in codes)
             exec(code_string)
             ans = await locals()["__t"]()
         except Exception as e:
@@ -190,6 +202,12 @@ class TelegramBot(TelegramBotBase):
 
     def data_dir(self):
         return os.path.join(os.path.curdir, DEFAULT_DATA_DIR)
+
+    async def _daily_job(self, context: RichCallbackContext):
+        for old_id in self.callback_manager.history.pop_before_keys(time.time() - TIME_IN_A_DAY):
+            self.callback_manager.pop_data(old_id)
+        for job in self.registered_daily_jobs.values():
+            await job(context)
 
 
 __bot_singleton = None
