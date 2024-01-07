@@ -7,11 +7,13 @@ from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
 
 if TYPE_CHECKING:
-    from telegram import CallbackQuery, InlineKeyboardMarkup, Update
+    from telegram import CallbackQuery, InlineKeyboardMarkup, Message
     from telegram.ext import BaseHandler
 
-    from bot_framework.framework import CallbackBase
     from bot_framework.bot_inst import TelegramBot
+    from bot_framework.callback_manager import PersistKeyboards
+    from bot_framework.context import RichCallbackContext
+    from bot_framework.framework import CallbackBase
 
 
 class TelegramBotModuleBase(TelegramBotBase):
@@ -47,7 +49,7 @@ class TelegramBotModuleBase(TelegramBotBase):
     def make_btn_callback(self, key: str, data: Iterable) -> Tuple[List[str], List[str]]:
         """
         return a list of callback data strings, which can be used to retrieve data later.
-        Need to call `cache_cb_keys` to cache the keys after the message is sent.
+        Need to call `cache_cb_keys_by_{}` to cache the keys after the message is sent.
 
         Return: cb_keys, cb_datas.
         """
@@ -63,9 +65,7 @@ class TelegramBotModuleBase(TelegramBotBase):
         assert query.data is not None
         return query.data.split(':')[1]
 
-    def get_btn_callback_data(self, update: "Update", pop: bool = False):
-        query = update.callback_query
-        assert query is not None
+    def get_btn_callback_data(self, query: "CallbackQuery", pop: bool = False):
         k = self._get_cb_data_key(query)
         return self.parent.callback_manager.pop_data(k) if pop else self.parent.callback_manager.peek_data(k)
 
@@ -83,19 +83,42 @@ class TelegramBotModuleBase(TelegramBotBase):
     def _manual_handle_exception(self, e: Exception):
         pass  # TODO
 
-    def cache_cb_keys(self, chat_id: int, msg_id: int, cb_keys: List[str]) -> None:
+    def cache_cb_keys_by_id(self, chat_id: int, msg_id: int, cb_keys: List[str]) -> None:
         self.parent.callback_key_dict[(chat_id, msg_id)] = cb_keys
 
-    def clean_cb_keys(self, chat_id: int, msg_id: int) -> None:
+    def cache_cb_keys_by_message(self, message: "Message", cb_keys: List[str]) -> None:
+        self.cache_cb_keys_by_id(message.chat_id, message.message_id, cb_keys)
+
+    def clean_cb_keys_by_id(self, chat_id: int, msg_id: int) -> None:
         cb_keys = self.parent.callback_key_dict.pop((chat_id, msg_id), [])
         for key in cb_keys:
             self.parent.callback_manager.pop_data(key)
 
+    def clean_cb_keys(self, context: "RichCallbackContext") -> None:
+        self.clean_cb_keys_by_id(context.chat_id, context.message_id)
+
+    def clean_cb_keys_by_message(self, message: "Message") -> None:
+        self.clean_cb_keys_by_id(message.chat_id, message.message_id)
+
     async def query_remove_btn(self, query: "CallbackQuery", text: str = "", remove_message: bool = False, reply_markup: Optional["InlineKeyboardMarkup"] = None):
         assert query.message
-        self.clean_cb_keys(query.message.chat_id, query.message.message_id)
+        self.clean_cb_keys_by_message(query.message)
         if remove_message:
             return await query.message.delete()
         #
         return await query.message.edit_text(text, reply_markup=reply_markup)
+
+    async def on_invalid_query(self, query):
+        """
+        Call when the data in callback manager is removed.
+        """
+        await self.query_remove_btn(query, text="这个按钮无效了呢……", remove_message=False)
+
+    def query_at_btn_index(self, query: "CallbackQuery") -> int:
+        """
+        Call when the query uses a keyboard.
+        """
+        _, keyboard = self.get_btn_callback_data(query)
+        keyboard = cast("PersistKeyboards", keyboard)
+        return keyboard.idx(self._get_cb_data_key(query))
     # -----------------------helper functions end-----------------------

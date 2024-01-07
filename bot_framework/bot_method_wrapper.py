@@ -127,22 +127,22 @@ class TelegramBotBaseWrapper(object):
     @classmethod
     async def send_photo(cls, **kwargs):
         from bot_framework.bot_inst import get_bot_instance
-        return (await cls._retry_call(get_bot_instance().bot.send_photo, **kwargs)).id
+        return await cls._retry_call(get_bot_instance().bot.send_photo, **kwargs)
 
     @classmethod
-    async def reply_photo(cls, photo, **kwargs) -> None:
+    async def reply_photo(cls, photo, **kwargs) -> "Message":
         context = cls.get_context()
         kwargs.setdefault('chat_id', context.chat_id)
         chat_id: int = kwargs['chat_id']
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['photo'] = photo
-        return (await cls._retry_call(context.bot.send_photo, **kwargs)).id
+        return await cls._retry_call(context.bot.send_photo, **kwargs)
 
     @classmethod
     async def send_document(cls, **kwargs):
         from bot_framework.bot_inst import get_bot_instance
-        return (await cls._retry_call(get_bot_instance().bot.send_document, **kwargs)).id
+        return await cls._retry_call(get_bot_instance().bot.send_document, **kwargs)
 
     @classmethod
     async def reply_document(cls, document, **kwargs) -> None:
@@ -152,7 +152,7 @@ class TelegramBotBaseWrapper(object):
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['document'] = document
-        return (await cls._retry_call(context.bot.send_document, **kwargs)).id
+        return await cls._retry_call(context.bot.send_document, **kwargs)
 
     ##############################
 

@@ -442,7 +442,7 @@ class TelegramBotBaseWrapper(object):
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None
-    ) -> int:
+    ) -> Message:
         ...
 
     @classmethod
@@ -468,7 +468,7 @@ class TelegramBotBaseWrapper(object):
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None
-    ) -> int:
+    ) -> Message:
         ...
 
     @classmethod
@@ -495,7 +495,7 @@ class TelegramBotBaseWrapper(object):
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> int:
+    ) -> Message:
         ...
 
     @classmethod
@@ -522,5 +522,5 @@ class TelegramBotBaseWrapper(object):
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> int:
+    ) -> Message:
         ...

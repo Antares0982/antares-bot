@@ -39,8 +39,9 @@ class CallbackDataManager:
         self.history = CallbackHistoryManager()
 
     def set_data(self, data=None) -> str:
-        self._dict[self.id] = data
-        self.history.enqueue(self.id)
+        if data is not None:
+            self._dict[self.id] = data
+            self.history.enqueue(self.id)
         self.id += 1
         return str(self.id - 1)
 
