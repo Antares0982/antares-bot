@@ -8,7 +8,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, f
 from bot_framework import language
 from bot_framework.bot_logging import get_logger
 from bot_framework.context_manager import ContextHelper
-from bot_framework.error import UserPermissionException
+from bot_framework.error import InvalidQueryException, UserPermissionException
 
 
 if TYPE_CHECKING:
@@ -52,6 +52,8 @@ class CallbackBase(object):
                     await get_bot_instance().reply(language.NO_PERMISSION)
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
+            except InvalidQueryException:
+                pass
 
     def __get__(self, instance, cls):
         if instance is not None:

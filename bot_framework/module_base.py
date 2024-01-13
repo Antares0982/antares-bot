@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Self, Set, Tupl
 
 from bot_framework import language
 from bot_framework.bot_base import TelegramBotBase
+from bot_framework.error import InvalidQueryException
 from bot_framework.framework import command_callback_wrapper
 from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
@@ -65,9 +66,13 @@ class TelegramBotModuleBase(TelegramBotBase):
         assert query.data is not None
         return query.data.split(':')[1]
 
-    def get_btn_callback_data(self, query: "CallbackQuery", pop: bool = False):
+    def get_btn_callback_data(self, query: "CallbackQuery", pop: bool = False, check_valid=False):
         k = self._get_cb_data_key(query)
-        return self.parent.callback_manager.pop_data(k) if pop else self.parent.callback_manager.peek_data(k)
+        ret = self.parent.callback_manager.pop_data(k) if pop else self.parent.callback_manager.peek_data(k)
+        if ret is None and check_valid:
+            self.on_invalid_query(query)
+            raise InvalidQueryException
+        return ret
 
     @property
     def cancel(self):
