@@ -1,5 +1,6 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
+from telegram import InlineKeyboardButton
 from telegram.error import TelegramError
 
 import bot_framework.context_manager as context_manager
@@ -24,7 +25,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
 
     @classmethod
     def get_context(cls) -> "RichCallbackContext":
-        context = context_manager.get_context()
+        context = cls.peek_context()
         if context is None:
             raise RuntimeError("No context found")
         return context
@@ -62,3 +63,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     def is_master(cls) -> bool:
         from bot_cfg import MASTER_ID
         return cls.get_context().chat_id == MASTER_ID or cls.get_context().user_id == MASTER_ID
+
+    @classmethod
+    def format_inline_keyboard_button(cls, text: str, callback_key_name: str, callback_arg: Any):
+        return InlineKeyboardButton(text, callback_data=f"{callback_key_name}:{callback_arg}")

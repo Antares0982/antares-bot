@@ -101,6 +101,7 @@ class TelegramBot(TelegramBotBase):
         self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
 
     async def post_stop(self, app: Application):
+        await self.send_to(MASTER_ID, "主人再见QAQ")
         for module in self._module_keeper.get_all_enabled_modules():
             await module.do_stop()
         #

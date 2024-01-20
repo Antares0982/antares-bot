@@ -125,9 +125,11 @@ class TelegramBotBaseWrapper(object):
     ##############################
 
     @classmethod
-    async def send_photo(cls, **kwargs):
+    async def send_photo(cls, chat_id, photo, **kwargs) -> "Message":
+        kwargs['chat_id'] = chat_id
+        kwargs['photo'] = photo
         from bot_framework.bot_inst import get_bot_instance
-        return await cls._retry_call(get_bot_instance().bot.send_photo, **kwargs)
+        return await cls._send_ignore_parsemode_or_replyto_exceptions(get_bot_instance().bot.send_photo, **kwargs)
 
     @classmethod
     async def reply_photo(cls, photo, **kwargs) -> "Message":
@@ -137,22 +139,24 @@ class TelegramBotBaseWrapper(object):
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['photo'] = photo
-        return await cls._retry_call(context.bot.send_photo, **kwargs)
+        return await cls._send_ignore_parsemode_or_replyto_exceptions(context.bot.send_photo, **kwargs)
 
     @classmethod
-    async def send_document(cls, **kwargs):
+    async def send_document(cls, chat_id, document, **kwargs) -> "Message":
+        kwargs['chat_id'] = chat_id
+        kwargs['document'] = document
         from bot_framework.bot_inst import get_bot_instance
-        return await cls._retry_call(get_bot_instance().bot.send_document, **kwargs)
+        return await cls._send_ignore_parsemode_or_replyto_exceptions(get_bot_instance().bot.send_document, **kwargs)
 
     @classmethod
-    async def reply_document(cls, document, **kwargs) -> None:
+    async def reply_document(cls, document, **kwargs) -> "Message":
         context = cls.get_context()
         kwargs.setdefault('chat_id', context.chat_id)
         chat_id: int = kwargs['chat_id']
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['document'] = document
-        return await cls._retry_call(context.bot.send_document, **kwargs)
+        return await cls._send_ignore_parsemode_or_replyto_exceptions(context.bot.send_document, **kwargs)
 
     ##############################
 
@@ -188,7 +192,7 @@ class TelegramBotBaseWrapper(object):
         try:
             return await cls._retry_call(interface_func, **kwargs)
         except BadRequest as e:
-            if str(e).find("Replied message not found") != -1:
+            if str(e).find("reply") != -1:
                 kwargs.pop('reply_to_message_id')
                 return await cls._send_ignore_parsemode_or_replyto_exceptions(interface_func, **kwargs)
             if str(e).find('parse') != -1:
