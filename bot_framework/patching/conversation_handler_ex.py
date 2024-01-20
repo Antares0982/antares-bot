@@ -52,7 +52,7 @@ class ConversationHandlerEx(ConversationHandler[CCT]):
             map_to_parent,
             block,
         )
-        self._locks_holder = dict()
+        self._locks_holder: Dict[Tuple[Any, ...], asyncio.Lock] = dict()
 
     def _get_lock(self, key: Tuple[Any, ...]) -> asyncio.Lock:
         # asyncio run in single thread, so we can use dict as lock holder
@@ -167,7 +167,7 @@ class ConversationHandlerEx(ConversationHandler[CCT]):
                     else:
                         return default_ret
 
-            _check = state, key, handler, check  # type: ignore[return-value]
+            _check = state, key, handler, check  # type: ignore
             return await self.__internal_process(context, update, app, _check)
 
     async def __internal_process(
@@ -183,7 +183,7 @@ class ConversationHandlerEx(ConversationHandler[CCT]):
             context = app.context_types.context.from_update(update, app)
             await context.refresh_data()
         update = cast(Update, update)
-        coroutine: Coroutine = self.handle_update(update, app, check, context)
+        coroutine: Coroutine = self.handle_update(update, app, check, context)  # type: ignore
         is_blocking = await app.do_process_update(self, update, coroutine)
         # Only a max of 1 handler per group is handled
         return True, context, is_blocking

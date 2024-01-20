@@ -33,6 +33,9 @@ class TelegramBotModuleBase(TelegramBotBase):
     def do_init(self) -> None:
         ...
 
+    async def do_stop(self) -> None:
+        ...
+
     def _register_inst(self):
         self.__class__.INST = self
 

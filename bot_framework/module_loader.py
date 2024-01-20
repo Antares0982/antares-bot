@@ -15,7 +15,7 @@ _T = TypeVar("_T", bound=TelegramBotModuleBase)
 MODULE_PRIORITY_STR = "MODULE_PRIORITY"
 MODULE_SKIP_LOAD_STR = "MODULE_SKIP_LOAD"
 VALID_MODULE_RANGE = (0, 256)
-
+DEFAULT_PRIORITY = 128
 
 _LOGGER = get_logger(__name__)
 
@@ -33,7 +33,7 @@ class TelegramBotModuleDesc(Generic[_T]):
 
     @property
     def priority(self) -> int:
-        return getattr(self.kls, MODULE_PRIORITY_STR, 128)
+        return getattr(self.kls, MODULE_PRIORITY_STR, DEFAULT_PRIORITY)
 
     @property
     def enabled(self) -> bool:
@@ -48,6 +48,10 @@ class TelegramBotModuleDesc(Generic[_T]):
     def do_init(self, parent: "TelegramBot") -> None:
         self.module_instance = self.kls(parent)
         self.module_instance.do_init()
+
+    async def do_stop(self):
+        if self.module_instance is not None:
+            await self.module_instance.do_stop()
 
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled

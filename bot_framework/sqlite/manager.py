@@ -1,43 +1,47 @@
-import sqlite3
+import asyncio
+from types import TracebackType
 from typing import Any, Dict, List, Optional, cast
 
-from types import TracebackType
+import aiosqlite
+
+from bot_framework.bot_logging import get_logger
+
+
+_LOGGER = get_logger(__name__)
 
 
 class DatabaseManager(object):
     def __init__(self, dbpath: str) -> None:
         self.database = dbpath
-        self.conn: Optional[sqlite3.Connection] = None
-        # self.botinstance = botinstance
-        # self.tables: List[str] = []
-        # self.lock = threading.Lock()
+        self.conn: Optional[aiosqlite.Connection] = None
+        self.lock = asyncio.Lock()
 
-    def connect(self) -> None:
-        self.close()
-        self.conn = sqlite3.connect(self.database)
+    async def connect(self) -> None:
+        await self.close()
+        self.conn = await aiosqlite.connect(self.database)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         if self.conn is not None:
             try:
-                self.conn.close()
+                await self.conn.close()
             except Exception:
                 ...
             self.conn = None
 
-    def _get_connection(self) -> sqlite3.Connection:
-        return cast(sqlite3.Connection, self.conn)
+    def get_cur_connection(self) -> aiosqlite.Connection:
+        return cast(aiosqlite.Connection, self.conn)
 
-    def _getPrimaryKey(self, table: str) -> str:
-        c = self._get_connection().cursor()
-        c.execute(f"PRAGMA table_info({table});")
-        for r in c.fetchall():
+    async def get_primary_key(self, table: str) -> str:
+        c = await self.get_cur_connection().cursor()
+        await c.execute(f"PRAGMA table_info({table});")
+        for r in await c.fetchall():
             if r[-1] > 0:
                 return r[1]
         return ""
 
-    def _select(
+    async def select_nolock(
         self, table: str, where: Optional[Dict[str, Any]] = None, need: Optional[List[str]] = None
-    ) -> list:
+    ):
         parseArgs: List[str] = []
         command = "SELECT "
         if need is None:
@@ -64,18 +68,16 @@ class DatabaseManager(object):
 
         command += ";"
 
-        # self.botinstance.debuginfo(command)
-        # if len(parseArgs) > 0:
-        #     self.botinstance.debuginfo("parsing args: "+' '.join(parseArgs))
+        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
 
-        c = self._get_connection().cursor()
+        c = await self.get_cur_connection().cursor()
 
-        c.execute(command, parseArgs)
+        await c.execute(command, parseArgs)
 
-        return c.fetchall()
+        return await c.fetchall()
 
-    def _insert(self, table: str, datadict: dict):
-        c = self._get_connection().cursor()
+    async def insert_nolock(self, table: str, datadict: dict):
+        c = await self.get_cur_connection().cursor()
         command = f"INSERT INTO {table}("
         command2 = f"VALUES("
         parseArgs: List[str] = []
@@ -95,14 +97,13 @@ class DatabaseManager(object):
 
         command += command2
 
-        # self.botinstance.debuginfo(command)
-        # if len(parseArgs) > 0:
-        #     self.botinstance.debuginfo("parsing args: "+' '.join(parseArgs))
-        c.execute(command, parseArgs)
-        self._get_connection().commit()
+        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
 
-    def _update(self, table: str, datadict: dict, pkey: str):
-        c = self._get_connection().cursor()
+        await c.execute(command, parseArgs)
+        await self.get_cur_connection().commit()
+
+    async def update_nolock(self, table: str, datadict: dict, pkey: str):
+        c = await self.get_cur_connection().cursor()
 
         command = f"UPDATE {table} SET "
         parseArgs: List[str] = []
@@ -124,8 +125,7 @@ class DatabaseManager(object):
             sep = ","
 
         if setlength == 0:
-            # self.botinstance.debuginfo(
-            #     "nothing to set, no need to update database")
+            _LOGGER.debug("nothing to set, no need to update database")
             return
 
         command += f" WHERE {pkey}="
@@ -135,15 +135,13 @@ class DatabaseManager(object):
         else:
             command += str(datadict[pkey]) + ";"
 
-        # self.botinstance.debuginfo(command)
-        # if len(parseArgs) > 0:
-        #     self.botinstance.debuginfo("parsing args: "+' '.join(parseArgs))
+        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
 
-        c.execute(command, parseArgs)
-        self._get_connection().commit()
+        await c.execute(command, parseArgs)
+        await self.get_cur_connection().commit()
 
-    def _delete(self, table: str, where: Optional[Dict[str, Any]] = None):
-        c = self._get_connection().cursor()
+    async def delete_nolock(self, table: str, where: Optional[Dict[str, Any]] = None):
+        c = await self.get_cur_connection().cursor()
         cmd = f"DELETE FROM {table}"
         parseArgs: List[str] = []
 
@@ -164,89 +162,85 @@ class DatabaseManager(object):
 
         cmd += ";"
 
-        # self.botinstance.debuginfo(cmd)
-        # if len(parseArgs) > 0:
-        #     self.botinstance.debuginfo("parsing args: "+' '.join(parseArgs))
+        _LOGGER.debug("parse command %s with args: %s", cmd, parseArgs)
 
-        c.execute(cmd, parseArgs)
-        self._get_connection().commit()
+        await c.execute(cmd, parseArgs)
+        await self.get_cur_connection().commit()
 
-    def _seenThisPkey(self, table: str, pk: str, pkeyval):
-        return bool(self._select(table, {pk: pkeyval}))
+    async def has_seen(self, table: str, pk: str, pkeyval):
+        return bool(await self.select_nolock(table, {pk: pkeyval}))
 
-    def insertInto(self, table: str, datadict: dict):
-        with self:
-            pk = self._getPrimaryKey(table)
+    async def insert_into(self, table: str, datadict: dict):
+        async with self:
+            pk = await self.get_primary_key(table)
             upd = False
             if pk != "":
                 if pk not in datadict:
                     raise ValueError("Data inserted should have primary key")
-                if self._seenThisPkey(table, pk, datadict[pk]):
-                    # self.botinstance.debuginfo("已经存储过该key，更新目标")
+                if await self.has_seen(table, pk, datadict[pk]):
+                    _LOGGER.debug("already seen this primary key: %s, update target", str(datadict[pk]))
                     upd = True
 
             if upd:
-                self._update(table, datadict, pk)
+                await self.update_nolock(table, datadict, pk)
             else:
-                self._insert(table, datadict)
+                await self.insert_nolock(table, datadict)
 
-    def insertMany(self, table: str, manydata: List[dict], no_pkey_check: bool = False):
-        with self:
-            pk = self._getPrimaryKey(table)
+    async def insert_many(self, table: str, manydata: List[dict], no_pkey_check: bool = False):
+        async with self:
+            pk = await self.get_primary_key(table)
             for data in manydata:
                 upd = False
                 if not no_pkey_check and pk != "":
                     if pk not in data:
-                        raise ValueError("插入表的数据必须要有主键")
-                    if self._seenThisPkey(table, pk, data[pk]):
+                        raise ValueError("There must be primary key in data")
+                    if await self.has_seen(table, pk, data[pk]):
                         upd = True
                 if upd:
-                    self._update(table, data, pk)
+                    await self.update_nolock(table, data, pk)
                 else:
-                    self._insert(table, data)
+                    await self.insert_nolock(table, data)
 
-    def select(
+    async def select(
         self,
         table: str,
         where: Optional[Dict[str, Any]] = None,
         need: Optional[List[str]] = None,
-    ) -> list:
-        with self:
-            ans = self._select(table, where, need)
+    ):
+        async with self:
+            ans = await self.select_nolock(table, where, need)
             return ans
 
-    def execute(self, cmd: List[str]):
+    async def execute(self, cmd: List[str]):
         """execute a list of commands."""
-        with self:
+        async with self:
             for c in cmd:
-                self._get_connection().cursor().execute(c)
-            self._get_connection().commit()
+                await (await self.get_cur_connection().cursor()).execute(c)
+            await self.get_cur_connection().commit()
 
-    def delete(self, table, where: Optional[Dict[str, Any]] = None):
-        with self:
-            self._delete(table, where)
+    async def delete(self, table, where: Optional[Dict[str, Any]] = None):
+        async with self:
+            await self.delete_nolock(table, where)
 
-    def clean(self, table: str):
-        with self:
-            self._delete(table)
+    async def clean(self, table: str):
+        async with self:
+            await self.delete_nolock(table)
 
-    def __enter__(self):
-        # self.lock.acquire()
-        self.connect()
+    async def __aenter__(self):
+        await self.lock.acquire()
+        await self.connect()
         return True
 
-    def __exit__(self, exception_type, exception_value, exception_traceback: Optional["TracebackType"]):
-        # if exception_type is not None:
-        # try:
-        #     tb = '\n'.join(traceback.format_tb(exception_traceback))
-        #     self.botinstance.reply(
-        #         MYID,
-        #         f"数据库操作出错，错误信息：{exception_type} {exception_value}\ntraceback:\n{tb}"
-        #     )
-        # except Exception:
-        #     ...
-        self.close()
-        # self.lock.release()
+    async def __aexit__(self, exception_type, exception_value, exception_traceback: Optional["TracebackType"]):
         if exception_type is not None:
-            raise exception_value
+            try:
+                import traceback
+                tb = '\n'.join(traceback.format_tb(exception_traceback))
+                _LOGGER.error(f"Error when operating database. {exception_type} {exception_value}\ntraceback:\n{tb}")
+            except Exception:
+                ...
+        await self.close()
+        self.lock.release()
+        if exception_type is not None:
+            raise exception_type from exception_value
         return True

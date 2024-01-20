@@ -11,7 +11,7 @@ from telegram.ext import Application, ContextTypes
 
 from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
-from bot_framework.bot_logging import get_logger, get_root_logger
+from bot_framework.bot_logging import get_logger, get_root_logger, stop_logger
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
 from bot_framework.context_manager import ContextHelper, get_context
@@ -88,6 +88,7 @@ class TelegramBot(TelegramBotBase):
             .token(TOKEN)\
             .context_types(context_types)\
             .job_queue(JobQueueEx())\
+            .post_stop(self.post_stop)\
             .build()
         self.bot = self.application.bot
         self.updater = self.application.updater
@@ -98,6 +99,12 @@ class TelegramBot(TelegramBotBase):
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
         self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
+
+    async def post_stop(self, app: Application):
+        for module in self._module_keeper.get_all_enabled_modules():
+            await module.do_stop()
+        #
+        await stop_logger()
 
     def run(self):
         self._module_keeper.load_all()
@@ -134,7 +141,10 @@ class TelegramBot(TelegramBotBase):
 
         self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
-        self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+        try:
+            self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+        except NetworkError:  # catches the NetworkError when the bot is turned off
+            pass
 
     @command_callback_wrapper
     async def stop(self, u, c):

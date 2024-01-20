@@ -1,11 +1,12 @@
 #!/usr/bin/python3 -O
 import logging
 
+
 # should not import anything other than python stdlib here
 
 
 def script_init() -> None:
-    from bot_framework.init_hooks import hook_cfg, generate_language, init_pika
+    from bot_framework.init_hooks import generate_language, hook_cfg, init_pika
     hook_cfg()
     init_pika()
     # log start after pika inited
@@ -16,14 +17,13 @@ def script_init() -> None:
 
 
 def on_exit() -> None:
-    from bot_framework.bot_logging import stop_logger
-    stop_logger()
+    print("Stopped gracefully.")
 
 
 def main() -> None:
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.INFO,
+        level=logging.WARN,
     )
     #
     script_init()

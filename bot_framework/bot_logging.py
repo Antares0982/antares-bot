@@ -1,14 +1,14 @@
 import logging
-import threading
 from logging import Handler, getLevelName
 from types import GenericAlias
 from typing import Optional, cast
 
 
 try:
-    from rabbitmq_interface import PikaMessageQueue
+    from rabbitmq_interface import close_sustained_connection, send_message_nowait
 
     PIKA_SUPPORTED = True
+    __pika_logger_stopped = False
 except ImportError:
     PIKA_SUPPORTED = False
 
@@ -18,17 +18,23 @@ __root_logger = None
 
 
 if PIKA_SUPPORTED:
-    _pika_msg_queue = PikaMessageQueue()
+    import threading
+
+    def is_pika_logger_running():
+        if not (threading.current_thread() is threading.main_thread()):
+            return False  # TODO
+        return not __pika_logger_stopped
 
     class PikaHandler(Handler):
         def emit(self, record):
-            try:
-                msg = self.format(record)
-                _pika_msg_queue.push("logging." + record.name, msg)
-            except RecursionError:  # See issue 36272
-                raise
-            except Exception:
-                self.handleError(record)
+            if is_pika_logger_running():
+                try:
+                    msg = self.format(record)
+                    send_message_nowait("logging." + record.name, msg)
+                except RecursionError:  # See issue 36272
+                    raise
+                except Exception:
+                    self.handleError(record)
 
         def __repr__(self):
             level = getLevelName(self.level)
@@ -53,7 +59,6 @@ def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
 
     __root_logger = logging.getLogger(__logger_top_name)
     if PIKA_SUPPORTED:
-        threading.Thread(target=_pika_msg_queue.run, name="logger_thread").start()
         handler = PikaHandler()
         __root_logger.addHandler(handler)
         # add handler to telegram internal logger
@@ -81,6 +86,7 @@ def get_root_logger():
     return __root_logger
 
 
-def stop_logger():
-    if PIKA_SUPPORTED:
-        _pika_msg_queue.stop()
+async def stop_logger():
+    global __pika_logger_stopped
+    __pika_logger_stopped = True
+    await close_sustained_connection()
