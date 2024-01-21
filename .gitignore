@@ -3,7 +3,8 @@ test.py
 bot_cfg.py
 .vscode/
 .idea/
-
+data/
+modules/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

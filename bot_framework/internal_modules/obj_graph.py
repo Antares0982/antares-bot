@@ -1,3 +1,4 @@
+import asyncio
 import os
 import tempfile
 from io import StringIO
@@ -31,7 +32,7 @@ class ObjGraph(TelegramBotModuleBase):
         self.job_queue.run_once(_f, 10)
 
     def mark_handlers(self) -> List[Union["CallbackBase", "BaseHandler"]]:
-        return [self.memory_graph, self.backrefs]
+        return [self.memory_graph, self.backrefs, self.tracemalloc]
 
     @command_callback_wrapper
     async def memory_graph(self, update: "Update", context: "RichCallbackContext"):
@@ -55,7 +56,37 @@ class ObjGraph(TelegramBotModuleBase):
         if len(objs) == 0:
             await self.error_info("No objects found")
             return
+        loop = asyncio.get_running_loop()
+        loop.create_task(self.reply(f"found {len(objs)} objects in memory"))
         file_name = os.path.join(temp_dir, "backrefs.png")
+        if len(objs) > 5:
+            loop.create_task(self.reply("Too many objects, only show first 5"))
+            objs = objs[:5]
         objgraph.show_backrefs(objs, max_depth=5, filename=file_name)
+        del objs
         await self.reply_document(file_name)
         os.remove(file_name)
+
+    @command_callback_wrapper
+    async def tracemalloc(self, update: "Update", context: "RichCallbackContext"):
+        self.check(level=CheckLevel.MASTER)
+        assert context.args is not None
+        is_stop = len(context.args) > 0 and context.args[0] == "stop"
+        import tracemalloc
+        if is_stop:
+            tracemalloc.stop()
+            await self.reply("tracemalloc stopped")
+            return
+        if tracemalloc.is_tracing():
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.reply(f"There is {len(top_stats)} tracemalloc stats"))
+            top_stats = top_stats[:200]
+            stats_str = '\n'.join(str(stat) for stat in top_stats)
+            await self.reply(stats_str)
+            return
+        else:
+            tracemalloc.start()
+            await self.reply("tracemalloc started")
+            return

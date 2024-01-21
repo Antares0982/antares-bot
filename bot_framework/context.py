@@ -51,6 +51,9 @@ class RichCallbackContext(CallbackContext[ExtBot, UserData, ChatData, dict]):
     def is_channel_message(self):
         return self._type == ChatType.CHANNEL
 
+    def chat_type_str(self):
+        return self._type
+
     def is_callback_query(self):
         return self._update.callback_query is not None
 

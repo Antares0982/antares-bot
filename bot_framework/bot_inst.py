@@ -4,7 +4,7 @@ import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union
-
+import asyncio
 from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, ContextTypes
@@ -15,7 +15,7 @@ from bot_framework.bot_logging import get_logger, get_root_logger, stop_logger
 from bot_framework.callback_manager import CallbackDataManager
 from bot_framework.context import ChatData, RichCallbackContext, UserData
 from bot_framework.context_manager import ContextHelper, get_context
-from bot_framework.error import UserPermissionException
+from bot_framework.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
 from bot_framework.framework import CallbackBase, command_callback_wrapper
 from bot_framework.module_loader import ModuleKeeper
 from bot_framework.patching.application_ex import ApplicationEx
@@ -42,20 +42,30 @@ def format_traceback(err: Exception) -> str:
     return '\n'.join(traceback.format_tb(err.__traceback__))
 
 
+async def _leaked_permission_exception_handler(err: Exception):
+    try:
+        if isinstance(err, UserPermissionException):
+            await get_bot_instance().reply("你没有权限哦")
+        elif isinstance(err, InvalidChatTypeException):
+            await get_bot_instance().reply("不能在这里使用哦")
+    except Exception:
+        pass
+
+
 async def exception_handler(update: Any, context: RichCallbackContext):
-    update = None  # force ignore `update` to make exception_handler more generic
     try:
         err = context.error
         if err is None or err.__class__ in (NetworkError, OSError, TimedOut, ConnectionError, Conflict, RetryAfter):
             return  # ignore them
-        if err.__class__ is UserPermissionException:
-            # in case of didn't catching UserPermissionException properly
+        permission_exception_types = permission_exceptions()
+        if isinstance(err, permission_exception_types):
+            # in case of didn't catching permission exceptions properly
             # generally, catching permission exception here greatly affects the performance
             if get_context() is None:
                 _LOGGER.error("No context found")
                 return
             with ContextHelper(context):
-                await get_bot_instance().reply("你没有权限哦")
+                await _leaked_permission_exception_handler(err)
             return
         tb = format_traceback(err)
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
@@ -88,6 +98,7 @@ class TelegramBot(TelegramBotBase):
             .token(TOKEN)\
             .context_types(context_types)\
             .job_queue(JobQueueEx())\
+            .post_init(self.post_init)\
             .post_stop(self.post_stop)\
             .build()
         self.bot = self.application.bot
@@ -99,12 +110,16 @@ class TelegramBot(TelegramBotBase):
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
         self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
+        # some pre-checks
+        if self._is_debug_level():
+            _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
+
+    async def post_init(self, app: Application):
+        return  # TODO
 
     async def post_stop(self, app: Application):
         await self.send_to(MASTER_ID, "主人再见QAQ")
-        for module in self._module_keeper.get_all_enabled_modules():
-            await module.do_stop()
-        #
+        await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         await stop_logger()
 
     def run(self):
@@ -144,7 +159,7 @@ class TelegramBot(TelegramBotBase):
 
         try:
             self.application.run_polling(allowed_updates=Update.ALL_TYPES)
-        except NetworkError:  # catches the NetworkError when the bot is turned off
+        except NetworkError:  # catches the NetworkError when the bot is turned off. we don't care about that
             pass
 
     @command_callback_wrapper
@@ -172,6 +187,8 @@ class TelegramBot(TelegramBotBase):
         root_logger = get_root_logger()
         old_level = root_logger.level
         if old_level == LOGLEVEL_DEBUG:
+            if self._old_log_level is None:
+                raise RuntimeError("Invalid state: maybe default debug level is DEBUG!")
             self.debug_info("debug off")
             root_logger.setLevel(self._old_log_level)
             self._old_log_level = None
@@ -208,17 +225,25 @@ class TelegramBot(TelegramBotBase):
         if command.startswith("/exec"):
             command = command[5:]
         command = command.strip()
-
+        _LOGGER.warn(f"executing: {command}")
         await self._internal_exec(command)
 
     def data_dir(self):
         return os.path.join(os.path.curdir, DEFAULT_DATA_DIR)
 
     async def _daily_job(self, context: RichCallbackContext):
+        is_debug = self._is_debug_level()
+        if is_debug:
+            _debug_ids = []
         for old_id in self.callback_manager.history.pop_before_keys(time.time() - TIME_IN_A_DAY):
             self.callback_manager.pop_data(old_id)
-        for job in self.registered_daily_jobs.values():
-            await job(context)
+            if is_debug:
+                _debug_ids.append(old_id)
+        if is_debug:
+            _LOGGER.debug(f"Daily job: removed {_debug_ids} keys from callback manager")
+        #
+        _LOGGER.debug(f"Start running daily jobs for each module")
+        await asyncio.gather(*(job(context) for job in self.registered_daily_jobs.values()))
 
 
 __bot_singleton = None
@@ -231,8 +256,19 @@ def destroy_bot_instance():
         __bot_singleton = None
 
 
+__REGISTERED_BOT_CLASS = TelegramBot
+
+
+def register_bot_class(cls: Type[TelegramBot]):
+    if issubclass(cls, TelegramBot):
+        global __REGISTERED_BOT_CLASS
+        __REGISTERED_BOT_CLASS = cls
+    else:
+        raise RuntimeError("Invalid bot class")
+
+
 def get_bot_instance() -> TelegramBot:
     global __bot_singleton
     if __bot_singleton is None:
-        __bot_singleton = TelegramBot()
+        __bot_singleton = __REGISTERED_BOT_CLASS()
     return __bot_singleton

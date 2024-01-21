@@ -24,17 +24,24 @@ class ConditionLimit(Enum):
     ALL = 0xf
 
 
+class PermissionState(Enum):
+    PASSED = 0
+    INVALID_USER = 1
+    INVALID_CHAT_TYPE = 2
+    IGNORE_CHANNEL = 3
+
 def permission_check(context: "RichCallbackContext", level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL):
     if context.is_private_chat():
         if 0 == (limit.value & ConditionLimit.PRIVATE.value):
-            return False
+            return PermissionState.INVALID_CHAT_TYPE
     elif context.is_group_chat():
         if 0 == (limit.value & ConditionLimit.GROUP.value):
-            return False
+            return PermissionState.INVALID_CHAT_TYPE
     elif context.is_channel_message():
         if 0 == (limit.value & ConditionLimit.CHANNEL.value):
-            return False
+            return PermissionState.IGNORE_CHANNEL
     if level == CheckLevel.MASTER:
-        return context.chat_id == bot_cfg.MASTER_ID or context.user_id == bot_cfg.MASTER_ID
+        is_master = context.chat_id == bot_cfg.MASTER_ID or context.user_id == bot_cfg.MASTER_ID
+        return PermissionState.PASSED if is_master else PermissionState.INVALID_USER
     # add more checks in future
-    return True
+    return PermissionState.PASSED

@@ -1,6 +1,6 @@
 import re
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, Pattern, Type, Union, overload
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Pattern, Type, Union, overload
 
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
@@ -8,7 +8,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, f
 from bot_framework import language
 from bot_framework.bot_logging import get_logger
 from bot_framework.context_manager import ContextHelper
-from bot_framework.error import InvalidQueryException, UserPermissionException
+from bot_framework.error import InvalidQueryException, permission_exceptions, UserPermissionException, InvalidChatTypeException
 
 
 if TYPE_CHECKING:
@@ -20,6 +20,9 @@ _LOGGER = get_logger(__name__)
 
 
 class CallbackBase(object):
+    """
+    subclass need to implement `kwargs` property
+    """
     handler_type: Type["BaseHandler"]
 
     def __init__(self, func, *args, **kwargs):
@@ -46,10 +49,14 @@ class CallbackBase(object):
                     return await self.__wrapped__(self._instance, update, context)  # type: ignore
                 else:
                     return await self.__wrapped__(update, context)  # type: ignore
-            except UserPermissionException:
+            except permission_exceptions() as e:
                 try:
-                    from bot_framework.bot_inst import get_bot_instance
-                    await get_bot_instance().reply(language.NO_PERMISSION)
+                    if isinstance(e, UserPermissionException):
+                        from bot_framework.bot_inst import get_bot_instance
+                        await get_bot_instance().reply(language.NO_PERMISSION)
+                    elif isinstance(e, InvalidChatTypeException):
+                        from bot_framework.bot_inst import get_bot_instance
+                        await get_bot_instance().reply(language.INVALID_CHAT_TYPE.format(context.chat_type_str()))
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
             except InvalidQueryException:
@@ -179,7 +186,10 @@ def btn_click_wrapper(
     if isinstance(pattern, str):
         # startswith `pattern`
         pattern = re.compile(f"^{pattern}")
-    return general_callback_wrapper(CallbackQueryHandler, pre_executer=_btn_pre_executer, pattern=pattern)
+    kwargs: Dict[str, Any] = {}
+    kwargs['pattern'] = pattern
+    kwargs[GeneralCallback.PRE_EXUCUTER_KW] = _btn_pre_executer
+    return general_callback_wrapper(CallbackQueryHandler, **kwargs)
 
 
 msg_handle_wrapper = general_callback_wrapper(MessageHandler, filters=None)
