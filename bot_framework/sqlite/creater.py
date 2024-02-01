@@ -151,3 +151,19 @@ class DbDeclarer(object):
             await conn.close()
         except Exception as e:
             raise DbCreationException from e
+
+    async def validate(self):
+        # check if table exists
+        conn = aiosqlite.connect(self.db_path)
+        c = await conn.cursor()
+        for table in self.tables.values():
+            command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(table.table_name)
+            _LOGGER.warn(command)
+            await c.execute(command)
+            if not await c.fetchone():
+                _LOGGER.warn("Table {} not exists".format(table.table_name))
+                command = table.get_execute_str()
+                _LOGGER.warn(command)
+                await c.execute(command)
+        await conn.commit()
+        await conn.close()
