@@ -1,22 +1,22 @@
 import asyncio
 import datetime
+import sys
 from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Tuple, TypeVar, Union, cast
 
 from telegram import Update
 from telegram._utils.defaultvalue import DEFAULT_TRUE
 from telegram._utils.types import DVType
-from telegram.ext import CallbackContext, ConversationHandler
-from telegram.ext._basehandler import BaseHandler
-from telegram.ext._conversationhandler import PendingState
+from telegram.ext import BaseHandler, CallbackContext, ConversationHandler
 
 from bot_framework.bot_logging import get_logger
+
+
+PendingState = sys.modules[ConversationHandler.__module__].PendingState
 
 
 CCT = TypeVar("CCT", bound="CallbackContext[Any, Any, Any, Any]")
 
 if TYPE_CHECKING:
-    from telegram.ext import BaseHandler
-
     from bot_framework.patching.application_ex import ApplicationEx
 
 _LOGGER = get_logger(__name__)
