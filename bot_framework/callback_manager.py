@@ -39,6 +39,10 @@ class CallbackDataManager:
         self.history = CallbackHistoryManager()
 
     def set_data(self, data=None) -> str:
+        """
+        store data and return the key to retrieve it later.
+        the key is a string of int.
+        """
         if data is not None:
             self._dict[self.id] = data
             self.history.enqueue(self.id)
@@ -46,16 +50,28 @@ class CallbackDataManager:
         return str(self.id - 1)
 
     def pop_data(self, _id: Union[str, int]) -> Any:
+        """
+        pop the data by the key.
+        """
         n_id = int(_id)
         return self._dict.pop(n_id, None)
 
     def peek_data(self, _id: Union[str, int]) -> Any:
+        """
+        peek the data by the key.
+        """
         n_id = int(_id)
         return self._dict.get(n_id, None)
 
     def modify_data(self, _id: Union[str, int], data: Any) -> None:
+        """
+        modify the data by the key.
+        """
         n_id = int(_id)
-        self._dict[n_id] = data
+        if data is not None:
+            self._dict[n_id] = data
+        else:
+            self._dict.pop(n_id, None)
 
 
 class PersistKeyboards(Generic[_DataType]):
@@ -65,8 +81,8 @@ class PersistKeyboards(Generic[_DataType]):
     The normal usage is like:
     * construct with callback data manager.
     * call `store_data()` to store all data into self.
-    * call `setup()` by the key returned from last step, and also the repr_cb, which is used to generate the text of buttons.
-    * call `get()` to get the InlineKeyboardMarkup.
+    * call `setup_use_keys()` by the key returned from last step, and also the repr_cb, which is used to generate the text of buttons.
+    * call `get_reply_markup()` to get the InlineKeyboardMarkup.
 
     When the data is retrieved:
     * the type of data is `Tuple[_DataType, PersistKeyboards[_DataType]]`.
@@ -79,7 +95,10 @@ class PersistKeyboards(Generic[_DataType]):
         self.cb_manager = cb_manager
         self._idx_map: Dict[str, int] = dict()
 
-    def get(self, pattern_key: str, button_in_row: int) -> Optional["InlineKeyboardMarkup"]:
+    def get_reply_markup(self, pattern_key: str, button_in_row: int) -> Optional["InlineKeyboardMarkup"]:
+        """
+        get the InlineKeyboardMarkup. return `None` if no callback data keys are set.
+        """
         if len(self.cb_data_keys) == 0:
             return None
         return flatten_button(self._to_buttons(pattern_key), button_in_row)
@@ -87,7 +106,25 @@ class PersistKeyboards(Generic[_DataType]):
     def _to_buttons(self, pattern_key: str) -> List[InlineKeyboardButton]:
         return [InlineKeyboardButton(self._get_text(i), callback_data=f"{pattern_key}:{k}") for i, k in enumerate(self.cb_data_keys)]
 
-    def setup(self, cb_data_keys: List[str], repr_cb: Optional[Callable[[int, str, _DataType], str]] = None):
+    def setup_use_data(self, data_list: Iterable[_DataType], repr_cb: Optional[Callable[[int, str, _DataType], str]] = None):
+        """
+        setting up the keyboard.
+        store all callback data into callback manager, store corresponding keys into persist keyboard, and set the `repr_cb` for formatting the button text.
+
+        Parameter of repr_cb: `idx`, `cb_data_key`, `data`.
+        """
+        cb_data_keys: List[str] = []
+        for data in data_list:
+            cb_data_keys.append(self.store_data(data))
+        self.setup_use_keys(cb_data_keys, repr_cb)
+
+    def setup_use_keys(self, cb_data_keys: List[str], repr_cb: Optional[Callable[[int, str, _DataType], str]] = None):
+        """
+        setting up the keyboard.
+        store all callback data keys into persist keyboard, and set the `repr_cb` for formatting the button text.
+
+        Parameter of repr_cb: `idx`, `cb_data_key`, `data`.
+        """
         self.cb_data_keys = cb_data_keys
         self.repr_cb = repr_cb
         for i, k in enumerate(cb_data_keys):

@@ -88,6 +88,9 @@ def flatten_button(
 
 
 async def exception_manual_handle(logger: logging.Logger, e: Exception):
+    """
+    no raise
+    """
     try:
         logger.debug("exception catched, manually handling it")
         from bot_framework.bot_inst import exception_handler, format_traceback

@@ -90,7 +90,7 @@ class TelegramBotBaseWrapper(object):
         context = cls.get_context()
         kwargs.setdefault('chat_id', context.chat_id)
         chat_id: int = kwargs['chat_id']
-        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
+        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs and not context.is_callback_query():
             kwargs['reply_to_message_id'] = context.message_id
         texts = longtext_split(text)
         async for m in cls._sequence_send(context.bot.send_message, texts, **kwargs):
@@ -136,7 +136,7 @@ class TelegramBotBaseWrapper(object):
         context = cls.get_context()
         kwargs.setdefault('chat_id', context.chat_id)
         chat_id: int = kwargs['chat_id']
-        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
+        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs and not context.is_callback_query():
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['photo'] = photo
         return await cls._send_ignore_parsemode_or_replyto_exceptions(context.bot.send_photo, **kwargs)
@@ -153,7 +153,7 @@ class TelegramBotBaseWrapper(object):
         context = cls.get_context()
         kwargs.setdefault('chat_id', context.chat_id)
         chat_id: int = kwargs['chat_id']
-        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs:
+        if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs and not context.is_callback_query():
             kwargs['reply_to_message_id'] = context.message_id
         kwargs['document'] = document
         return await cls._send_ignore_parsemode_or_replyto_exceptions(context.bot.send_document, **kwargs)
