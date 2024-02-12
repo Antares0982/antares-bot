@@ -244,7 +244,6 @@ class ModuleKeeper(object):
                     # check
                     kls = _module_check(module, module_top_name)
                     if kls is None:
-                        _LOGGER.error(f"{module_store_name} failed the module check!")
                         continue
                     # check if need skip (user modules)
                     skip = getattr(kls, MODULE_SKIP_LOAD_STR, False)
