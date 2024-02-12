@@ -214,7 +214,6 @@ class ModuleKeeper(object):
                     # check
                     kls = _module_check(module, module_top_name)
                     if kls is None:
-                        _LOGGER.error(f"{module_store_name} failed the module check!")
                         continue
                     # finalize
                     _load_str = "reloaded" if is_reload else "loaded"

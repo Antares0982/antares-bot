@@ -136,7 +136,7 @@ class DbDeclarer(object):
         if len(self.tables) == 0:
             raise NoTableException("No table declared: {}".format(self.db_path))
         try:
-            conn = aiosqlite.connect(self.db_path)
+            conn = await aiosqlite.connect(self.db_path)
             c = await conn.cursor()
             # drop table if exists
             for table_name in self.tables:
@@ -154,7 +154,7 @@ class DbDeclarer(object):
 
     async def validate(self):
         # check if table exists
-        conn = aiosqlite.connect(self.db_path)
+        conn = await aiosqlite.connect(self.db_path)
         c = await conn.cursor()
         for table in self.tables.values():
             command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(table.table_name)
