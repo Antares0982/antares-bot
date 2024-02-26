@@ -1,8 +1,9 @@
+import logging
 from typing import List, Optional
 
+import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatType
-import logging
 
 
 class ObjectDict(dict):
@@ -105,3 +106,8 @@ async def exception_manual_handle(logger: logging.Logger, e: Exception):
         return
     # exception_handler does not raise
     await exception_handler(None, context)
+
+
+async def fetch_url(url: str):
+    async with httpx.AsyncClient() as client:
+        return await client.get(url)

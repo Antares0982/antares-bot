@@ -5,10 +5,11 @@ from telegram import InlineKeyboardButton
 from telegram.error import TelegramError
 
 import bot_framework.context_manager as context_manager
+from bot_framework import utils
 from bot_framework.bot_logging import get_logger, get_root_logger
 from bot_framework.bot_method_wrapper import TelegramBotBaseWrapper
-from bot_framework.error import UserPermissionException, InvalidChatTypeException, IgnoreChannelUpdateException
-from bot_framework.permission_check import CheckLevel, ConditionLimit, permission_check, PermissionState
+from bot_framework.error import IgnoreChannelUpdateException, InvalidChatTypeException, UserPermissionException
+from bot_framework.permission_check import CheckLevel, ConditionLimit, PermissionState, permission_check
 
 
 if TYPE_CHECKING:
@@ -84,3 +85,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     def _is_debug_level(cls):
         root_logger = get_root_logger()
         return root_logger.level == LOGLEVEL_DEBUG
+
+    @classmethod
+    async def fetch_url(cls, url: str):
+        return await utils.fetch_url(url)
