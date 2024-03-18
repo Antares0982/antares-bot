@@ -8,6 +8,8 @@ from bot_framework.module_base import TelegramBotModuleBase
 
 
 if TYPE_CHECKING:
+    from telegram.ext import Application
+
     from bot_framework.bot_inst import TelegramBot
 
 _T = TypeVar("_T", bound=TelegramBotModuleBase)
@@ -48,6 +50,10 @@ class TelegramBotModuleDesc(Generic[_T]):
     def do_init(self, parent: "TelegramBot") -> None:
         self.module_instance = self.kls(parent)
         self.module_instance.do_init()
+
+    async def post_init(self, app: "Application") -> None:
+        if self.module_instance is not None:
+            await self.module_instance.post_init(app)
 
     async def do_stop(self):
         if self.module_instance is not None:

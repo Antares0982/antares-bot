@@ -11,7 +11,7 @@ from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
 if TYPE_CHECKING:
     from telegram import CallbackQuery, InlineKeyboardMarkup
-    from telegram.ext import BaseHandler
+    from telegram.ext import Application, BaseHandler
 
     from bot_framework.bot_inst import TelegramBot
     from bot_framework.callback_manager import PersistKeyboards
@@ -33,6 +33,9 @@ class TelegramBotModuleBase(TelegramBotBase):
         self._handlers: Optional[List[Union["CallbackBase", "BaseHandler"]]] = None
 
     def do_init(self) -> None:
+        ...
+
+    async def post_init(self, app: "Application") -> None:
         ...
 
     async def do_stop(self) -> None:

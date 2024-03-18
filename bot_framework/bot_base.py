@@ -73,9 +73,12 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     ##############################
 
     @classmethod
-    def is_master(cls) -> bool:
+    def is_master(cls, ct: Optional["RichCallbackContext"]) -> bool:
+        # TODO: consider private channel
         from bot_cfg import MASTER_ID
-        return cls.get_context().chat_id == MASTER_ID or cls.get_context().user_id == MASTER_ID
+        if ct is None:
+            ct = cls.get_context()
+        return ct.chat_id == MASTER_ID or ct.user_id == MASTER_ID
 
     @classmethod
     def format_inline_keyboard_button(cls, text: str, callback_key_name: str, callback_arg: Any):

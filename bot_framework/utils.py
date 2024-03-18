@@ -108,6 +108,31 @@ async def exception_manual_handle(logger: logging.Logger, e: Exception):
     await exception_handler(None, context)
 
 
-async def fetch_url(url: str):
+async def fetch_url(url: str, **kwargs):
     async with httpx.AsyncClient() as client:
-        return await client.get(url)
+        return await client.get(url, **kwargs)
+
+
+class ChatMessage(object):
+    __slots__ = ["chat", "msgid"]
+
+    def __init__(self, chat: int, msgid: int) -> None:
+        self.chat = chat
+        self.msgid = msgid
+
+    def __hash__(self) -> int:
+        return hash((self.chat, self.msgid))
+
+    def __eq__(self, o) -> bool:
+        if not isinstance(o, ChatMessage):
+            return False
+        try:
+            return self.chat == o.chat and self.msgid == o.msgid
+        except Exception:
+            return False
+
+    def __expr__(self) -> str:
+        return str(self.chat) + ' ' + str(self.msgid)
+
+    def __str__(self) -> str:
+        return self.__expr__()

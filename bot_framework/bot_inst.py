@@ -115,7 +115,8 @@ class TelegramBot(TelegramBotBase):
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
 
     async def post_init(self, app: Application):
-        return  # TODO
+        tasks = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
+        await asyncio.gather(*tasks)
 
     async def post_stop(self, app: Application):
         await self.send_to(MASTER_ID, "主人再见QAQ")

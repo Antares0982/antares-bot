@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List
 
 import aiosqlite
@@ -56,7 +57,17 @@ class TableDeclarer(object):
         self.columns[column_name] = ColumnDeclarer(column_name, column_type, is_primary, is_not_null, is_unique, default)
         return self
 
-    def get_execute_str(self):
+    def get_creation_cmd(self):
+        """
+        Returns the SQL string for creating the table based on the specified table name and columns.
+
+        Raises:
+            NoTableException: If the table name is not declared.
+            NoColumnException: If no columns are declared for the table.
+
+        Returns:
+            str: The SQL string for creating the table.
+        """
         if self.table_name == "":
             raise NoTableException("Table name not declared")
         if len(self.columns) == 0:
@@ -130,6 +141,12 @@ class DbDeclarer(object):
         self.tables[table_name] = t.set_table_name(table_name)
         return t
 
+    async def create_or_validate(self):
+        if os.path.exists(self.db_path):
+            await self.validate()
+        else:
+            await self.create()
+
     async def create(self):
         if self.db_path == "":
             raise NoDbPathException("Database path not declared")
@@ -144,7 +161,7 @@ class DbDeclarer(object):
                 _LOGGER.warn(command)
                 await c.execute(command)
             for table in self.tables.values():
-                command = table.get_execute_str()
+                command = table.get_creation_cmd()
                 _LOGGER.warn(command)
                 await c.execute(command)
             await conn.commit()
@@ -162,7 +179,7 @@ class DbDeclarer(object):
             await c.execute(command)
             if not await c.fetchone():
                 _LOGGER.warn("Table {} not exists".format(table.table_name))
-                command = table.get_execute_str()
+                command = table.get_creation_cmd()
                 _LOGGER.warn(command)
                 await c.execute(command)
         await conn.commit()
