@@ -199,5 +199,8 @@ class TelegramBotBaseWrapper(object):
                 parse_mode = kwargs.pop('parse_mode', None)
                 if parse_mode is None:
                     raise BadRequest(e.message) from e
-                return await cls._send_ignore_parsemode_or_replyto_exceptions(interface_func, **kwargs)
+                ret = await cls._send_ignore_parsemode_or_replyto_exceptions(interface_func, **kwargs)
+                # reset parse_mode for the next call
+                kwargs['parse_mode'] = parse_mode
+                return ret
             raise BadRequest(e.message) from e
