@@ -33,11 +33,12 @@ _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
 _LOGGER = get_logger("main")
 TIME_IN_A_DAY = 24 * 60 * 60
 
+# note that wildcard import is only allowed at module level
 _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
+from bot_framework.test_commands import *
+from bot_cfg import *
 async def __t():
     self = get_bot_instance()
-    from bot_framework.test_commands import *
-    from bot_cfg import *
 """
 
 
