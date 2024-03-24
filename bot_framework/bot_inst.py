@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional
 
 from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
 from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
@@ -142,6 +142,12 @@ class TelegramBot(TelegramBotBase):
                 if isinstance(handler, CommandHandler):
                     for command in handler.commands:
                         self.application.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                elif isinstance(handler, ConversationHandler):
+                    entry = handler.entry_points
+                    for entry_point in entry:
+                        if isinstance(entry_point, CommandHandler):
+                            for command in entry_point.commands:
+                                self.application.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
                 self.application.add_handler(handler)
                 # try get module logger
                 py_module = module.py_module()
@@ -299,7 +305,7 @@ class TelegramBot(TelegramBotBase):
     async def _internal_full_help(self, context: RichCallbackContext):
         ret = ""
         for command, doc in self.application.handler_docs.items():
-            ret += f"/{markdown_escape(command)}: {doc}\n"
+            ret += f"`/help {command}`\n"
         await self.success_info(ret, parse_mode="Markdown")
 
     @command_callback_wrapper
@@ -314,7 +320,7 @@ class TelegramBot(TelegramBotBase):
         doc = self.application.handler_docs.get(command)
         if doc is None:
             return await self.error_info(f"没有找到命令：{command}")
-        return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="MarkdownV2")
+        return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="Markdown")
 
 
 __bot_singleton = None
