@@ -1,12 +1,7 @@
-from asyncio import Queue
-from typing import Any, Callable, Coroutine, Optional, Union
+from typing import Any, Coroutine, Optional, Union
 
 from telegram._utils.defaultvalue import DEFAULT_TRUE
 from telegram.ext import Application, ApplicationHandlerStop, BaseHandler, ExtBot
-from telegram.ext._basepersistence import BasePersistence
-from telegram.ext._baseupdateprocessor import BaseUpdateProcessor
-from telegram.ext._contexttypes import ContextTypes
-from telegram.ext._updater import Updater
 from telegram.ext._utils.types import BD, BT, CCT, CD, JQ, UD
 
 from bot_framework.bot_logging import get_logger
