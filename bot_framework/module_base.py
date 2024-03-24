@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Self, Set, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, cast
 
 from telegram import Message
 
@@ -10,6 +10,8 @@ from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
 
 
 if TYPE_CHECKING:
+    from typing import Self
+
     from telegram import CallbackQuery, InlineKeyboardMarkup
     from telegram.ext import Application, BaseHandler
 
@@ -24,8 +26,8 @@ class TelegramBotModuleBase(TelegramBotBase):
         INST: Any
 
     @classmethod
-    def get_inst(cls) -> Self:
-        return cast(Self, cls.INST)
+    def get_inst(cls) -> "Self":
+        return cast("Self", cls.INST)
 
     def __init__(self, parent: "TelegramBot") -> None:
         self.parent = parent

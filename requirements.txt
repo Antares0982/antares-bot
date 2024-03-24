@@ -1,6 +1,4 @@
 python-telegram-bot[job-queue]
 aiosqlite
-xdot
-graphviz
 objgraph
 aio-pika
