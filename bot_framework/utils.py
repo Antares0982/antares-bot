@@ -19,6 +19,31 @@ class ObjectDict(dict):
         self[attr] = value
 
 
+class ChatMessage(object):
+    __slots__ = ["chat", "msgid"]
+
+    def __init__(self, chat: int, msgid: int) -> None:
+        self.chat = chat
+        self.msgid = msgid
+
+    def __hash__(self) -> int:
+        return hash((self.chat, self.msgid))
+
+    def __eq__(self, o) -> bool:
+        if not isinstance(o, ChatMessage):
+            return False
+        try:
+            return self.chat == o.chat and self.msgid == o.msgid
+        except Exception:
+            return False
+
+    def __expr__(self) -> str:
+        return str(self.chat) + ' ' + str(self.msgid)
+
+    def __str__(self) -> str:
+        return self.__expr__()
+
+
 def get_from_id(update: Update) -> Optional[int]:
     """返回`from_user.id`"""
     if update.message is not None and update.message.from_user is not None:
@@ -113,26 +138,13 @@ async def fetch_url(url: str, **kwargs):
         return await client.get(url, **kwargs)
 
 
-class ChatMessage(object):
-    __slots__ = ["chat", "msgid"]
-
-    def __init__(self, chat: int, msgid: int) -> None:
-        self.chat = chat
-        self.msgid = msgid
-
-    def __hash__(self) -> int:
-        return hash((self.chat, self.msgid))
-
-    def __eq__(self, o) -> bool:
-        if not isinstance(o, ChatMessage):
-            return False
-        try:
-            return self.chat == o.chat and self.msgid == o.msgid
-        except Exception:
-            return False
-
-    def __expr__(self) -> str:
-        return str(self.chat) + ' ' + str(self.msgid)
-
-    def __str__(self) -> str:
-        return self.__expr__()
+def markdown_escape(s: str) -> str:
+    """
+    Escape markdown special characters.
+    Reference: https://www.markdownguide.org/basic-syntax/#characters-you-can-escape
+    """
+    # note that ~ < > in telegram is also special
+    special_chars = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|', '~', '<', '>']
+    for c in special_chars:
+        s = s.replace(c, "\\" + c)
+    return s

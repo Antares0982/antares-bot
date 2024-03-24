@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List, Union
 
 import objgraph  # type: ignore
 
+import bot_cfg
 from bot_cfg import MASTER_ID
 from bot_framework.framework import command_callback_wrapper
 from bot_framework.module_base import TelegramBotModuleBase
@@ -22,6 +23,9 @@ if TYPE_CHECKING:
 
 class ObjGraph(TelegramBotModuleBase):
     def do_init(self) -> None:
+        need_trace = getattr(bot_cfg, "TRACE_AT_START", False)
+        if not need_trace:
+            return
         s = StringIO()
         objgraph.show_most_common_types(limit=50, file=s)
         objgraph.show_growth()  # ignore return value
@@ -58,10 +62,7 @@ class ObjGraph(TelegramBotModuleBase):
             return
         loop = asyncio.get_running_loop()
         loop.create_task(self.reply(f"found {len(objs)} objects in memory"))
-        file_name = os.path.join(temp_dir, "backrefs.png")
-        if len(objs) > 5:
-            loop.create_task(self.reply("Too many objects, only show first 5"))
-            objs = objs[:5]
+        file_name = os.path.join(temp_dir, "backrefs.svg")
         objgraph.show_backrefs(objs, max_depth=5, filename=file_name)
         del objs
         await self.reply_document(file_name)

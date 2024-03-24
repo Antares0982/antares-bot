@@ -3,12 +3,14 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Pattern, Type, Union, overload
 
 from telegram import Update
-from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
+from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
+from telegram.ext import filters
+from telegram.ext import filters as filters_module
 
 from bot_framework import language
 from bot_framework.bot_logging import get_logger
 from bot_framework.context_manager import ContextHelper
-from bot_framework.error import InvalidQueryException, permission_exceptions, UserPermissionException, InvalidChatTypeException
+from bot_framework.error import InvalidChatTypeException, InvalidQueryException, UserPermissionException, permission_exceptions
 
 
 if TYPE_CHECKING:
@@ -21,7 +23,8 @@ _LOGGER = get_logger(__name__)
 
 class CallbackBase(object):
     """
-    subclass need to implement `kwargs` property
+    Base class for all callback wrappers.
+    subclasses need to implement `kwargs` property and `on_init`.
     """
     handler_type: Type["BaseHandler"]
 
@@ -102,16 +105,16 @@ class CommandCallback(CallbackBase):
 class GeneralCallback(CallbackBase):
     PRE_EXUCUTER_KW = 'pre_executer'
 
-    def on_init(self, handler_type, kwargs):
+    def on_init(self, handler_type, kwargs: dict):
         self.handler_type = handler_type
         self.kwargs = kwargs
-        if self.PRE_EXUCUTER_KW in kwargs:
-            self._pre_executer = kwargs[self.PRE_EXUCUTER_KW]
-            kwargs.pop(self.PRE_EXUCUTER_KW)
+        #
+        pre_executer = kwargs.pop(self.PRE_EXUCUTER_KW, None)
+        if pre_executer is not None:
+            self._pre_executer = pre_executer
 
 
 class _CommandCallbackMethodDecor(object):
-
     """
     Internal decorator for command callback functions.
     """
@@ -142,6 +145,14 @@ class GeneralCallbackWrapper(object):
 
     def __call__(self, func):
         return GeneralCallback(func, self.handler_type, self.kwargs)
+
+
+class ConditionFilter(filters_module.BaseFilter):
+    def __init__(self, condition: Callable[[Update], bool]):
+        self.condition = condition
+
+    def check_update(self, update: Update) -> bool:
+        return self.condition(update)
 
 
 @overload
@@ -192,6 +203,35 @@ def btn_click_wrapper(
     return general_callback_wrapper(CallbackQueryHandler, **kwargs)
 
 
-msg_handle_wrapper = general_callback_wrapper(MessageHandler, filters=None)
+@overload
+def msg_handle_wrapper(filters: Callable[["Update"], Any]) -> GeneralCallbackWrapper:
+    ...
+
+
+@overload
+def msg_handle_wrapper(func: Callable[["Update", "RichCallbackContext"], Any]) -> GeneralCallback:
+    ...
+
+
+@overload
+def msg_handle_wrapper(filters: Optional[filters.BaseFilter] = None) -> GeneralCallbackWrapper:
+    ...
+
+
+def msg_handle_wrapper(*args, **kwargs):
+    """
+    message handler wrapper.
+    if need check before execute, pass a filter object in kwargs `filters`
+    """
+    if len(args) > 0 and callable(args[0]):
+        return general_callback_wrapper(MessageHandler, filters=None)(args[0])
+    # has kwargs
+    filters = kwargs.get('filters', None)
+    if filters is not None and not isinstance(filters, filters_module.BaseFilter):
+        # wrap it
+        _filters = ConditionFilter(filters)
+        kwargs['filters'] = _filters
+    return general_callback_wrapper(MessageHandler, *args, **kwargs)
+
 
 photo_handle_wrapper = general_callback_wrapper(MessageHandler, filters=filters.PHOTO & (~filters.ChatType.CHANNEL))
