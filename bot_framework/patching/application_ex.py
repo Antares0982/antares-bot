@@ -1,11 +1,15 @@
-from typing import Any, Coroutine, Optional, Union
+from asyncio import Queue
+from typing import Any, Callable, Coroutine, Optional, Union
 
 from telegram._utils.defaultvalue import DEFAULT_TRUE
-from bot_framework.bot_logging import get_logger
 from telegram.ext import Application, ApplicationHandlerStop, BaseHandler, ExtBot
-
+from telegram.ext._basepersistence import BasePersistence
+from telegram.ext._baseupdateprocessor import BaseUpdateProcessor
+from telegram.ext._contexttypes import ContextTypes
+from telegram.ext._updater import Updater
 from telegram.ext._utils.types import BD, BT, CCT, CD, JQ, UD
 
+from bot_framework.bot_logging import get_logger
 from bot_framework.patching.patch_utils import need_atom_process
 
 
@@ -13,6 +17,10 @@ _LOGGER = get_logger(__name__)
 
 
 class ApplicationEx(Application[BT, CCT, UD, CD, BD, JQ]):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.handler_docs: dict[str, str] = {}
+
     async def process_update(self, update: object) -> None:
         """Processes a single update and marks the update to be updated by the persistence later.
         Exceptions raised by handler callbacks will be processed by :meth:`process_error`.

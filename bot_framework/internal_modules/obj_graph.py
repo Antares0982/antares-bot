@@ -50,6 +50,9 @@ class ObjGraph(TelegramBotModuleBase):
 
     @command_callback_wrapper
     async def backrefs(self, update: "Update", context: "RichCallbackContext"):
+        """
+        `/backrefs <ObjType>`: Draw a graph of the objects that reference the objects of given type.
+        """
         self.check(level=CheckLevel.MASTER)
 
         if not context.args:

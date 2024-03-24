@@ -1,13 +1,14 @@
+import asyncio
 import datetime
 import os
 import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union
-import asyncio
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+
 from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
 from bot_framework.bot_base import TelegramBotBase
@@ -21,6 +22,7 @@ from bot_framework.module_loader import ModuleKeeper
 from bot_framework.patching.application_ex import ApplicationEx
 from bot_framework.patching.job_quque_ex import JobQueueEx
 from bot_framework.permission_check import CheckLevel
+from bot_framework.utils import markdown_escape
 
 
 if TYPE_CHECKING:
@@ -32,7 +34,8 @@ _LOGGER = get_logger("main")
 TIME_IN_A_DAY = 24 * 60 * 60
 
 _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
-async def __t(self=get_bot_instance()):
+async def __t():
+    self = get_bot_instance()
     from bot_framework.test_commands import *
     from bot_cfg import *
 """
@@ -93,14 +96,14 @@ class TelegramBot(TelegramBotBase):
             user_data=self.UserDataType,
             bot_data=self.BotDataType  # type: ignore
         )
-        self.application = Application.builder()\
-            .application_class(ApplicationEx)\
-            .token(TOKEN)\
-            .context_types(context_types)\
-            .job_queue(JobQueueEx())\
-            .post_init(self.post_init)\
-            .post_stop(self.post_stop)\
-            .build()
+        self.application = cast(ApplicationEx, Application.builder()
+                                .application_class(ApplicationEx)
+                                .token(TOKEN)
+                                .context_types(context_types)
+                                .job_queue(JobQueueEx())
+                                .post_init(self.post_init)
+                                .post_stop(self.post_stop)
+                                .build())
         self.bot = self.application.bot
         self.updater = self.application.updater
         assert self.application.job_queue
@@ -132,9 +135,13 @@ class TelegramBot(TelegramBotBase):
             module_inst = module.module_instance
             for func in module_inst.collect_handlers():
                 if isinstance(func, CallbackBase):
-                    self.application.add_handler(func.to_handler())  # , group=func.group)
+                    handler = func.to_handler()
                 else:
-                    self.application.add_handler(func)
+                    handler = func
+                if isinstance(handler, CommandHandler):
+                    for command in handler.commands:
+                        self.application.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                self.application.add_handler(handler)
                 # try get module logger
                 py_module = module.py_module()
                 if hasattr(py_module, "_LOGGER"):
@@ -148,11 +155,20 @@ class TelegramBot(TelegramBotBase):
             self.stop,
             self.debug_mode,
             self.exec,
+            self.get_id,
+            self.help,
         ]
 
-        for handler in main_handlers:
-            self.application.add_handler(handler.to_handler())
+        for method in main_handlers:
+            handler = method.to_handler()
+            self.application.add_handler(handler)
+            for command in handler.commands:
+                self.application.handler_docs[command] = method.__doc__ if method.__doc__ else "No doc"
             _LOGGER.warn(f"added handler: {handler}")
+
+        self.application.handler_docs["cancel"] = """
+        Cancel the current operation.
+        """
 
         self.application.add_error_handler(exception_handler)
 
@@ -165,6 +181,9 @@ class TelegramBot(TelegramBotBase):
 
     @command_callback_wrapper
     async def stop(self, u, c):
+        """
+        Stop the bot.
+        """
         self.check(CheckLevel.MASTER)
         self.application.stop_running()
 
@@ -184,6 +203,9 @@ class TelegramBot(TelegramBotBase):
 
     @command_callback_wrapper
     async def debug_mode(self, update, context):
+        """
+        Switch debug mode on/off.
+        """
         self.check(CheckLevel.MASTER)
         root_logger = get_root_logger()
         old_level = root_logger.level
@@ -216,6 +238,11 @@ class TelegramBot(TelegramBotBase):
 
     @command_callback_wrapper
     async def exec(self, update: Update, context: RichCallbackContext):
+        """
+        Execute python code.
+        `bot_framework.test_commands` and `bot_cfg` are wildcard imported by default.
+        You can use `self` to refer to the bot instance.
+        """
         self.check(CheckLevel.MASTER)
         assert context.args is not None
         if len(context.args) == 0:
@@ -245,6 +272,48 @@ class TelegramBot(TelegramBotBase):
         #
         _LOGGER.debug(f"Start running daily jobs for each module")
         await asyncio.gather(*(job(context) for job in self.registered_daily_jobs.values()))
+
+    @command_callback_wrapper
+    async def get_id(self, update: Update, context: RichCallbackContext):
+        """
+        Get the user id / chat id.
+        In a group chat, if replying to a message, get the user id of the replied message.
+        """
+        if context.is_group_chat() and update.message is not None and update.message.reply_to_message is not None and update.message.reply_to_message.from_user is not None:
+            return await self.reply(
+                f"群id：`{context.chat_id}`\n回复的消息的用户id：`{update.message.reply_to_message.from_user.id}`",
+                parse_mode="MarkdownV2"
+            )
+        elif context.is_group_chat():
+            return await self.reply(
+                f"群id：`{context.chat_id}`\n您的id：`{context.user_id}`",
+                parse_mode="MarkdownV2"
+            )
+        else:
+            return await self.reply(
+                f"您的id：\n`{context.user_id}`",
+                parse_mode="MarkdownV2"
+            )
+
+    async def _internal_full_help(self, context: RichCallbackContext):
+        ret = ""
+        for command, doc in self.application.handler_docs.items():
+            ret += f"/{markdown_escape(command)}: {doc}\n"
+        await self.success_info(ret, parse_mode="Markdown")
+
+    @command_callback_wrapper
+    async def help(self, update: Update, context: RichCallbackContext):
+        """
+        `/help [command]`: get the docstring for commands
+        """
+        assert context.args is not None
+        if len(context.args) == 0:
+            return await self._internal_full_help(context)
+        command = context.args[0]
+        doc = self.application.handler_docs.get(command)
+        if doc is None:
+            return await self.error_info(f"没有找到命令：{command}")
+        return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="MarkdownV2")
 
 
 __bot_singleton = None
