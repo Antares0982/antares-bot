@@ -238,9 +238,9 @@ class TelegramBot(TelegramBotBase):
             code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {l}' for l in codes)
             exec(code_string)
             ans = await locals()["__t"]()
-        except Exception as e:
-            await self.reply("执行失败……")
-            raise e.__class__ from e
+        except Exception:
+            asyncio.get_running_loop().create_task(self.reply("执行失败……"))
+            raise
         await self.reply(f"执行成功，返回值：{ans}")
 
     @command_callback_wrapper
