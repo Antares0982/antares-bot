@@ -138,13 +138,24 @@ async def fetch_url(url: str, **kwargs):
         return await client.get(url, **kwargs)
 
 
-def markdown_escape(s: str) -> str:
+def markdown_v2_escape(s: str) -> str:
     """
     Escape markdown special characters.
     Reference: https://www.markdownguide.org/basic-syntax/#characters-you-can-escape
     """
     # note that ~ < > in telegram is also special
     special_chars = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|', '~', '<', '>']
+    for c in special_chars:
+        s = s.replace(c, "\\" + c)
+    return s
+
+
+def markdown_escape(s:str) ->str:
+    """
+    Escape markdown special characters.
+    Reference: https://www.markdownguide.org/basic-syntax/#characters-you-can-escape
+    """
+    special_chars = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|']
     for c in special_chars:
         s = s.replace(c, "\\" + c)
     return s
