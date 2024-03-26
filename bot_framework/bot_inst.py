@@ -102,8 +102,8 @@ class TelegramBot(TelegramBotBase):
                                 .token(TOKEN)
                                 .context_types(context_types)
                                 .job_queue(JobQueueEx())
-                                .post_init(self.post_init)
-                                .post_stop(self.post_stop)
+                                .post_init(self._do_post_init)
+                                .post_stop(self._do_post_stop)
                                 .build())
         self.bot = self.application.bot
         self.updater = self.application.updater
@@ -114,18 +114,32 @@ class TelegramBot(TelegramBotBase):
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
         self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
+        self._custom_post_init_task: Coroutine[Any, Any, Any] | None = None
+        self._custom_post_stop_task: Coroutine[Any, Any, Any] | None = None
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
 
-    async def post_init(self, app: Application):
+    async def _do_post_init(self, app: Application):
         tasks = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
+        if self._custom_post_init_task is not None:
+            tasks.append(self._custom_post_init_task)
+            self._custom_post_init_task = None
         await asyncio.gather(*tasks)
 
-    async def post_stop(self, app: Application):
+    async def _do_post_stop(self, app: Application):
+        if self._custom_post_stop_task is not None:
+            await self._custom_post_stop_task
+            self._custom_post_stop_task = None
         await self.send_to(MASTER_ID, "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         await stop_logger()
+
+    def custom_post_init(self, task: Coroutine[Any, Any, Any]):
+        self._custom_post_init_task = task
+
+    def custom_post_stop(self, task: Coroutine[Any, Any, Any]):
+        self._custom_post_stop_task = task
 
     def run(self):
         self._module_keeper.load_all()

@@ -30,6 +30,11 @@ def main() -> None:
     #
     from bot_framework.bot_inst import get_bot_instance
     bot_app = get_bot_instance()
+    async def at_init():
+        from bot_framework import language
+        from bot_cfg import MASTER_ID
+        await bot_app.send_to(MASTER_ID, language.STARTUP)
+    bot_app.custom_post_init(at_init())
     bot_app.run()
     # exit
     on_exit()
