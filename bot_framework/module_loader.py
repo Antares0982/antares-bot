@@ -195,7 +195,7 @@ class ModuleKeeper(object):
         os.path.join(cur_path, "internal_modules")
         import bot_cfg
         if getattr(bot_cfg, f"SKIP_LOAD_ALL_INTERNAL_MODULES", False):
-            _LOGGER.warn("SKIP_LOAD_ALL_INTERNAL_MODULES is set to True, no internal modules will be loaded")
+            _LOGGER.warning("SKIP_LOAD_ALL_INTERNAL_MODULES is set to True, no internal modules will be loaded")
         else:
             for filename in os.listdir(os.path.join(cur_path, "internal_modules")):
                 if filename.endswith(".py") and filename != "__init__.py":
@@ -223,7 +223,7 @@ class ModuleKeeper(object):
                         continue
                     # finalize
                     _load_str = "reloaded" if is_reload else "loaded"
-                    _LOGGER.warn(f"{_load_str} module {module_store_name}")
+                    _LOGGER.warning(f"{_load_str} module {module_store_name}")
                     # i.e. internal_modules/test.py -> Test
                     ret[module_store_name] = kls
 
@@ -257,7 +257,7 @@ class ModuleKeeper(object):
                         continue
                     # finalize
                     _load_str = "reloaded" if is_reload else "loaded"
-                    _LOGGER.warn(f"{_load_str} module {module_store_name}")
+                    _LOGGER.warning(f"{_load_str} module {module_store_name}")
                     # i.e. modules/test.py -> Test
                     # modules/sub_dir/sub_test.py -> SubTest
                     ret[module_store_name] = kls

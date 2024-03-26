@@ -158,11 +158,11 @@ class DbDeclarer(object):
             # drop table if exists
             for table_name in self.tables:
                 command = "DROP TABLE IF EXISTS {}".format(table_name)
-                _LOGGER.warn(command)
+                _LOGGER.warning(command)
                 await c.execute(command)
             for table in self.tables.values():
                 command = table.get_creation_cmd()
-                _LOGGER.warn(command)
+                _LOGGER.warning(command)
                 await c.execute(command)
             await conn.commit()
             await conn.close()
@@ -175,12 +175,12 @@ class DbDeclarer(object):
         c = await conn.cursor()
         for table in self.tables.values():
             command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(table.table_name)
-            _LOGGER.warn(command)
+            _LOGGER.warning(command)
             await c.execute(command)
             if not await c.fetchone():
-                _LOGGER.warn("Table {} not exists".format(table.table_name))
+                _LOGGER.warning("Table {} not exists".format(table.table_name))
                 command = table.get_creation_cmd()
-                _LOGGER.warn(command)
+                _LOGGER.warning(command)
                 await c.execute(command)
         await conn.commit()
         await conn.close()

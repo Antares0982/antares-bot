@@ -156,7 +156,7 @@ class TelegramBot(TelegramBotBase):
                 else:
                     logger = get_logger(module.top_name)
                     setattr(py_module, "_LOGGER", logger)
-                logger.warn(f"added handler: {func}")
+                logger.info(f"added handler: {func}")
 
         main_handlers = [
             self.stop,
@@ -171,7 +171,7 @@ class TelegramBot(TelegramBotBase):
             self.application.add_handler(handler)
             for command in handler.commands:
                 self.application.handler_docs[command] = method.__doc__ if method.__doc__ else "No doc"
-            _LOGGER.warn(f"added handler: {handler}")
+            _LOGGER.info(f"added handler: {handler}")
 
         self.application.handler_docs["cancel"] = """
         Cancel the current operation.
@@ -236,6 +236,7 @@ class TelegramBot(TelegramBotBase):
         codes = command.split("\n")
         try:
             code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {l}' for l in codes)
+            _LOGGER.warning(f"executing: {code_string}")
             exec(code_string)
             ans = await locals()["__t"]()
         except Exception:
@@ -260,7 +261,6 @@ class TelegramBot(TelegramBotBase):
         if command.startswith("/exec"):
             command = command[5:]
         command = command.strip()
-        _LOGGER.warn(f"executing: {command}")
         await self._internal_exec(command)
 
     def data_dir(self):
