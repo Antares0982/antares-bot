@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import os
+import subprocess
+import sys
 import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
@@ -116,6 +118,10 @@ class TelegramBot(TelegramBotBase):
         self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
         self._custom_post_init_task: Coroutine[Any, Any, Any] | None = None
         self._custom_post_stop_task: Coroutine[Any, Any, Any] | None = None
+        # TODO do a flags check at the end of the run. move the flags into a new class
+        self._post_stop_restart_flag = False
+        self._post_stop_gitpull_flag = False
+        self._custom_restart_command: str | list[str] | None = None
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -133,6 +139,15 @@ class TelegramBot(TelegramBotBase):
             self._custom_post_stop_task = None
         await self.send_to(MASTER_ID, "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
+        if self._post_stop_gitpull_flag:
+            # create a subprocess to git pull
+            try:
+                msg = str(subprocess.check_output(["git", "pull"], encoding='utf-8'))
+                if msg:
+                    if "Already up to date." not in msg:
+                        await self.send_to(MASTER_ID, msg)
+            except Exception:
+                await self.send_to(MASTER_ID, "git pull failed!")
         await stop_logger()
 
     def custom_post_init(self, task: Coroutine[Any, Any, Any]):
@@ -140,6 +155,9 @@ class TelegramBot(TelegramBotBase):
 
     def custom_post_stop(self, task: Coroutine[Any, Any, Any]):
         self._custom_post_stop_task = task
+
+    def custom_restart_command(self, command: str | list[str]):
+        self._custom_restart_command = command
 
     def run(self):
         self._module_keeper.load_all()
@@ -174,6 +192,7 @@ class TelegramBot(TelegramBotBase):
 
         main_handlers = [
             self.stop,
+            self.restart,
             self.debug_mode,
             self.exec,
             self.get_id,
@@ -196,9 +215,28 @@ class TelegramBot(TelegramBotBase):
         self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
         try:
-            self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+            self.application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
         except NetworkError:  # catches the NetworkError when the bot is turned off. we don't care about that
             pass
+
+        # post run
+        self._post_run()
+
+    def _post_run(self):
+        if self._post_stop_restart_flag:
+            # create a detached subprocess to restart the bot
+            restart_command = self._custom_restart_command if self._custom_restart_command is not None else sys.orig_argv
+            if isinstance(restart_command, list):
+                import shlex
+                restart_command = shlex.join(restart_command)
+            restart_command = f"{restart_command} & disown"
+            try:
+                subprocess.run(restart_command, shell=True)
+                print(f"Restarting the bot with command: {restart_command}")
+            except Exception as e:
+                # cannot use logger here, the logger is stopped
+                print(f"Failed to restart the bot with command: {restart_command}", file=sys.stderr)
+                raise
 
     @command_callback_wrapper
     async def stop(self, u, c):
@@ -335,6 +373,18 @@ class TelegramBot(TelegramBotBase):
         if doc is None:
             return await self.error_info(f"没有找到命令：{command}")
         return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="Markdown")
+
+    @command_callback_wrapper
+    async def restart(self, update: Update, context: RichCallbackContext):
+        """
+        Restart the bot.
+        """
+        self.check(CheckLevel.MASTER)
+        self._post_stop_restart_flag = True
+        await self.stop.__wrapped__(self, update, context)
+
+    def pull_when_stop(self, flag: bool = True):
+        self._post_stop_gitpull_flag = flag
 
 
 __bot_singleton = None

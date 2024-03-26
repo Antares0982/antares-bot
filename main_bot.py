@@ -35,6 +35,7 @@ def main() -> None:
         from bot_cfg import MASTER_ID
         await bot_app.send_to(MASTER_ID, language.STARTUP)
     bot_app.custom_post_init(at_init())
+    bot_app.pull_when_stop()
     bot_app.run()
     # exit
     on_exit()
