@@ -258,7 +258,6 @@ class TelegramBot(TelegramBotBase):
 
         print("Stopped gracefully.")
         # shutdown the stdout and stderr since the aiormq will still be printing rabbish
-        import sys
         sys.stdout.close()
         sys.stderr.close()
 
