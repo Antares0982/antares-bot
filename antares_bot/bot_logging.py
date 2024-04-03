@@ -5,29 +5,30 @@ from typing import Optional, cast
 
 
 try:
-    from rabbitmq_interface import close_sustained_connection, send_message_nowait
+    from pika_interface import close_sustained_connection, send_message_nowait
 
     PIKA_SUPPORTED = True
     __pika_logger_stopped = False
 except ImportError:
+    print("Pika not supported due to an ImportError.")
     PIKA_SUPPORTED = False
 
 __logger_top_name = "antares_bot"
 __logger_inited = False
-__root_logger = None
+__root_logger = cast(logging.Logger, None)
 
 
 if PIKA_SUPPORTED:
     import threading
 
-    def is_pika_logger_running():
+    def _is_pika_logger_running():
         if not (threading.current_thread() is threading.main_thread()):
             return False  # TODO
         return not __pika_logger_stopped
 
     class PikaHandler(Handler):
         def emit(self, record):
-            if is_pika_logger_running():
+            if _is_pika_logger_running():
                 try:
                     msg = self.format(record)
                     send_message_nowait("logging." + record.name, msg)
@@ -51,7 +52,7 @@ if PIKA_SUPPORTED:
 def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
     global __logger_inited, __root_logger
     if __logger_inited:
-        return cast(logging.Logger, __root_logger)
+        return __root_logger
     __logger_inited = True
     if logger_top_name is not None:
         global __logger_top_name
@@ -64,6 +65,7 @@ def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
         # add handler to telegram internal logger
         tg_logger = logging.getLogger("telegram")
         tg_logger.addHandler(handler)
+        # add handler to apscheduler internal logger
         apscheduler_logger = logging.getLogger("apscheduler")
         apscheduler_logger.addHandler(handler)
     return __root_logger
@@ -80,6 +82,26 @@ def get_logger(module_name: str):
     return logger
 
 
+def add_pika_log_handler(logger: str | logging.Logger) -> bool:
+    """
+    Add pika handler for the logger.
+    One should only add pika handler to the logger after the logger is initialized.
+    The handler will take effect for the logger and all its children.
+    """
+    if not PIKA_SUPPORTED:
+        print("Pika not supported, add_pika_log_handler has no effect.")
+        return False
+    if isinstance(logger, str):
+        logger = logging.getLogger(logger)
+    added = False
+    for handler in __root_logger.handlers:
+        if isinstance(handler, PikaHandler):
+            logger.addHandler(handler)
+            added = True
+            break
+    return added
+
+
 def get_root_logger():
     if not __logger_inited:
         raise RuntimeError("logger not inited")
@@ -87,6 +109,7 @@ def get_root_logger():
 
 
 async def stop_logger():
-    global __pika_logger_stopped
-    __pika_logger_stopped = True
-    await close_sustained_connection()
+    if PIKA_SUPPORTED:
+        global __pika_logger_stopped
+        __pika_logger_stopped = True
+        await close_sustained_connection()

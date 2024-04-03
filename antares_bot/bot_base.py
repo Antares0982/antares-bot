@@ -13,8 +13,9 @@ from antares_bot.permission_check import CheckLevel, ConditionLimit, PermissionS
 
 
 if TYPE_CHECKING:
-    from antares_bot.context import RichCallbackContext
+    from telegram import Update
 
+    from antares_bot.context import RichCallbackContext
 
 DEBUG_LOGGER = get_logger("debug")
 
@@ -53,7 +54,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
         from antares_bot.bot_inst import get_bot_instance
         if maxTries <= 0:
-            raise ValueError("无效的重试次数")
+            raise ValueError("Invalid retry times")
 
         for i in range(maxTries):
             try:
@@ -75,7 +76,8 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     @classmethod
     def is_master(cls, ct: Optional["RichCallbackContext"]) -> bool:
         # TODO: consider private channel
-        from bot_cfg import MASTER_ID
+        from bot_cfg import BasicConfig
+        MASTER_ID = BasicConfig.MASTER_ID
         if ct is None:
             ct = cls.get_context()
         return ct.chat_id == MASTER_ID or ct.user_id == MASTER_ID
@@ -92,3 +94,8 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     @classmethod
     async def fetch_url(cls, url: str):
         return await utils.fetch_url(url)
+
+    @classmethod
+    def get_message_after_command(cls, update: "Update") -> str:
+        assert update.message.text is not None
+        return update.message.text.strip().partition(" ")[2].strip()

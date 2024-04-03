@@ -1,4 +1,4 @@
-rabbitmq_interface.py
+pika_interface.py
 test.py
 bot_cfg.py
 .vscode/

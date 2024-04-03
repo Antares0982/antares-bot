@@ -12,7 +12,6 @@ from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
-from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
 from antares_bot.bot_base import TelegramBotBase
 from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
@@ -25,9 +24,15 @@ from antares_bot.patching.application_ex import ApplicationEx
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
 from antares_bot.utils import markdown_escape
+from bot_cfg import BasicConfig
+
+
+DATA_DIR, MASTER_ID, TOKEN = BasicConfig.DATA_DIR, BasicConfig.MASTER_ID, BasicConfig.TOKEN
 
 
 if TYPE_CHECKING:
+    from telegram.ext import ExtBot
+
     from antares_bot.module_base import TelegramBotModuleBase
 
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
@@ -38,7 +43,8 @@ TIME_IN_A_DAY = 24 * 60 * 60
 # note that wildcard import is only allowed at module level
 _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
 from antares_bot.test_commands import *
-from bot_cfg import *
+from bot_cfg import BasicConfig
+MASTER_ID = BasicConfig.MASTER_ID
 async def __t():
     self = get_bot_instance()
 """
@@ -99,17 +105,21 @@ class TelegramBot(TelegramBotBase):
             user_data=self.UserDataType,
             bot_data=self.BotDataType  # type: ignore
         )
-        self.application = cast(ApplicationEx, Application.builder()
-                                .application_class(ApplicationEx)
-                                .token(TOKEN)
-                                .context_types(context_types)
-                                .job_queue(JobQueueEx())
-                                .post_init(self._do_post_init)
-                                .post_stop(self._do_post_stop)
-                                .build())
+        self.application = cast(
+            "ApplicationEx[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
+            Application.builder()
+            .application_class(ApplicationEx)
+            .token(TOKEN)
+            .context_types(context_types)
+            .job_queue(JobQueueEx())
+            .post_init(self._do_post_init)
+            .post_stop(self._do_post_stop)
+            .build()
+        )
         self.bot = self.application.bot
+        assert self.application.updater is not None
         self.updater = self.application.updater
-        assert self.application.job_queue
+        assert self.application.job_queue is not None
         self.job_queue = self.application.job_queue
         #
         self.callback_manager = CallbackDataManager()
@@ -122,6 +132,7 @@ class TelegramBot(TelegramBotBase):
         self._post_stop_restart_flag = False
         self._post_stop_gitpull_flag = False
         self._custom_restart_command: str | list[str] | None = None
+        self._custom_finalize_task: Callable[[], Any] | None = None
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -158,6 +169,9 @@ class TelegramBot(TelegramBotBase):
 
     def custom_restart_command(self, command: str | list[str]):
         self._custom_restart_command = command
+
+    def custom_finalize(self, finalize_task: Callable[[], Any]):
+        self._custom_finalize_task = finalize_task
 
     def run(self):
         self._module_keeper.load_all()
@@ -233,10 +247,14 @@ class TelegramBot(TelegramBotBase):
             try:
                 subprocess.run(restart_command, shell=True)
                 print(f"Restarting the bot with command: {restart_command}")
-            except Exception as e:
+            except Exception:
                 # cannot use logger here, the logger is stopped
                 print(f"Failed to restart the bot with command: {restart_command}", file=sys.stderr)
                 raise
+
+        if self._custom_finalize_task is not None:
+            print("Running custom finalize task...")
+            self._custom_finalize_task()
 
     @command_callback_wrapper
     async def stop(self, u, c):
@@ -300,23 +318,25 @@ class TelegramBot(TelegramBotBase):
     async def exec(self, update: Update, context: RichCallbackContext):
         """
         Execute python code.
-        `antares_bot.test_commands` and `bot_cfg` are wildcard imported by default.
+        `antares_bot.test_commands` is wildcard imported by default.
         You can use `self` to refer to the bot instance.
         """
         self.check(CheckLevel.MASTER)
-        assert context.args is not None
-        if len(context.args) == 0:
-            await self.error_info("没有接收到命令诶")
+        if context.args is None or len(context.args) == 0:
+            # if is a reply
+            try:
+                reply_to = update.message.reply_to_message.text.strip()
+            except AttributeError:
+                await self.error_info("没有接收到命令诶")
+                return
+            await self._internal_exec(reply_to)
             return
         assert update.message is not None and update.message.text is not None
-        command = update.message.text
-        if command.startswith("/exec"):
-            command = command[5:]
-        command = command.strip()
+        command = self.get_message_after_command(update)
         await self._internal_exec(command)
 
     def data_dir(self):
-        return os.path.join(os.path.curdir, DEFAULT_DATA_DIR)
+        return os.path.join(os.path.curdir, DATA_DIR)
 
     async def _daily_job(self, context: RichCallbackContext):
         is_debug = self._is_debug_level()

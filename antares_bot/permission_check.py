@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-import bot_cfg
+from bot_cfg import BasicConfig
 
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def permission_check(context: "RichCallbackContext", level: CheckLevel, limit: C
         if 0 == (limit.value & ConditionLimit.CHANNEL.value):
             return PermissionState.IGNORE_CHANNEL
     if level == CheckLevel.MASTER:
-        is_master = context.chat_id == bot_cfg.MASTER_ID or context.user_id == bot_cfg.MASTER_ID
+        is_master = context.chat_id == BasicConfig.MASTER_ID or context.user_id == BasicConfig.MASTER_ID
         return PermissionState.PASSED if is_master else PermissionState.INVALID_USER
     # add more checks in future
     return PermissionState.PASSED

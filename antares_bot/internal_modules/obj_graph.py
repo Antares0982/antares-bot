@@ -6,11 +6,10 @@ from typing import TYPE_CHECKING, List, Union
 
 import objgraph  # type: ignore
 
-import bot_cfg
-from bot_cfg import MASTER_ID
 from antares_bot.framework import command_callback_wrapper
 from antares_bot.module_base import TelegramBotModuleBase
 from antares_bot.permission_check import CheckLevel
+from bot_cfg import AntaresBotConfig, BasicConfig
 
 
 if TYPE_CHECKING:
@@ -20,10 +19,12 @@ if TYPE_CHECKING:
     from antares_bot.context import RichCallbackContext
     from antares_bot.framework import CallbackBase
 
+MASTER_ID = BasicConfig.MASTER_ID
+
 
 class ObjGraph(TelegramBotModuleBase):
     def do_init(self) -> None:
-        need_trace = getattr(bot_cfg, "TRACE_AT_START", False)
+        need_trace = getattr(AntaresBotConfig, "OBJGRAPH_TRACE_AT_START", False)
         if not need_trace:
             return
         s = StringIO()

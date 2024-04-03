@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 _T = TypeVar("_T", bound=TelegramBotModuleBase)
 
 MODULE_PRIORITY_STR = "MODULE_PRIORITY"
-MODULE_SKIP_LOAD_STR = "MODULE_SKIP_LOAD"
 VALID_MODULE_RANGE = (0, 256)
 DEFAULT_PRIORITY = 128
 
@@ -65,6 +64,8 @@ class TelegramBotModuleDesc(Generic[_T]):
     def py_module(self):
         return sys.modules[self.kls.__module__]
 
+    def __repr__(self) -> str:
+        return f"TelegramBotModule: {self.top_name}"
 
 class ModuleKeeper(object):
     _STR = 1
@@ -146,13 +147,13 @@ class ModuleKeeper(object):
     ) -> Optional[TelegramBotModuleDesc[TelegramBotModuleBase]]:
         # TODO
         raise NotImplementedError
-        module = d1.get(k, None)
-        if module is not None:
-            module.set_enabled(False)
-            del d1[k]
-            d2[k] = module
-            return module
-        return None
+        # module = d1.get(k, None)
+        # if module is not None:
+        #     module.set_enabled(False)
+        #     del d1[k]
+        #     d2[k] = module
+        #     return module
+        # return None
 
     def _remove_from_sorted_modules(self, module: TelegramBotModuleDesc[TelegramBotModuleBase]) -> None:
         self._ordered_modules.remove(module)
@@ -161,10 +162,12 @@ class ModuleKeeper(object):
     def _import_all_modules() -> Dict[str, Type[TelegramBotModuleBase]]:
         import importlib
 
-        def _module_check(_module, _module_top_name: str):
+        def _module_check(_module, _module_top_name: str, module_store_name:str):
             _names = _module_top_name.split("_")
             class_name = ''.join([name.capitalize() for name in _names])
             kls = getattr(_module, class_name, None)
+            if not isinstance(kls, type):
+                return None
             try:
                 if not issubclass(kls, TelegramBotModuleBase):  # type: ignore
                     return None
@@ -187,80 +190,76 @@ class ModuleKeeper(object):
                 return None
             return is_reload, module
 
+        skip_load_formatter = "SKIP_LOAD_MODULE_{}"
+        skip_load_internal_formatter = "SKIP_LOAD_INTERNAL_MODULE_{}"
         ret: Dict[str, Type[TelegramBotModuleBase]] = dict()
-
-        # first load the internal modules
         cur_path = os.path.dirname(os.path.abspath(__file__))
         cur_path_folder_name = os.path.basename(cur_path)
+
+        def _load_up(_filename: str, is_internal: bool = False, _dirname: str | None = None):
+            # is_internal: e.g. internal_modules/test.py -> test
+            # not is_internal: e.g. modules/test.py -> test
+            # not is_internal: e.g. modules/sub_dir/sub_test.py -> sub_test
+            module_top_name = _filename[:-3]
+            # use cfg to control whether to load (internal) modules
+            skip = getattr(AntaresBotConfig, (skip_load_internal_formatter if is_internal else skip_load_formatter).format(module_top_name.upper()), False)
+            if skip:
+                return
+            # is_internal: e.g. internal_modules/test.py -> internal_modules.test
+            # not is_internal: same as `module_top_name`
+            if is_internal:
+                module_store_name = "internal_modules." + module_top_name
+            else:
+                module_store_name = module_top_name
+
+            if module_store_name in ret:
+                _LOGGER.error(f"{module_store_name} is duplicated")
+                return
+            if is_internal:
+                # e.g. internal_modules.test -> {cur_path_folder_name}.internal_modules.test
+                module_full_name = f"{cur_path_folder_name}.{module_store_name}"
+            else:
+                # e.g. test.py -> modules.test
+                assert _dirname is not None
+                module_full_name = os.path.join(_dirname, _filename).replace(os.path.sep, ".")[:-3]
+            # load it
+            _import_result = _import_module(module_full_name)
+            if _import_result is None:
+                return
+            is_reload, module = _import_result
+            # check
+            kls = _module_check(module, module_top_name, module_store_name)
+            if kls is None:
+                return
+            # finalize
+            _load_str = "reloaded" if is_reload else "loaded"
+            _LOGGER.warning(f"{_load_str} module {module_store_name}")
+            # is_internal: e.g. internal_modules/test.py, internal_modules.test -> Test
+            # not is_internal: e.g. modules/test.py, test -> Test
+            # not is_internal: e.g. modules/sub_dir/sub_test.py, sub_test -> SubTest
+            ret[module_store_name] = kls
+
+        # first load the internal modules
+
         os.path.join(cur_path, "internal_modules")
-        import bot_cfg
-        if getattr(bot_cfg, f"SKIP_LOAD_ALL_INTERNAL_MODULES", False):
+        from bot_cfg import AntaresBotConfig
+        if getattr(AntaresBotConfig, f"SKIP_LOAD_ALL_INTERNAL_MODULES", False):
             _LOGGER.warning("SKIP_LOAD_ALL_INTERNAL_MODULES is set to True, no internal modules will be loaded")
         else:
             for filename in os.listdir(os.path.join(cur_path, "internal_modules")):
                 if filename.endswith(".py") and filename != "__init__.py":
-                    # i.e. internal_modules/test.py -> test
-                    module_top_name = filename[:-3]
-                    # use cfg to control whether to load internal modules
-                    skip = getattr(bot_cfg, f"SKIP_LOAD_INTERNAL_MODULE_{module_top_name.upper()}", False)
-                    if skip:
-                        continue
-                    # i.e. internal_modules/test.py -> internal_modules.test
-                    module_store_name = "internal_modules." + module_top_name
-                    if module_store_name in ret:
-                        _LOGGER.error(f"{module_store_name} is duplicated")
-                        continue
-                    # i.e. internal_modules.test -> {cur_path_folder_name}.internal_modules.test
-                    module_full_name = f"{cur_path_folder_name}.{module_store_name}"
-                    # load it
-                    _import_result = _import_module(module_full_name)
-                    if _import_result is None:
-                        continue
-                    is_reload, module = _import_result
-                    # check
-                    kls = _module_check(module, module_top_name)
-                    if kls is None:
-                        continue
-                    # finalize
-                    _load_str = "reloaded" if is_reload else "loaded"
-                    _LOGGER.warning(f"{_load_str} module {module_store_name}")
-                    # i.e. internal_modules/test.py -> Test
-                    ret[module_store_name] = kls
-
+                    _load_up(filename, is_internal=True)
+                    continue
+                    
         # load user modules
         for dirname, _, filenames in os.walk("modules"):
             if dirname.endswith("__pycache__"):
                 continue
             for filename in filenames:
                 if filename.endswith(".py") and filename != "__init__.py":
-                    # i.e. test.py -> test
-                    module_top_name = filename[:-3]
-                    # same as above (for user modules)
-                    module_store_name = module_top_name
-                    if module_store_name in ret:
-                        _LOGGER.error(f"{module_store_name} is duplicated")
-                        continue
-                    # i.e. test.py -> modules.test
-                    module_full_name = os.path.join(dirname, filename).replace(os.path.sep, ".")[:-3]
-                    # load it
-                    _import_result = _import_module(module_full_name)
-                    if _import_result is None:
-                        continue
-                    is_reload, module = _import_result
-                    # check
-                    kls = _module_check(module, module_top_name)
-                    if kls is None:
-                        continue
-                    # check if need skip (user modules)
-                    skip = getattr(kls, MODULE_SKIP_LOAD_STR, False)
-                    if skip:
-                        continue
-                    # finalize
-                    _load_str = "reloaded" if is_reload else "loaded"
-                    _LOGGER.warning(f"{_load_str} module {module_store_name}")
-                    # i.e. modules/test.py -> Test
-                    # modules/sub_dir/sub_test.py -> SubTest
-                    ret[module_store_name] = kls
+                    _load_up(filename, _dirname=dirname)
+                    continue
+                    
 
         return ret
 
