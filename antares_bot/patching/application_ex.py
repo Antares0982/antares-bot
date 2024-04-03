@@ -4,8 +4,8 @@ from telegram._utils.defaultvalue import DEFAULT_TRUE
 from telegram.ext import Application, ApplicationHandlerStop, BaseHandler, ExtBot
 from telegram.ext._utils.types import BD, BT, CCT, CD, JQ, UD
 
-from bot_framework.bot_logging import get_logger
-from bot_framework.patching.patch_utils import need_atom_process
+from antares_bot.bot_logging import get_logger
+from antares_bot.patching.patch_utils import need_atom_process
 
 
 _LOGGER = get_logger(__name__)

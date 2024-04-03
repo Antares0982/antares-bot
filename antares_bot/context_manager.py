@@ -1,6 +1,6 @@
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, overload, Any, Awaitable, Callable, Coroutine, TypeVar
-from bot_framework.context import RichCallbackContext
+from antares_bot.context import RichCallbackContext
 
 if TYPE_CHECKING:
     from contextvars import Token

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 
 from telegram.ext import JobQueue
 
-from bot_framework.context_manager import ContextReverseHelper
+from antares_bot.context_manager import ContextReverseHelper
 
 
 try:

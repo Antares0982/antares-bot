@@ -5,8 +5,8 @@ from telegram._utils.defaultvalue import DEFAULT_NONE
 from telegram._utils.types import DVInput, FileInput, JSONDict, ODVInput, ReplyMarkup
 from telegram.ext._utils.types import RLARGS
 
-from bot_framework.context import RichCallbackContext
-from bot_framework.permission_check import CheckLevel, ConditionLimit
+from antares_bot.context import RichCallbackContext
+from antares_bot.permission_check import CheckLevel, ConditionLimit
 
 
 class TelegramBotBaseWrapper(object):

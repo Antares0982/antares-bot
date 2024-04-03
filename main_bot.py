@@ -6,11 +6,11 @@ import logging
 
 
 def script_init() -> None:
-    from bot_framework.init_hooks import generate_language, hook_cfg, init_pika
+    from antares_bot.init_hooks import generate_language, hook_cfg, init_pika
     hook_cfg()
     init_pika()
     # log start after pika inited
-    from bot_framework.bot_logging import log_start
+    from antares_bot.bot_logging import log_start
     log_start()
     import bot_cfg
     generate_language(bot_cfg.LOCALE)
@@ -28,10 +28,10 @@ def main() -> None:
     #
     script_init()
     #
-    from bot_framework.bot_inst import get_bot_instance
+    from antares_bot.bot_inst import get_bot_instance
     bot_app = get_bot_instance()
     async def at_init():
-        from bot_framework import language
+        from antares_bot import language
         from bot_cfg import MASTER_ID
         await bot_app.send_to(MASTER_ID, language.STARTUP)
     bot_app.custom_post_init(at_init())

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Iterable, List, 
 
 from telegram import InlineKeyboardButton
 
-from bot_framework.utils import flatten_button
+from antares_bot.utils import flatten_button
 
 
 if TYPE_CHECKING:

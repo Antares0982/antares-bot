@@ -8,7 +8,7 @@ from telegram._utils.defaultvalue import DEFAULT_TRUE
 from telegram._utils.types import DVType
 from telegram.ext import BaseHandler, CallbackContext, ConversationHandler
 
-from bot_framework.bot_logging import get_logger
+from antares_bot.bot_logging import get_logger
 
 
 PendingState = sys.modules[ConversationHandler.__module__].PendingState
@@ -17,7 +17,7 @@ PendingState = sys.modules[ConversationHandler.__module__].PendingState
 CCT = TypeVar("CCT", bound="CallbackContext[Any, Any, Any, Any]")
 
 if TYPE_CHECKING:
-    from bot_framework.patching.application_ex import ApplicationEx
+    from antares_bot.patching.application_ex import ApplicationEx
 
 _LOGGER = get_logger(__name__)
 

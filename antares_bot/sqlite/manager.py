@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import aiosqlite
 
-from bot_framework.bot_logging import get_logger
+from antares_bot.bot_logging import get_logger
 
 
 _LOGGER = get_logger(__name__)

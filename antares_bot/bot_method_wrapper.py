@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
-from bot_framework.text_splitter import longtext_split
+from antares_bot.text_splitter import longtext_split
 
 
 if TYPE_CHECKING:
     from telegram import Message
 
-    from bot_framework.context import RichCallbackContext
+    from antares_bot.context import RichCallbackContext
 
 
 _T = TypeVar("_T")
@@ -116,7 +116,7 @@ class TelegramBotBaseWrapper(object):
 
     @classmethod
     async def _send_to(cls, chat_id: int, text: str, **kwargs):
-        from bot_framework.bot_inst import get_bot_instance
+        from antares_bot.bot_inst import get_bot_instance
         texts = longtext_split(text)
         kwargs['chat_id'] = chat_id
         async for m in cls._sequence_send(get_bot_instance().bot.send_message, texts, **kwargs):
@@ -128,7 +128,7 @@ class TelegramBotBaseWrapper(object):
     async def send_photo(cls, chat_id, photo, **kwargs) -> "Message":
         kwargs['chat_id'] = chat_id
         kwargs['photo'] = photo
-        from bot_framework.bot_inst import get_bot_instance
+        from antares_bot.bot_inst import get_bot_instance
         return await cls._send_ignore_parsemode_or_replyto_exceptions(get_bot_instance().bot.send_photo, **kwargs)
 
     @classmethod
@@ -145,7 +145,7 @@ class TelegramBotBaseWrapper(object):
     async def send_document(cls, chat_id, document, **kwargs) -> "Message":
         kwargs['chat_id'] = chat_id
         kwargs['document'] = document
-        from bot_framework.bot_inst import get_bot_instance
+        from antares_bot.bot_inst import get_bot_instance
         return await cls._send_ignore_parsemode_or_replyto_exceptions(get_bot_instance().bot.send_document, **kwargs)
 
     @classmethod

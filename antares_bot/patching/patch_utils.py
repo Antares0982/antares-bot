@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol, Tuple, TypeGuard, Typ
 from telegram.ext import BaseHandler
 from telegram.ext._utils.types import CCT
 
-from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
+from antares_bot.patching.conversation_handler_ex import ConversationHandlerEx
 
 
 if TYPE_CHECKING:
-    from bot_framework.patching.application_ex import ApplicationEx
+    from antares_bot.patching.application_ex import ApplicationEx
 
 
 class AtomHandler(Protocol[CCT]):

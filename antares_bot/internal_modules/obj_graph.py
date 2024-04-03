@@ -8,17 +8,17 @@ import objgraph  # type: ignore
 
 import bot_cfg
 from bot_cfg import MASTER_ID
-from bot_framework.framework import command_callback_wrapper
-from bot_framework.module_base import TelegramBotModuleBase
-from bot_framework.permission_check import CheckLevel
+from antares_bot.framework import command_callback_wrapper
+from antares_bot.module_base import TelegramBotModuleBase
+from antares_bot.permission_check import CheckLevel
 
 
 if TYPE_CHECKING:
     from telegram import Update
     from telegram.ext import BaseHandler
 
-    from bot_framework.context import RichCallbackContext
-    from bot_framework.framework import CallbackBase
+    from antares_bot.context import RichCallbackContext
+    from antares_bot.framework import CallbackBase
 
 
 class ObjGraph(TelegramBotModuleBase):

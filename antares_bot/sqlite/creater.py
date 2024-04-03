@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 import aiosqlite
 
-from bot_framework.bot_logging import get_logger
+from antares_bot.bot_logging import get_logger
 
 
 _LOGGER = get_logger(__name__)
@@ -150,6 +150,8 @@ class DbDeclarer(object):
     async def create(self):
         if self.db_path == "":
             raise NoDbPathException("Database path not declared")
+        dir_name = os.path.dirname(self.db_path)
+        os.makedirs(dir_name, exist_ok=True)
         if len(self.tables) == 0:
             raise NoTableException("No table declared: {}".format(self.db_path))
         try:

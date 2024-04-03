@@ -4,16 +4,16 @@ from typing import TYPE_CHECKING, Any, Optional
 from telegram import InlineKeyboardButton
 from telegram.error import TelegramError
 
-import bot_framework.context_manager as context_manager
-from bot_framework import utils
-from bot_framework.bot_logging import get_logger, get_root_logger
-from bot_framework.bot_method_wrapper import TelegramBotBaseWrapper
-from bot_framework.error import IgnoreChannelUpdateException, InvalidChatTypeException, UserPermissionException
-from bot_framework.permission_check import CheckLevel, ConditionLimit, PermissionState, permission_check
+import antares_bot.context_manager as context_manager
+from antares_bot import utils
+from antares_bot.bot_logging import get_logger, get_root_logger
+from antares_bot.bot_method_wrapper import TelegramBotBaseWrapper
+from antares_bot.error import IgnoreChannelUpdateException, InvalidChatTypeException, UserPermissionException
+from antares_bot.permission_check import CheckLevel, ConditionLimit, PermissionState, permission_check
 
 
 if TYPE_CHECKING:
-    from bot_framework.context import RichCallbackContext
+    from antares_bot.context import RichCallbackContext
 
 
 DEBUG_LOGGER = get_logger("debug")
@@ -51,7 +51,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
 
     @classmethod
     async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
-        from bot_framework.bot_inst import get_bot_instance
+        from antares_bot.bot_inst import get_bot_instance
         if maxTries <= 0:
             raise ValueError("无效的重试次数")
 

@@ -1,15 +1,15 @@
 import time
 from typing import TYPE_CHECKING
 
-from bot_framework.framework import command_callback_wrapper
-from bot_framework.module_base import TelegramBotModuleBase
-from bot_framework.context_manager import callback_job_wrapper
+from antares_bot.framework import command_callback_wrapper
+from antares_bot.module_base import TelegramBotModuleBase
+from antares_bot.context_manager import callback_job_wrapper
 
 
 if TYPE_CHECKING:
     from telegram import Update
 
-    from bot_framework.context import RichCallbackContext
+    from antares_bot.context import RichCallbackContext
 
 
 class Timer(TelegramBotModuleBase):

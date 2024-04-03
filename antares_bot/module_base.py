@@ -2,11 +2,11 @@ from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, c
 
 from telegram import Message
 
-from bot_framework import language
-from bot_framework.bot_base import TelegramBotBase
-from bot_framework.error import InvalidQueryException
-from bot_framework.framework import command_callback_wrapper
-from bot_framework.patching.conversation_handler_ex import ConversationHandlerEx
+from antares_bot import language
+from antares_bot.bot_base import TelegramBotBase
+from antares_bot.error import InvalidQueryException
+from antares_bot.framework import command_callback_wrapper
+from antares_bot.patching.conversation_handler_ex import ConversationHandlerEx
 
 
 if TYPE_CHECKING:
@@ -15,10 +15,10 @@ if TYPE_CHECKING:
     from telegram import CallbackQuery, InlineKeyboardMarkup
     from telegram.ext import Application, BaseHandler
 
-    from bot_framework.bot_inst import TelegramBot
-    from bot_framework.callback_manager import PersistKeyboards
-    from bot_framework.context import RichCallbackContext
-    from bot_framework.framework import CallbackBase
+    from antares_bot.bot_inst import TelegramBot
+    from antares_bot.callback_manager import PersistKeyboards
+    from antares_bot.context import RichCallbackContext
+    from antares_bot.framework import CallbackBase
 
 
 class TelegramBotModuleBase(TelegramBotBase):

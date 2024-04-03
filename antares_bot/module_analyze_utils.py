@@ -3,7 +3,7 @@ import sys
 from types import ModuleType
 from typing import Optional, Type, TypeVar, cast
 
-from bot_framework.bot_logging import get_logger
+from antares_bot.bot_logging import get_logger
 
 
 _T = TypeVar("_T")

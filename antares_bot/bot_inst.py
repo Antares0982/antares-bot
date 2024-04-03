@@ -13,22 +13,22 @@ from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
 from bot_cfg import DEFAULT_DATA_DIR, MASTER_ID, TOKEN
-from bot_framework.bot_base import TelegramBotBase
-from bot_framework.bot_logging import get_logger, get_root_logger, stop_logger
-from bot_framework.callback_manager import CallbackDataManager
-from bot_framework.context import ChatData, RichCallbackContext, UserData
-from bot_framework.context_manager import ContextHelper, get_context
-from bot_framework.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
-from bot_framework.framework import CallbackBase, command_callback_wrapper
-from bot_framework.module_loader import ModuleKeeper
-from bot_framework.patching.application_ex import ApplicationEx
-from bot_framework.patching.job_quque_ex import JobQueueEx
-from bot_framework.permission_check import CheckLevel
-from bot_framework.utils import markdown_escape
+from antares_bot.bot_base import TelegramBotBase
+from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
+from antares_bot.callback_manager import CallbackDataManager
+from antares_bot.context import ChatData, RichCallbackContext, UserData
+from antares_bot.context_manager import ContextHelper, get_context
+from antares_bot.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
+from antares_bot.framework import CallbackBase, command_callback_wrapper
+from antares_bot.module_loader import ModuleKeeper
+from antares_bot.patching.application_ex import ApplicationEx
+from antares_bot.patching.job_quque_ex import JobQueueEx
+from antares_bot.permission_check import CheckLevel
+from antares_bot.utils import markdown_escape
 
 
 if TYPE_CHECKING:
-    from bot_framework.module_base import TelegramBotModuleBase
+    from antares_bot.module_base import TelegramBotModuleBase
 
 _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
 
@@ -37,7 +37,7 @@ TIME_IN_A_DAY = 24 * 60 * 60
 
 # note that wildcard import is only allowed at module level
 _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
-from bot_framework.test_commands import *
+from antares_bot.test_commands import *
 from bot_cfg import *
 async def __t():
     self = get_bot_instance()
@@ -300,7 +300,7 @@ class TelegramBot(TelegramBotBase):
     async def exec(self, update: Update, context: RichCallbackContext):
         """
         Execute python code.
-        `bot_framework.test_commands` and `bot_cfg` are wildcard imported by default.
+        `antares_bot.test_commands` and `bot_cfg` are wildcard imported by default.
         You can use `self` to refer to the bot instance.
         """
         self.check(CheckLevel.MASTER)

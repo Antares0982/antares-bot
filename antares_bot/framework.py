@@ -7,16 +7,16 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import filters
 from telegram.ext import filters as filters_module
 
-from bot_framework import language
-from bot_framework.bot_logging import get_logger
-from bot_framework.context_manager import ContextHelper
-from bot_framework.error import InvalidChatTypeException, InvalidQueryException, UserPermissionException, permission_exceptions
+from antares_bot import language
+from antares_bot.bot_logging import get_logger
+from antares_bot.context_manager import ContextHelper
+from antares_bot.error import InvalidChatTypeException, InvalidQueryException, UserPermissionException, permission_exceptions
 
 
 if TYPE_CHECKING:
     from telegram.ext import BaseHandler
 
-    from bot_framework.context import RichCallbackContext
+    from antares_bot.context import RichCallbackContext
 
 _LOGGER = get_logger(__name__)
 
@@ -55,10 +55,10 @@ class CallbackBase(object):
             except permission_exceptions() as e:
                 try:
                     if isinstance(e, UserPermissionException):
-                        from bot_framework.bot_inst import get_bot_instance
+                        from antares_bot.bot_inst import get_bot_instance
                         await get_bot_instance().reply(language.NO_PERMISSION)
                     elif isinstance(e, InvalidChatTypeException):
-                        from bot_framework.bot_inst import get_bot_instance
+                        from antares_bot.bot_inst import get_bot_instance
                         await get_bot_instance().reply(language.INVALID_CHAT_TYPE.format(context.chat_type_str()))
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)

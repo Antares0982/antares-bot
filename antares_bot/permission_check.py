@@ -5,7 +5,7 @@ import bot_cfg
 
 
 if TYPE_CHECKING:
-    from bot_framework.context import RichCallbackContext
+    from antares_bot.context import RichCallbackContext
 
 
 class CheckLevel(Enum):

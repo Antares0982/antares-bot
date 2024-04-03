@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.constants import ChatType
 from telegram.ext import Application, CallbackContext, ExtBot
 
-from bot_framework.utils import ObjectDict, get_msg_id, get_reply_to_msg_id
+from antares_bot.utils import ObjectDict, get_msg_id, get_reply_to_msg_id
 
 
 if TYPE_CHECKING:

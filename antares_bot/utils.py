@@ -119,8 +119,8 @@ async def exception_manual_handle(logger: logging.Logger, e: Exception):
     """
     try:
         logger.debug("exception catched, manually handling it")
-        from bot_framework.bot_inst import exception_handler, format_traceback
-        from bot_framework.context_manager import get_context
+        from antares_bot.bot_inst import exception_handler, format_traceback
+        from antares_bot.context_manager import get_context
         context = get_context()
         context.error = e
     except Exception as _e:
