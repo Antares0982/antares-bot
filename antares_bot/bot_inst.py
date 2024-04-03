@@ -256,6 +256,12 @@ class TelegramBot(TelegramBotBase):
             print("Running custom finalize task...")
             self._custom_finalize_task()
 
+        print("Stopped gracefully.")
+        # shutdown the stdout and stderr since the aiormq will still be printing rabbish
+        import sys
+        sys.stdout.close()
+        sys.stderr.close()
+
     @command_callback_wrapper
     async def stop(self, u, c):
         """

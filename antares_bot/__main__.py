@@ -1,15 +1,24 @@
-#!/usr/bin/python3 -O
-
 def main() -> None:
-    import logging
+    import os
+    import sys
+
+    # examine if working directory is in sys.path
+    cwd = os.getcwd()
+    # if not, add to first
+    if cwd not in sys.path:
+        sys.path = [cwd] + sys.path
+
     import argparse
+    import logging
+
     # define arg: force pika
     parser = argparse.ArgumentParser()
-    parser.add_argument("--update-pika-interface", action="store_true", default=False, help="Force download latest Pika interface from GitHub", required=False, dest="force_pika")
+    parser.add_argument("--update-pika-interface", action="store_true", default=False,
+                        help="Force download latest Pika interface from GitHub", required=False, dest="force_pika")
 
     args = parser.parse_args()
 
-    def script_init(force_pika:bool) -> None:
+    def script_init(force_pika: bool) -> None:
         from antares_bot.init_hooks import hook_cfg, init_pika
         hook_cfg()
         skip_pika_setup = False
@@ -44,7 +53,3 @@ def main() -> None:
     bot_app.pull_when_stop()
     bot_app.run()
     # exit
-
-
-if __name__ == "__main__":
-    main()

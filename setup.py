@@ -9,6 +9,11 @@ setup(
         "aiosqlite",
         "objgraph",
     ],
+    entry_points={
+        'console_scripts': [
+            'antares_bot = antares_bot.__main__:main',
+        ],
+    },
     use_scm_version={
         "local_scheme": lambda x: "",
     },
