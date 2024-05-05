@@ -20,7 +20,7 @@ def main() -> None:
 
     def script_init(force_pika: bool) -> None:
         from antares_bot.init_hooks import hook_cfg, init_pika
-        hook_cfg()
+        hook_cfg()  # checked cfg here
         skip_pika_setup = False
         if not force_pika:
             from bot_cfg import AntaresBotConfig
@@ -45,10 +45,10 @@ def main() -> None:
     bot_app = get_bot_instance()
 
     async def at_init():
-        from antares_bot import language
+        from antares_bot.basic_language import BasicLanguage
         from bot_cfg import BasicConfig
         MASTER_ID = BasicConfig.MASTER_ID
-        await bot_app.send_to(MASTER_ID, language.STARTUP)
+        await bot_app.send_to(MASTER_ID, BasicLanguage.STARTUP)
     bot_app.custom_post_init(at_init())
     bot_app.pull_when_stop()
     bot_app.run()

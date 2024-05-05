@@ -1,5 +1,4 @@
-
-class BasicConfig(object):
+class BasicConfig:
     """
     Basic sample config.
     TOKEN and MASTER_ID must be provided.
@@ -11,7 +10,7 @@ class BasicConfig(object):
     MASTER_ID = "123456789"
 
 
-class AntaresBotConfig(object):
+class AntaresBotConfig:
     """
     Config to control the bot behavior.
     Details refers to bot_default_cfg.py.

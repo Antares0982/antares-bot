@@ -7,7 +7,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import filters
 from telegram.ext import filters as filters_module
 
-from antares_bot import language
+from antares_bot.basic_language import BasicLanguage
 from antares_bot.bot_logging import get_logger
 from antares_bot.context_manager import ContextHelper
 from antares_bot.error import InvalidChatTypeException, InvalidQueryException, UserPermissionException, permission_exceptions
@@ -56,10 +56,10 @@ class CallbackBase(object):
                 try:
                     if isinstance(e, UserPermissionException):
                         from antares_bot.bot_inst import get_bot_instance
-                        await get_bot_instance().reply(language.NO_PERMISSION)
+                        await get_bot_instance().reply(BasicLanguage.NO_PERMISSION)
                     elif isinstance(e, InvalidChatTypeException):
                         from antares_bot.bot_inst import get_bot_instance
-                        await get_bot_instance().reply(language.INVALID_CHAT_TYPE.format(context.chat_type_str()))
+                        await get_bot_instance().reply(BasicLanguage.INVALID_CHAT_TYPE.format(context.chat_type_str()))
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
             except InvalidQueryException:
