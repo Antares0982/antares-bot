@@ -10,17 +10,47 @@ from antares_bot.bot_logging import get_logger
 _LOGGER = get_logger(__name__)
 
 
-class DatabaseManager(object):
+class DataBasesManager:
+    INST: "DataBasesManager" = None
+
+    @classmethod
+    def get_inst(cls):
+        if cls.INST is None:
+            cls.INST = cls()
+        return cls.INST
+
+    def __init__(self) -> None:
+        self._registered_databases: dict[str, Database] = {}
+
+    async def shutdown(self):
+        databases = self._registered_databases
+        self._registered_databases = {}
+        task = asyncio.gather(*(db.close() for db in databases.values()))
+        await task
+        _LOGGER.info(f"Closed {len(databases)} databases")
+
+    def register_database(self, name: str, db: "Database"):
+        self._registered_databases[name] = db
+
+    def remove_database(self, name: str):
+        self._registered_databases.pop(name, None)
+
+
+class Database(object):
     def __init__(self, dbpath: str) -> None:
-        self.database = dbpath
-        self.conn: Optional[aiosqlite.Connection] = None
+        self.db_path = dbpath
+        self.conn: aiosqlite.Connection | None = None
         self.lock = asyncio.Lock()
+        self.dirty_mark = False
 
     async def connect(self) -> None:
         await self.close()
-        self.conn = await aiosqlite.connect(self.database)
+        self.conn = await aiosqlite.connect(self.db_path)
+        self.conn.row_factory = aiosqlite.Row
+        DataBasesManager.get_inst().register_database(self.db_path, self)
 
     async def close(self) -> None:
+        DataBasesManager.get_inst().remove_database(self.db_path)
         if self.conn is not None:
             try:
                 await self.conn.close()
@@ -100,7 +130,6 @@ class DatabaseManager(object):
         _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
 
         await c.execute(command, parseArgs)
-        await self.get_cur_connection().commit()
 
     async def update_nolock(self, table: str, datadict: dict, pkey: str):
         c = await self.get_cur_connection().cursor()
@@ -130,7 +159,7 @@ class DatabaseManager(object):
 
         command += f" WHERE {pkey}="
         if type(datadict[pkey]) is str:
-            command += f"?;"
+            command += "?;"
             parseArgs.append(datadict[pkey])
         else:
             command += str(datadict[pkey]) + ";"
@@ -138,7 +167,8 @@ class DatabaseManager(object):
         _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
 
         await c.execute(command, parseArgs)
-        await self.get_cur_connection().commit()
+        # await self.get_cur_connection().commit()
+        self.dirty_mark = True
 
     async def delete_nolock(self, table: str, where: Optional[Dict[str, Any]] = None):
         c = await self.get_cur_connection().cursor()
@@ -165,9 +195,10 @@ class DatabaseManager(object):
         _LOGGER.debug("parse command %s with args: %s", cmd, parseArgs)
 
         await c.execute(cmd, parseArgs)
-        await self.get_cur_connection().commit()
+        # await self.get_cur_connection().commit()
+        self.dirty_mark = True
 
-    async def has_seen(self, table: str, pk: str, pkeyval):
+    async def has_seen_nolock(self, table: str, pk: str, pkeyval):
         return bool(await self.select_nolock(table, {pk: pkeyval}))
 
     async def insert_into(self, table: str, datadict: dict):
@@ -177,7 +208,7 @@ class DatabaseManager(object):
             if pk != "":
                 if pk not in datadict:
                     raise ValueError("Data inserted should have primary key")
-                if await self.has_seen(table, pk, datadict[pk]):
+                if await self.has_seen_nolock(table, pk, datadict[pk]):
                     _LOGGER.debug("already seen this primary key: %s, update target", str(datadict[pk]))
                     upd = True
 
@@ -194,7 +225,7 @@ class DatabaseManager(object):
                 if not no_pkey_check and pk != "":
                     if pk not in data:
                         raise ValueError("There must be primary key in data")
-                    if await self.has_seen(table, pk, data[pk]):
+                    if await self.has_seen_nolock(table, pk, data[pk]):
                         upd = True
                 if upd:
                     await self.update_nolock(table, data, pk)
@@ -216,7 +247,8 @@ class DatabaseManager(object):
         async with self:
             for c in cmd:
                 await (await self.get_cur_connection().cursor()).execute(c)
-            await self.get_cur_connection().commit()
+            # await self.get_cur_connection().commit()
+            self.dirty_mark = True
 
     async def delete(self, table, where: Optional[Dict[str, Any]] = None):
         async with self:
@@ -227,8 +259,10 @@ class DatabaseManager(object):
             await self.delete_nolock(table)
 
     async def __aenter__(self):
+        if self.conn is None:
+            raise RuntimeError("Database not connected")
         await self.lock.acquire()
-        await self.connect()
+        # await self.connect()
         return True
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback: Optional["TracebackType"]):
@@ -239,7 +273,10 @@ class DatabaseManager(object):
                 _LOGGER.error(f"Error when operating database. {exception_type} {exception_value}\ntraceback:\n{tb}")
             except Exception:
                 ...
-        await self.close()
+        # await self.close()
+        if self.dirty_mark:
+            await self.get_cur_connection().commit()
+            self.dirty_mark = False
         self.lock.release()
         if exception_type is not None:
             raise exception_type from exception_value
