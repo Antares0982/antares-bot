@@ -231,8 +231,11 @@ class TelegramBot(TelegramBotBase):
 
         try:
             self.application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
-        except NetworkError:  # catches the NetworkError when the bot is turned off. we don't care about that
-            pass
+        except NetworkError:
+            # catches the NetworkError when the bot is turned off.
+            # we don't care about that when normal exit
+            if not self._normal_exit_flag:
+                raise
 
         # post run
         self._post_run()
