@@ -133,6 +133,7 @@ class TelegramBot(TelegramBotBase):
         self._post_stop_gitpull_flag = False
         self._custom_restart_command: str | list[str] | None = None
         self._custom_finalize_task: Callable[[], Any] | None = None
+        self._normal_exit_flag = False
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -256,10 +257,13 @@ class TelegramBot(TelegramBotBase):
             print("Running custom finalize task...")
             self._custom_finalize_task()
 
-        print("Stopped gracefully.")
-        # shutdown the stdout and stderr since the aiormq will still be printing rabbish
-        sys.stdout.close()
-        sys.stderr.close()
+        if self._normal_exit_flag:
+            print("Stopped gracefully.")
+            # shutdown the stdout and stderr since the aiormq will still be printing rabbish
+            sys.stdout.close()
+            sys.stderr.close()
+        else:
+            print("Stopped unexpectedly.", file=sys.stderr)
 
     @command_callback_wrapper
     async def stop(self, u, c):
@@ -267,6 +271,7 @@ class TelegramBot(TelegramBotBase):
         Stop the bot.
         """
         self.check(CheckLevel.MASTER)
+        self._normal_exit_flag = True
         self.application.stop_running()
 
     def get_module(self, top_name_or_clsss: Union[str, Type[_T]]) -> Optional[_T]:
