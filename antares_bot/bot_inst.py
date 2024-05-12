@@ -151,6 +151,9 @@ class TelegramBot(TelegramBotBase):
             self._custom_post_stop_task = None
         await self.send_to(MASTER_ID, "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
+        from antares_bot.sqlite.manager import DataBasesManager
+        await DataBasesManager.get_inst().shutdown()
+        #
         if self._post_stop_gitpull_flag:
             # create a subprocess to git pull
             try:
