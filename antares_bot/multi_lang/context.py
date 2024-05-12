@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING
-
-from bot_cfg import BasicConfig
+from typing import TYPE_CHECKING, Optional
 
 from antares_bot.context_manager import get_context
+from bot_cfg import BasicConfig
 
 
 if TYPE_CHECKING:
@@ -25,7 +24,7 @@ def set_lang(_id: int, locale: str):
 
 
 class LangContextManager:
-    INST: "LangContextManager" | None = None
+    INST: Optional["LangContextManager"] = None
 
     def __init__(self) -> None:
         self.user_lang_context = dict()

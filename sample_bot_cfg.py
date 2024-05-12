@@ -7,7 +7,7 @@ class BasicConfig:
     # LOCALE = 'en'
     # DATA_DIR = "data"
     TOKEN = "abcdef:123456"
-    MASTER_ID = "123456789"
+    MASTER_ID = 123456789
 
 
 class AntaresBotConfig:
