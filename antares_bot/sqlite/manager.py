@@ -1,17 +1,32 @@
 import asyncio
 from types import TracebackType
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Literal, Optional, cast
 
 import aiosqlite
 
 from antares_bot.bot_logging import get_logger
+from antares_bot.sqlite.creater import TableDeclarer
 
 
+SqlRowDict = dict[str, Any]
 _LOGGER = get_logger(__name__)
 
 
+INSERT_COMMAND_FORMAT = """INSERT INTO {table} ({columns})
+VALUES
+{many_values}
+"""
+INSERT_COMMAND_PART2_FORMAT = """
+ON CONFLICT({pks}) DO UPDATE SET {upsert_args}
+"""
+SELECT_COMMAND_FORMAT = """SELECT {columns} FROM {table}"""
+UPDATE_COMMAND_FORMAT = """UPDATE {table} SET {set}"""
+DELETE_COMMAND_FORMAT = "DELETE FROM {table}"
+WHERE_PART_FORMAT = """ WHERE {where}"""
+
+
 class DataBasesManager:
-    INST: "DataBasesManager" = None
+    INST: "DataBasesManager" = None  # type: ignore
 
     @classmethod
     def get_inst(cls):
@@ -36,18 +51,97 @@ class DataBasesManager:
         self._registered_databases.pop(name, None)
 
 
+class TableProxy(TableDeclarer):
+    def __init__(self, db: "Database", table_name: str) -> None:
+        super().__init__()
+        self.db = db
+        self.table_name = table_name
+        self.primary_keys: list[str] = []
+
+    def declare_col(self, column_name: str, column_type: str, is_primary: bool = False, is_not_null: bool = False, is_unique: bool = False, default: Any = None):
+        super().declare_col(column_name, column_type, is_primary, is_not_null, is_unique, default)
+        if is_primary:
+            self.primary_keys.append(column_name)
+
+    def _get_parsed_where(self, pk_data: tuple | Any):
+        if isinstance(pk_data, tuple):
+            if len(pk_data) != len(self.primary_keys):
+                raise ValueError("Primary key length not match")
+            where = {k: v for k, v in zip(self.primary_keys, pk_data)}
+        else:
+            where = {self.primary_keys[0]: pk_data}
+        return where
+
+    async def _aget_internal(self, select_interface, where):
+        rows = await select_interface(self.table_name, where=where)
+        rows_list = [dict(row) for row in rows]
+        if len(rows_list) > 1:
+            raise RuntimeError("More than one row found")
+        found = bool(rows_list)
+        return found, rows_list[0] if found else None
+
+    async def aget(self, pk_data: tuple | Any):
+        where = self._get_parsed_where(pk_data)
+        return (await self._aget_internal(self.db.select, where))[1]
+
+    async def agetitem(self, pk_data: tuple | Any):
+        where = self._get_parsed_where(pk_data)
+        found, value = await self._aget_internal(self.db.select, where)
+        if not found:
+            raise AttributeError(f"Table {self.table_name} has no item with primary key {pk_data}")
+        return value
+
+    def __getitem__(self, pk_data: tuple | Any):
+        return self.agetitem(pk_data)
+
+    async def aget_nolock(self, pk_data: tuple | Any):
+        where = self._get_parsed_where(pk_data)
+        _, value = await self._aget_internal(self.db.select_nolock, where)
+        return value
+
+    async def agetitem_nolock(self, pk_data: tuple | Any):
+        where = self._get_parsed_where(pk_data)
+        found, value = await self._aget_internal(self.db.select_nolock, where)
+        if not found:
+            raise AttributeError(f"Table {self.table_name} has no item with primary key {pk_data}")
+        return value
+
+    def _get_parsed_data_dicts(self, pk_data: tuple | Any, value: SqlRowDict):
+        insert_value = value.copy()
+        if isinstance(pk_data, tuple):
+            for k, v in zip(self.primary_keys, pk_data):
+                insert_value[k] = v
+        else:
+            insert_value[self.primary_keys[0]] = pk_data
+        return insert_value
+
+    async def _aset_internal(self, insert_interface, insert_value: SqlRowDict):
+        return await insert_interface(self.table_name, insert_value)
+
+    async def aset(self, pk_data: tuple | Any, value: SqlRowDict):
+        insert_value = self._get_parsed_data_dicts(pk_data, value)
+        return await self._aset_internal(self.db.insert, insert_value)
+
+    async def aset_nolock(self, pk_data: tuple | Any, value: SqlRowDict):
+        insert_value = self._get_parsed_data_dicts(pk_data, value)
+        return await self._aset_internal(self.db.insert_nolock, insert_value)
+
+
 class Database(object):
     def __init__(self, dbpath: str) -> None:
         self.db_path = dbpath
         self.conn: aiosqlite.Connection | None = None
         self.lock = asyncio.Lock()
+        self.table_info: dict[str, TableProxy] | None = None  # table name -> [(column name, type), ...]
         self.dirty_mark = False
+        self._cursor = None
 
     async def connect(self) -> None:
         await self.close()
         self.conn = await aiosqlite.connect(self.db_path)
         self.conn.row_factory = aiosqlite.Row
         DataBasesManager.get_inst().register_database(self.db_path, self)
+        await self.update_table_info()
 
     async def close(self) -> None:
         DataBasesManager.get_inst().remove_database(self.db_path)
@@ -61,223 +155,185 @@ class Database(object):
     def get_cur_connection(self) -> aiosqlite.Connection:
         return cast(aiosqlite.Connection, self.conn)
 
-    async def get_primary_key(self, table: str) -> str:
+    @property
+    def cursor(self) -> aiosqlite.Cursor:
+        return cast(aiosqlite.Cursor, self._cursor)
+
+    async def update_table_info(self) -> None:
+        # self.cursor maybe None here
         c = await self.get_cur_connection().cursor()
-        await c.execute(f"PRAGMA table_info({table});")
-        for r in await c.fetchall():
-            if r[-1] > 0:
-                return r[1]
-        return ""
+        tables_info = await (await c.execute("select name from sqlite_master where type='table';")).fetchall()
+        tables_key: list[str] = [t[0] for t in tables_info]
+        self.table_info = dict()
+        for table_name in tables_key:
+            table_info = await (await c.execute(f"PRAGMA table_info({table_name});")).fetchall()
+            tb_declare = TableProxy(self, table_name)
+            self.table_info[table_name] = tb_declare
+            for row in table_info:
+                tb_declare.declare_col(
+                    row['name'],
+                    row['type'],
+                    is_primary=row['pk'] > 0,
+                    is_not_null=row['notnull'] > 0,
+                    default=row['dflt_value'],
+                )
+
+    def get_primary_key_names(self, table: str) -> list[str]:
+        assert self.table_info is not None
+        return self.table_info[table].primary_keys
+
+    @staticmethod
+    def _key_eq_value_format(k, v, parse_arg: list):
+        parse_arg.append(v)
+        return f"{k}=?"
 
     async def select_nolock(
-        self, table: str, where: Optional[Dict[str, Any]] = None, need: Optional[List[str]] = None
+        self, table: str, where: SqlRowDict | None = None, need: list[str] | None = None
     ):
-        parseArgs: List[str] = []
-        command = "SELECT "
-        if need is None:
-            command += "* FROM "
-        else:
-            command += ", ".join(need) + " FROM "
-
-        command += table
-
-        if where is not None:
-            command += " WHERE "
-            l = []
-            for k, v in where.items():
-                thispart = f"{k}="
-                if type(v) is str:
-                    thispart += "?"
-                    parseArgs.append(v)
-                elif v is None:
-                    thispart += "NULL"
-                else:
-                    thispart += str(v)
-                l.append(thispart)
-            command += " AND ".join(l)
-
+        command = SELECT_COMMAND_FORMAT.format(
+            table=table,
+            columns=",".join(need) if need else "*"
+        )
+        parse_args: list = []
+        if where:
+            command += WHERE_PART_FORMAT.format(where=" AND ".join(
+                self._key_eq_value_format(k, v, parse_args) for k, v in where.items()
+            ))
         command += ";"
 
-        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
+        _LOGGER.debug("execute command %s with args: %s", command, parse_args)
 
-        c = await self.get_cur_connection().cursor()
+        await self.cursor.execute(command, parse_args)
+        return await self.cursor.fetchall()
 
-        await c.execute(command, parseArgs)
+    async def insert_nolock(self, table: str, data_dicts: list[SqlRowDict] | SqlRowDict):
+        pks = self.get_primary_key_names(table)
 
-        return await c.fetchall()
+        assert self.table_info
+        columns = list(self.table_info[table].columns.keys())
 
-    async def insert_nolock(self, table: str, datadict: dict):
-        c = await self.get_cur_connection().cursor()
-        command = f"INSERT INTO {table}("
-        command2 = f"VALUES("
-        parseArgs: List[str] = []
-        sep = ""
-        for k, v in datadict.items():
-            command += sep + str(k)
-            if type(v) is str:
-                command2 += f"{sep} ?"
-                parseArgs.append(v)
-            elif v is None:
-                command2 += sep + " NULL"
-            else:
-                command2 += sep + " " + str(v)
-            sep = ","
-        command += ")"
-        command2 += ");"
+        if not isinstance(data_dicts, list):
+            data_dicts = [data_dicts]
+        one_value = "(" + ",".join(["?" for _ in columns]) + ")"
+        many_values = ",\n".join([one_value for _ in data_dicts])
 
-        command += command2
+        insert_command = INSERT_COMMAND_FORMAT.format(
+            table=table,
+            columns=",".join(columns),
+            many_values=many_values,
+        )
+        if len(pks) < len(columns):
+            upsert_args = ','.join([f"{col}=excluded.{col}" for col in columns if col not in pks])
+            insert_command += INSERT_COMMAND_PART2_FORMAT.format(
+                pks=",".join(pks),
+                upsert_args=upsert_args,
+            )
+        insert_command += ";"
 
-        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
+        parse_args = []
+        for data_dict in data_dicts:
+            for col in columns:
+                parse_args.append(data_dict[col])
 
-        await c.execute(command, parseArgs)
+        _LOGGER.debug("execute command %s with args: %s", insert_command, parse_args)
 
-    async def update_nolock(self, table: str, datadict: dict, pkey: str):
-        c = await self.get_cur_connection().cursor()
+        await self.cursor.execute(insert_command, parse_args)
+        self.dirty_mark = True
 
-        command = f"UPDATE {table} SET "
-        parseArgs: List[str] = []
-        sep = ""
-        setlength = 0
-
-        for k, v in datadict.items():
-            if str(k) == pkey:
-                continue
-            setlength += 1
-            command += sep + str(k) + "="
-            if type(v) is str:
-                command += "?"
-                parseArgs.append(v)
-            elif v is None:
-                command += "NULL"
-            else:
-                command += str(v)
-            sep = ","
-
-        if setlength == 0:
+    async def update_nolock(self, table: str, datadict: SqlRowDict, where: SqlRowDict | Literal["*"] | None = None):
+        if where:
+            where_data: SqlRowDict | None = None if where == "*" else where
+        else:
+            pks = self.get_primary_key_names(table)
+            where_data = dict()
+            for k in pks:
+                where_data[k] = datadict.pop(k)
+        if len(datadict) == 0:
             _LOGGER.debug("nothing to set, no need to update database")
             return
 
-        command += f" WHERE {pkey}="
-        if type(datadict[pkey]) is str:
-            command += "?;"
-            parseArgs.append(datadict[pkey])
-        else:
-            command += str(datadict[pkey]) + ";"
+        parse_args: list = []
+        command = UPDATE_COMMAND_FORMAT.format(
+            table=table,
+            set=",".join(self._key_eq_value_format(k, v, parse_args) for k, v in datadict.items()),
+        )
 
-        _LOGGER.debug("parse command %s with args: %s", command, parseArgs)
+        if where_data is not None:
+            command += WHERE_PART_FORMAT.format(where=" AND ".join(
+                self._key_eq_value_format(k, v, parse_args) for k, v in where_data.items()
+            ))
 
-        await c.execute(command, parseArgs)
-        # await self.get_cur_connection().commit()
+        command += ";"
+
+        _LOGGER.debug("parse command %s with args: %s", command, parse_args)
+
+        await self.cursor.execute(command, parse_args)
         self.dirty_mark = True
 
-    async def delete_nolock(self, table: str, where: Optional[Dict[str, Any]] = None):
-        c = await self.get_cur_connection().cursor()
-        cmd = f"DELETE FROM {table}"
-        parseArgs: List[str] = []
+    async def delete_nolock(self, table: str, where: SqlRowDict | Literal["*"]):
+        command = DELETE_COMMAND_FORMAT.format(table=table)
+        parse_args: list = []
 
-        if where is not None:
-            cmd += f" WHERE "
-            l = []
-            for k, v in where.items():
-                thispart = f"{k}="
-                if type(v) is str:
-                    thispart += "?"
-                    parseArgs.append(v)
-                elif v is None:
-                    thispart += "NULL"
-                else:
-                    thispart += str(v)
-                l.append(thispart)
-            cmd += " AND ".join(l)
+        if where != "*":
+            command += WHERE_PART_FORMAT.format(where=" AND ".join([
+                self._key_eq_value_format(k, v, parse_args) for k, v in where.items()
+            ]))
 
-        cmd += ";"
+        command += ";"
 
-        _LOGGER.debug("parse command %s with args: %s", cmd, parseArgs)
+        _LOGGER.debug("parse command %s with args: %s", command, parse_args)
 
-        await c.execute(cmd, parseArgs)
-        # await self.get_cur_connection().commit()
+        await self.cursor.execute(command, parse_args)
         self.dirty_mark = True
-
-    async def has_seen_nolock(self, table: str, pk: str, pkeyval):
-        return bool(await self.select_nolock(table, {pk: pkeyval}))
-
-    async def insert_into(self, table: str, datadict: dict):
-        async with self:
-            pk = await self.get_primary_key(table)
-            upd = False
-            if pk != "":
-                if pk not in datadict:
-                    raise ValueError("Data inserted should have primary key")
-                if await self.has_seen_nolock(table, pk, datadict[pk]):
-                    _LOGGER.debug("already seen this primary key: %s, update target", str(datadict[pk]))
-                    upd = True
-
-            if upd:
-                await self.update_nolock(table, datadict, pk)
-            else:
-                await self.insert_nolock(table, datadict)
-
-    async def insert_many(self, table: str, manydata: List[dict], no_pkey_check: bool = False):
-        async with self:
-            pk = await self.get_primary_key(table)
-            for data in manydata:
-                upd = False
-                if not no_pkey_check and pk != "":
-                    if pk not in data:
-                        raise ValueError("There must be primary key in data")
-                    if await self.has_seen_nolock(table, pk, data[pk]):
-                        upd = True
-                if upd:
-                    await self.update_nolock(table, data, pk)
-                else:
-                    await self.insert_nolock(table, data)
 
     async def select(
         self,
         table: str,
-        where: Optional[Dict[str, Any]] = None,
-        need: Optional[List[str]] = None,
+        where: SqlRowDict | None = None,
+        need: list[str] | None = None
     ):
         async with self:
-            ans = await self.select_nolock(table, where, need)
-            return ans
+            return await self.select_nolock(table, where, need)
 
-    async def execute(self, cmd: List[str]):
-        """execute a list of commands."""
+    async def insert(self, table: str, data_dicts: list[SqlRowDict] | SqlRowDict):
         async with self:
-            for c in cmd:
-                await (await self.get_cur_connection().cursor()).execute(c)
-            # await self.get_cur_connection().commit()
-            self.dirty_mark = True
+            await self.insert_nolock(table, data_dicts)
 
-    async def delete(self, table, where: Optional[Dict[str, Any]] = None):
+    async def update(self, table: str, datadict: SqlRowDict, where: SqlRowDict | Literal['*'] | None = None):
+        async with self:
+            await self.update_nolock(table, datadict, where)
+
+    async def delete(self, table, where: SqlRowDict | Literal['*']):
         async with self:
             await self.delete_nolock(table, where)
 
-    async def clean(self, table: str):
+    async def execute(self, cmd: list[str], need_commit: bool = True):
+        """execute a list of commands."""
         async with self:
-            await self.delete_nolock(table)
+            for c in cmd:
+                await self.cursor.execute(c)
+            # await self.get_cur_connection().commit()
+            self.dirty_mark = need_commit
 
     async def __aenter__(self):
         if self.conn is None:
             raise RuntimeError("Database not connected")
         await self.lock.acquire()
-        # await self.connect()
+        self._cursor = await self.get_cur_connection().cursor()
         return True
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback: Optional["TracebackType"]):
-        if exception_type is not None:
-            try:
-                import traceback
-                tb = '\n'.join(traceback.format_tb(exception_traceback))
-                _LOGGER.error(f"Error when operating database. {exception_type} {exception_value}\ntraceback:\n{tb}")
-            except Exception:
-                ...
-        # await self.close()
         if self.dirty_mark:
-            await self.get_cur_connection().commit()
+            try:
+                await self.get_cur_connection().commit()
+            except Exception as e:
+                from antares_bot.utils import exception_manual_handle
+                await exception_manual_handle(_LOGGER, e)
             self.dirty_mark = False
+        self._cursor = None
         self.lock.release()
-        if exception_type is not None:
-            raise exception_type from exception_value
-        return True
+        return False
+
+    def __getitem__(self, table: str) -> TableProxy:
+        assert self.table_info
+        return self.table_info[table]
