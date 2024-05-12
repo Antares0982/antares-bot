@@ -97,5 +97,8 @@ class TelegramBotBase(TelegramBotBaseWrapper):
 
     @classmethod
     def get_message_after_command(cls, update: "Update") -> str:
+        assert update.message is not None
         assert update.message.text is not None
-        return update.message.text.strip().partition(" ")[2].strip()
+        txt = update.message.text.strip()
+        pre_command = txt.split()[0]
+        return txt[len(pre_command):].strip()

@@ -338,8 +338,7 @@ class TelegramBot(TelegramBotBase):
         if context.args is None or len(context.args) == 0:
             # if is a reply
             try:
-                assert update.message is not None and update.message.reply_to_message is not None and update.message.reply_to_message.text is not None
-                reply_to = update.message.reply_to_message.text.strip()
+                reply_to = update.message.reply_to_message.text.strip()  # type: ignore
             except AttributeError:
                 await self.error_info("没有接收到命令诶")
                 return
