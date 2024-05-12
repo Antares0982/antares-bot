@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 def lang_context():
     try:
         ct = get_context()
+        if ct is None:
+            return BasicConfig.LOCALE
     except:
         return BasicConfig.LOCALE
     return LangContextManager.get_inst().get_user_lang(ct)
