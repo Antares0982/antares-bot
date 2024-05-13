@@ -13,6 +13,7 @@ from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
 from antares_bot.bot_base import TelegramBotBase
+from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
 from antares_bot.context import ChatData, RichCallbackContext, UserData
@@ -23,11 +24,7 @@ from antares_bot.module_loader import ModuleKeeper
 from antares_bot.patching.application_ex import ApplicationEx
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
-from antares_bot.utils import markdown_escape
-from bot_cfg import BasicConfig
-
-
-DATA_DIR, MASTER_ID, TOKEN = BasicConfig.DATA_DIR, BasicConfig.MASTER_ID, BasicConfig.TOKEN
+from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
 
 
 if TYPE_CHECKING:
@@ -83,7 +80,7 @@ async def exception_handler(update: Any, context: RichCallbackContext):
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
         _LOGGER.error(log_text)
         text = f"哎呀，出现了未知的错误呢……"
-        await get_bot_instance().send_to(MASTER_ID, text)
+        await get_bot_instance().send_to(TelegramBot.get_master_id(), text)
     except Exception as _e:
         try:
             _LOGGER.error(format_traceback(_e))
@@ -109,7 +106,7 @@ class TelegramBot(TelegramBotBase):
             "ApplicationEx[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
             Application.builder()
             .application_class(ApplicationEx)
-            .token(TOKEN)
+            .token(read_user_cfg(BasicConfig, "TOKEN"))
             .context_types(context_types)
             .job_queue(JobQueueEx())
             .post_init(self._do_post_init)
@@ -149,7 +146,7 @@ class TelegramBot(TelegramBotBase):
         if self._custom_post_stop_task is not None:
             await self._custom_post_stop_task
             self._custom_post_stop_task = None
-        await self.send_to(MASTER_ID, "主人再见QAQ")
+        await self.send_to(self.get_master_id(), "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         from antares_bot.sqlite.manager import DataBasesManager
         await DataBasesManager.get_inst().shutdown()
@@ -160,9 +157,9 @@ class TelegramBot(TelegramBotBase):
                 msg = str(subprocess.check_output(["git", "pull"], encoding='utf-8'))
                 if msg:
                     if "Already up to date." not in msg:
-                        await self.send_to(MASTER_ID, msg)
+                        await self.send_to(self.get_master_id(), msg)
             except Exception:
-                await self.send_to(MASTER_ID, "git pull failed!")
+                await self.send_to(self.get_master_id(), "git pull failed!")
         await stop_logger()
 
     def custom_post_init(self, task: Coroutine[Any, Any, Any]):
@@ -244,24 +241,29 @@ class TelegramBot(TelegramBotBase):
         self._post_run()
 
     def _post_run(self):
+        if self._custom_finalize_task is not None:
+            print("Running custom finalize task...")
+            self._custom_finalize_task()
+
         if self._post_stop_restart_flag:
-            # create a detached subprocess to restart the bot
-            restart_command = self._custom_restart_command if self._custom_restart_command is not None else sys.orig_argv
-            if isinstance(restart_command, list):
-                import shlex
-                restart_command = shlex.join(restart_command)
-            restart_command = f"{restart_command} & disown"
+            systemd_service_name, is_root = systemd_service_info()
+            if systemd_service_name is not None:
+                restart_command = ["systemctl"] + (["--user"] if not is_root else []) + ["restart", systemd_service_name]
+                restart_command = ' '.join(restart_command)
+            else:
+                # create a detached subprocess to restart the bot
+                restart_command = self._custom_restart_command if self._custom_restart_command is not None else sys.orig_argv
+                if isinstance(restart_command, list):
+                    import shlex
+                    restart_command = shlex.join(restart_command)
+                restart_command = f"{restart_command} & disown"
             try:
-                subprocess.run(restart_command, shell=True)
+                subprocess.Popen(restart_command, shell=True)
                 print(f"Restarting the bot with command: {restart_command}")
             except Exception:
                 # cannot use logger here, the logger is stopped
                 print(f"Failed to restart the bot with command: {restart_command}", file=sys.stderr)
                 raise
-
-        if self._custom_finalize_task is not None:
-            print("Running custom finalize task...")
-            self._custom_finalize_task()
 
         if self._normal_exit_flag:
             print("Stopped gracefully.")
@@ -352,7 +354,7 @@ class TelegramBot(TelegramBotBase):
         await self._internal_exec(command)
 
     def data_dir(self):
-        return os.path.join(os.path.curdir, DATA_DIR)
+        return os.path.join(os.path.curdir, read_user_cfg(BasicConfig, "DATA_DIR"))
 
     async def _daily_job(self, context: RichCallbackContext):
         is_debug = self._is_debug_level()

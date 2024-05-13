@@ -1,20 +1,25 @@
 from typing import TYPE_CHECKING, Optional
 
+from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.context_manager import get_context
-from bot_cfg import BasicConfig
+from antares_bot.utils import read_user_cfg
 
 
 if TYPE_CHECKING:
     from antares_bot.context import RichCallbackContext
 
 
+def get_default_locale():
+    return read_user_cfg(BasicConfig, "LOCALE")
+
+
 def lang_context():
     try:
         ct = get_context()
         if ct is None:
-            return BasicConfig.LOCALE
+            return get_default_locale()
     except:
-        return BasicConfig.LOCALE
+        return get_default_locale()
     return LangContextManager.get_inst().get_user_lang(ct)
 
 
@@ -36,7 +41,7 @@ class LangContextManager:
         if ct.is_group_chat():
             ans = self.user_lang_context.get(ct.chat_id)
         if ans is None:
-            ans = self.user_lang_context.get(ct.user_id, BasicConfig.LOCALE)
+            ans = self.user_lang_context.get(ct.user_id, get_default_locale())
         return ans
 
     def set_user_lang(self, _id: int, locale: str):

@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from bot_cfg import BasicConfig
+from antares_bot.bot_default_cfg import BasicConfig
+from antares_bot.utils import read_user_cfg
 
 
 if TYPE_CHECKING:
@@ -30,6 +31,7 @@ class PermissionState(Enum):
     INVALID_CHAT_TYPE = 2
     IGNORE_CHANNEL = 3
 
+
 def permission_check(context: "RichCallbackContext", level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL):
     if context.is_private_chat():
         if 0 == (limit.value & ConditionLimit.PRIVATE.value):
@@ -41,7 +43,8 @@ def permission_check(context: "RichCallbackContext", level: CheckLevel, limit: C
         if 0 == (limit.value & ConditionLimit.CHANNEL.value):
             return PermissionState.IGNORE_CHANNEL
     if level == CheckLevel.MASTER:
-        is_master = context.chat_id == BasicConfig.MASTER_ID or context.user_id == BasicConfig.MASTER_ID
+        master_id = read_user_cfg(BasicConfig, "MASTER_ID")
+        is_master = context.chat_id == master_id or context.user_id == master_id
         return PermissionState.PASSED if is_master else PermissionState.INVALID_USER
     # add more checks in future
     return PermissionState.PASSED

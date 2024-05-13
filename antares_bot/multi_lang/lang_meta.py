@@ -8,9 +8,6 @@ _LOGGER = get_logger(__name__)
 
 
 class LanguageMeta(type):
-    # if TYPE_CHECKING:
-    #     SUPPORTED: tuple[str]
-
     def __getattribute__(cls, name: str):
         ans_default = super().__getattribute__(name)
         if name.startswith('__'):
@@ -22,8 +19,8 @@ class LanguageMeta(type):
             l_ct = lang_context()
             ans = ans_default.get(l_ct, None)
             if ans is None:
-                from bot_cfg import BasicConfig
-                ans = ans_default.get(BasicConfig.LOCALE, None)
+                from antares_bot.multi_lang.context import get_default_locale
+                ans = ans_default.get(get_default_locale(), None)
                 if ans is None:
                     # give the first value
                     _LOGGER.warning("No text found in %s for locale %s, using the first value", name, l_ct)

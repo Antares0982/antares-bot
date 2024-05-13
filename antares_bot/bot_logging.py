@@ -50,12 +50,11 @@ if PIKA_SUPPORTED:
 
 
 def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
-    global __logger_inited, __root_logger
+    global __logger_inited, __root_logger, __logger_top_name
     if __logger_inited:
         return __root_logger
     __logger_inited = True
     if logger_top_name is not None:
-        global __logger_top_name
         __logger_top_name = logger_top_name
 
     __root_logger = logging.getLogger(__logger_top_name)

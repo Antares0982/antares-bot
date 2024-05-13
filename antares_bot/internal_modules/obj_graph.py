@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, List, Union
 
 import objgraph  # type: ignore
 
+from antares_bot.bot_default_cfg import AntaresBotConfig, BasicConfig
 from antares_bot.framework import command_callback_wrapper
 from antares_bot.module_base import TelegramBotModuleBase
 from antares_bot.permission_check import CheckLevel
-from bot_cfg import AntaresBotConfig, BasicConfig
+from antares_bot.utils import read_user_cfg
 
 
 if TYPE_CHECKING:
@@ -19,13 +20,10 @@ if TYPE_CHECKING:
     from antares_bot.context import RichCallbackContext
     from antares_bot.framework import CallbackBase
 
-MASTER_ID = BasicConfig.MASTER_ID
-
 
 class ObjGraph(TelegramBotModuleBase):
     def do_init(self) -> None:
-        need_trace = getattr(AntaresBotConfig, "OBJGRAPH_TRACE_AT_START", False)
-        if not need_trace:
+        if not read_user_cfg(AntaresBotConfig, "OBJGRAPH_TRACE_AT_START"):
             return
         s = StringIO()
         objgraph.show_most_common_types(limit=50, file=s)
@@ -33,7 +31,7 @@ class ObjGraph(TelegramBotModuleBase):
         ss = s.getvalue()
 
         async def _f(context: "RichCallbackContext"):
-            await self.send_to(MASTER_ID, ss)
+            await self.send_to(self.get_master_id(), ss)
         self.job_queue.run_once(_f, 10)
 
     def mark_handlers(self) -> List[Union["CallbackBase", "BaseHandler"]]:

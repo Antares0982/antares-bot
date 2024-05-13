@@ -21,4 +21,5 @@ class AntaresBotConfig:
     # SKIP_LOAD_INTERNAL_MODULE_{module_name_upper_case} = True
     # SKIP_LOAD_MODULE_{module_name_upper_case} = True
     # OBJGRAPH_TRACE_AT_START = True
+    # SYSTEMD_SERVICE_NAME = "antares_bot.service"
     pass

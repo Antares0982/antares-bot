@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, 
 
 from antares_bot.bot_logging import get_logger
 from antares_bot.module_base import TelegramBotModuleBase
+from antares_bot.utils import read_user_cfg
+from antares_bot.bot_default_cfg import AntaresBotConfig
 
 
 if TYPE_CHECKING:
@@ -202,7 +204,7 @@ class ModuleKeeper(object):
             # not is_internal: e.g. modules/sub_dir/sub_test.py -> sub_test
             module_top_name = _filename[:-3]
             # use cfg to control whether to load (internal) modules
-            skip = getattr(AntaresBotConfig, (skip_load_internal_formatter if is_internal else skip_load_formatter).format(module_top_name.upper()), False)
+            skip = read_user_cfg(AntaresBotConfig, (skip_load_internal_formatter if is_internal else skip_load_formatter).format(module_top_name.upper())) or False
             if skip:
                 return
             # is_internal: e.g. internal_modules/test.py -> internal_modules.test
@@ -242,8 +244,7 @@ class ModuleKeeper(object):
         # first load the internal modules
 
         os.path.join(cur_path, "internal_modules")
-        from bot_cfg import AntaresBotConfig
-        if getattr(AntaresBotConfig, f"SKIP_LOAD_ALL_INTERNAL_MODULES", False):
+        if read_user_cfg(AntaresBotConfig, f"SKIP_LOAD_ALL_INTERNAL_MODULES"):
             _LOGGER.warning("SKIP_LOAD_ALL_INTERNAL_MODULES is set to True, no internal modules will be loaded")
         else:
             for filename in os.listdir(os.path.join(cur_path, "internal_modules")):

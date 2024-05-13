@@ -1,9 +1,15 @@
-import logging
-from typing import List, Optional
+import os
+from typing import TYPE_CHECKING, List, Optional
 
 import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatType
+
+from antares_bot.bot_default_cfg import AntaresBotConfig
+
+
+if TYPE_CHECKING:
+    import logging
 
 
 class ObjectDict(dict):
@@ -113,7 +119,7 @@ def flatten_button(
     return InlineKeyboardMarkup(btl)
 
 
-async def exception_manual_handle(logger: logging.Logger, e: Exception):
+async def exception_manual_handle(logger: "logging.Logger", e: Exception):
     """
     no raise
     """
@@ -159,3 +165,20 @@ def markdown_escape(s: str) -> str:
     for c in special_chars:
         s = s.replace(c, "\\" + c)
     return s
+
+
+def read_user_cfg(cfg_class, section: str):
+    import bot_cfg
+    class_name = cfg_class.__name__
+    if not hasattr(bot_cfg, class_name):
+        return None
+    cfg = getattr(bot_cfg, class_name)
+    return getattr(cfg, section, None)
+
+
+def systemd_service_info():
+    name = read_user_cfg(AntaresBotConfig, "SYSTEMD_SERVICE_NAME")
+    if name is not None:
+        is_root = os.geteuid() == 0
+        return name, is_root
+    return None, None

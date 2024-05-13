@@ -6,6 +6,7 @@ from telegram.error import TelegramError
 
 import antares_bot.context_manager as context_manager
 from antares_bot import utils
+from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger
 from antares_bot.bot_method_wrapper import TelegramBotBaseWrapper
 from antares_bot.error import IgnoreChannelUpdateException, InvalidChatTypeException, UserPermissionException
@@ -74,13 +75,16 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     ##############################
 
     @classmethod
+    def get_master_id(cls) -> int:
+        return utils.read_user_cfg(BasicConfig, "MASTER_ID")
+
+    @classmethod
     def is_master(cls, ct: Optional["RichCallbackContext"]) -> bool:
         # TODO: consider private channel
-        from bot_cfg import BasicConfig
-        MASTER_ID = BasicConfig.MASTER_ID
+        master_id = cls.get_master_id()
         if ct is None:
             ct = cls.get_context()
-        return ct.chat_id == MASTER_ID or ct.user_id == MASTER_ID
+        return ct.chat_id == master_id or ct.user_id == master_id
 
     @classmethod
     def format_inline_keyboard_button(cls, text: str, callback_key_name: str, callback_arg: Any):
