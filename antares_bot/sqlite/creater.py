@@ -177,7 +177,7 @@ class DbDeclarer(object):
         c = await conn.cursor()
         for table in self.tables.values():
             command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(table.table_name)
-            _LOGGER.warning(command)
+            _LOGGER.debug(command)
             await c.execute(command)
             if not await c.fetchone():
                 _LOGGER.warning("Table {} not exists".format(table.table_name))

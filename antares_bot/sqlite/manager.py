@@ -135,6 +135,7 @@ class Database(object):
         self.table_info: dict[str, TableProxy] | None = None  # table name -> [(column name, type), ...]
         self.dirty_mark = False
         self._cursor = None
+        self._last_command_and_args = None
 
     async def connect(self) -> None:
         await self.close()
@@ -202,6 +203,7 @@ class Database(object):
         command += ";"
 
         _LOGGER.debug("execute command %s with args: %s", command, parse_args)
+        self._last_command_and_args = (command, parse_args)
 
         await self.cursor.execute(command, parse_args)
         return await self.cursor.fetchall()
@@ -236,6 +238,7 @@ class Database(object):
                 parse_args.append(data_dict[col])
 
         _LOGGER.debug("execute command %s with args: %s", insert_command, parse_args)
+        self._last_command_and_args = (insert_command, parse_args)
 
         await self.cursor.execute(insert_command, parse_args)
         self.dirty_mark = True
@@ -266,6 +269,7 @@ class Database(object):
         command += ";"
 
         _LOGGER.debug("parse command %s with args: %s", command, parse_args)
+        self._last_command_and_args = (command, parse_args)
 
         await self.cursor.execute(command, parse_args)
         self.dirty_mark = True
@@ -282,6 +286,7 @@ class Database(object):
         command += ";"
 
         _LOGGER.debug("parse command %s with args: %s", command, parse_args)
+        self._last_command_and_args = (command, parse_args)
 
         await self.cursor.execute(command, parse_args)
         self.dirty_mark = True
@@ -320,9 +325,14 @@ class Database(object):
             raise RuntimeError("Database not connected")
         await self.lock.acquire()
         self._cursor = await self.get_cur_connection().cursor()
+        self._last_command_and_args = None
         return True
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback: Optional["TracebackType"]):
+        if exception_type is not None:
+            if self._last_command_and_args is not None:
+                last_command, last_args = self._last_command_and_args
+                _LOGGER.error("Error occurred when executing command %s with args: %s", last_command, last_args)
         if self.dirty_mark:
             try:
                 await self.get_cur_connection().commit()
@@ -332,6 +342,7 @@ class Database(object):
             self.dirty_mark = False
         self._cursor = None
         self.lock.release()
+        self._last_command_and_args = None
         return False
 
     def __getitem__(self, table: str) -> TableProxy:
