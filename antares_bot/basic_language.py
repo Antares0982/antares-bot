@@ -1,7 +1,4 @@
-from antares_bot.multi_lang.lang_meta import LanguageMeta
-
-
-class BasicLanguage(metaclass=LanguageMeta):
+class BasicLanguage:
     CANCELLED = {
         "zh": "操作取消～",
         "en": "Cancelled~",
@@ -26,3 +23,8 @@ class BasicLanguage(metaclass=LanguageMeta):
         "zh": "哎呀，出现了未知的错误呢……",
         "en": "Oops, an unknown error occurred...",
     }
+
+    @classmethod
+    def t(cls, d: dict[str, str]):
+        from antares_bot.multi_lang import t
+        return t(d)

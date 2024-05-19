@@ -44,8 +44,8 @@ def main() -> None:
     bot_app = get_bot_instance()
 
     async def at_init() -> None:
-        from antares_bot.basic_language import BasicLanguage
-        await bot_app.send_to(bot_app.get_master_id(), BasicLanguage.STARTUP)
+        from antares_bot.basic_language import BasicLanguage as L
+        await bot_app.send_to(bot_app.get_master_id(), L.t(L.STARTUP))
     bot_app.custom_post_init(at_init())
     bot_app.pull_when_stop()
     bot_app.run()

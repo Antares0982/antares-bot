@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Union
 
 import objgraph  # type: ignore
 
-from antares_bot.bot_default_cfg import AntaresBotConfig, BasicConfig
+from antares_bot.bot_default_cfg import AntaresBotConfig
 from antares_bot.framework import command_callback_wrapper
 from antares_bot.module_base import TelegramBotModuleBase
 from antares_bot.permission_check import CheckLevel

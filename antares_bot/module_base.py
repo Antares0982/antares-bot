@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, c
 
 from telegram import Message
 
-from antares_bot.basic_language import BasicLanguage
+from antares_bot.basic_language import BasicLanguage as L
 from antares_bot.bot_base import TelegramBotBase
 from antares_bot.error import InvalidQueryException
 from antares_bot.framework import command_callback_wrapper
@@ -99,7 +99,7 @@ class TelegramBotModuleBase(TelegramBotBase):
         a cancel callback for conversation handler.
         """
         async def cancel(x, y):
-            await self.reply(BasicLanguage.CANCELLED)
+            await self.reply(L.t(L.CANCELLED))
             return ConversationHandlerEx.END
         return command_callback_wrapper(cancel)
 

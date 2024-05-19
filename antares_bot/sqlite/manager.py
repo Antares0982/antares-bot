@@ -135,7 +135,7 @@ class Database(object):
         self.table_info: dict[str, TableProxy] | None = None  # table name -> [(column name, type), ...]
         self.dirty_mark = False
         self._cursor = None
-        self._last_command_and_args = None
+        self._last_command_and_args: tuple[str, Any] | None = None
 
     async def connect(self) -> None:
         await self.close()

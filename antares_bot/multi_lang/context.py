@@ -34,15 +34,10 @@ class LangContextManager:
     INST: Optional["LangContextManager"] = None
 
     def __init__(self) -> None:
-        self.user_lang_context = dict()
+        self.user_lang_context: dict[int, str] = dict()
 
     def get_user_lang(self, ct: "RichCallbackContext") -> str:
-        ans = None
-        if ct.is_group_chat():
-            ans = self.user_lang_context.get(ct.chat_id)
-        if ans is None:
-            ans = self.user_lang_context.get(ct.user_id, get_default_locale())
-        return ans
+        return self.user_lang_context.get(ct.user_id, get_default_locale())
 
     def set_user_lang(self, _id: int, locale: str):
         self.user_lang_context[_id] = locale
