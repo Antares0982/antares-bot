@@ -161,7 +161,7 @@ def markdown_escape(s: str) -> str:
     Escape markdown special characters.
     Reference: https://core.telegram.org/bots/api#markdown-style
     """
-    special_chars = ['`', '*', '_', '[', ']']
+    special_chars = ['`', '*', '_', '[']
     for c in special_chars:
         s = s.replace(c, "\\" + c)
     return s
