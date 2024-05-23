@@ -209,7 +209,7 @@ def msg_handle_wrapper(filters: Callable[["Update"], Any]) -> GeneralCallbackWra
 
 
 @overload
-def msg_handle_wrapper(func: Callable[["Update", "RichCallbackContext"], Any]) -> GeneralCallback:
+def msg_handle_wrapper(func: Callable[[Any, "Update", "RichCallbackContext"], Any]) -> GeneralCallback:
     ...
 
 

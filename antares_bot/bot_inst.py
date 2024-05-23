@@ -12,6 +12,7 @@ from telegram import Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
+from antares_bot.basic_language import BasicLanguage as Lang
 from antares_bot.bot_base import TelegramBotBase
 from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
@@ -79,7 +80,7 @@ async def exception_handler(update: Any, context: RichCallbackContext):
         tb = format_traceback(err)
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
         _LOGGER.error(log_text)
-        text = f"哎呀，出现了未知的错误呢……"
+        text = Lang.t(Lang.UNKNOWN_ERROR) + f"{err.__class__}\n{err}"
         await get_bot_instance().send_to(TelegramBot.get_master_id(), text)
     except Exception as _e:
         try:
