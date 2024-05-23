@@ -12,6 +12,6 @@ def t(d: dict[str, str]):
         ans = d.get(get_default_locale(), None)
         if ans is None:
             # give the first value
-            _LOGGER.warning("No text found in %s for locale %s, using the first value", name, l_ct)
+            _LOGGER.warning("No text found in %s for locale %s, using the first value", d, l_ct)
             ans = next(iter(d.values()))
     return ans
