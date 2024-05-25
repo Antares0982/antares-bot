@@ -79,7 +79,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
         return utils.read_user_cfg(BasicConfig, "MASTER_ID")
 
     @classmethod
-    def is_master(cls, ct: Optional["RichCallbackContext"]) -> bool:
+    def is_master(cls, ct: "RichCallbackContext | None" = None) -> bool:
         # TODO: consider private channel
         master_id = cls.get_master_id()
         if ct is None:
