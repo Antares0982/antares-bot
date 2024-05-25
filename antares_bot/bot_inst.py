@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -230,8 +231,14 @@ class TelegramBot(TelegramBotBase):
 
         self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
+        signal.signal(signal.SIGINT, self.true_stop)
+
         try:
-            self.application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+            self.application.run_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+                stop_signals=(signal.SIGTERM, signal.SIGABRT),
+            )
         except NetworkError:
             # catches the NetworkError when the bot is turned off.
             # we don't care about that when normal exit
@@ -274,14 +281,20 @@ class TelegramBot(TelegramBotBase):
         else:
             print("Stopped unexpectedly.", file=sys.stderr)
 
+    def _stop_hook(self):
+        self._normal_exit_flag = True
+
+    def true_stop(self, *args, **kwargs):
+        self._stop_hook()
+        self.application.stop_running()
+
     @command_callback_wrapper
     async def stop(self, u, c):
         """
         Stop the bot.
         """
         self.check(CheckLevel.MASTER)
-        self._normal_exit_flag = True
-        self.application.stop_running()
+        self.true_stop()
 
     def get_module(self, top_name_or_clsss: Union[str, Type[_T]]) -> Optional[_T]:
         if isinstance(top_name_or_clsss, str):
@@ -420,7 +433,7 @@ class TelegramBot(TelegramBotBase):
         """
         self.check(CheckLevel.MASTER)
         self._post_stop_restart_flag = True
-        await self.stop.__wrapped__(self, update, context)
+        self.true_stop()
 
     def pull_when_stop(self, flag: bool = True):
         self._post_stop_gitpull_flag = flag
