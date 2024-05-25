@@ -80,7 +80,7 @@ async def exception_handler(update: Any, context: RichCallbackContext):
         tb = format_traceback(err)
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
         _LOGGER.error(log_text)
-        text = Lang.t(Lang.UNKNOWN_ERROR) + f"{err.__class__}\n{err}"
+        text = Lang.t(Lang.UNKNOWN_ERROR) + f"\n{err.__class__}: {err}"
         await get_bot_instance().send_to(TelegramBot.get_master_id(), text)
     except Exception as _e:
         try:

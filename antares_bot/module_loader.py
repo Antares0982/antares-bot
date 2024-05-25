@@ -1,12 +1,13 @@
+import importlib
 import os
 import sys
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, cast
 
+from antares_bot.bot_default_cfg import AntaresBotConfig
 from antares_bot.bot_logging import get_logger
 from antares_bot.module_base import TelegramBotModuleBase
 from antares_bot.utils import read_user_cfg
-from antares_bot.bot_default_cfg import AntaresBotConfig
 
 
 if TYPE_CHECKING:
@@ -68,6 +69,7 @@ class TelegramBotModuleDesc(Generic[_T]):
 
     def __repr__(self) -> str:
         return f"TelegramBotModule: {self.top_name}"
+
 
 class ModuleKeeper(object):
     _STR = 1
@@ -162,9 +164,8 @@ class ModuleKeeper(object):
 
     @staticmethod
     def _import_all_modules() -> Dict[str, Type[TelegramBotModuleBase]]:
-        import importlib
 
-        def _module_check(_module, _module_top_name: str, module_store_name:str):
+        def _module_check(_module, _module_top_name: str, module_store_name: str):
             _names = _module_top_name.split("_")
             class_name = ''.join([name.capitalize() for name in _names])
             kls = getattr(_module, class_name, None)
@@ -180,17 +181,16 @@ class ModuleKeeper(object):
 
         def _import_module(_module_full_name: str):
             try:
-                if _module_full_name in sys.modules:
-                    # reload
-                    is_reload = True
-                    module = importlib.reload(sys.modules[_module_full_name])
+                if exist_module := sys.modules.get(_module_full_name):
+                    exist = True
+                    module = exist_module
                 else:
-                    is_reload = False
+                    exist = False
                     module = importlib.import_module(_module_full_name)
             except Exception as e:
                 _LOGGER.error(e)
                 return None
-            return is_reload, module
+            return exist, module
 
         skip_load_formatter = "SKIP_LOAD_MODULE_{}"
         skip_load_internal_formatter = "SKIP_LOAD_INTERNAL_MODULE_{}"
@@ -228,14 +228,14 @@ class ModuleKeeper(object):
             _import_result = _import_module(module_full_name)
             if _import_result is None:
                 return
-            is_reload, module = _import_result
+            exists, module = _import_result
             # check
             kls = _module_check(module, module_top_name, module_store_name)
             if kls is None:
                 return
             # finalize
-            _load_str = "reloaded" if is_reload else "loaded"
-            _LOGGER.warning(f"{_load_str} module {module_store_name}")
+            if not exists:
+                _LOGGER.warning(f"loaded module {module_store_name}")
             # is_internal: e.g. internal_modules/test.py, internal_modules.test -> Test
             # not is_internal: e.g. modules/test.py, test -> Test
             # not is_internal: e.g. modules/sub_dir/sub_test.py, sub_test -> SubTest
@@ -251,7 +251,7 @@ class ModuleKeeper(object):
                 if filename.endswith(".py") and filename != "__init__.py":
                     _load_up(filename, is_internal=True)
                     continue
-                    
+
         # load user modules
         for dirname, _, filenames in os.walk("modules"):
             if dirname.endswith("__pycache__"):
@@ -260,7 +260,6 @@ class ModuleKeeper(object):
                 if filename.endswith(".py") and filename != "__init__.py":
                     _load_up(filename, _dirname=dirname)
                     continue
-                    
 
         return ret
 

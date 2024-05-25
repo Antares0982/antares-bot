@@ -209,13 +209,16 @@ class Database(object):
         return await self.cursor.fetchall()
 
     async def insert_nolock(self, table: str, data_dicts: list[SqlRowDict] | SqlRowDict):
+        if not isinstance(data_dicts, list):
+            data_dicts = [data_dicts]
+        if len(data_dicts) == 0:
+            return
+
         pks = self.get_primary_key_names(table)
 
         assert self.table_info
         columns = list(self.table_info[table].columns.keys())
 
-        if not isinstance(data_dicts, list):
-            data_dicts = [data_dicts]
         one_value = "(" + ",".join(["?" for _ in columns]) + ")"
         many_values = ",\n".join([one_value for _ in data_dicts])
 
@@ -234,8 +237,7 @@ class Database(object):
 
         parse_args = []
         for data_dict in data_dicts:
-            for col in columns:
-                parse_args.append(data_dict[col])
+            parse_args.extend(data_dict.get(col) for col in columns)
 
         _LOGGER.debug("execute command %s with args: %s", insert_command, parse_args)
         self._last_command_and_args = (insert_command, parse_args)
