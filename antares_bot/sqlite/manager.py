@@ -214,10 +214,14 @@ class Database(object):
         if len(data_dicts) == 0:
             return
 
-        pks = self.get_primary_key_names(table)
+        # do column name check
+        columns = list(data_dicts[0].keys())
+        columns_set = set(columns)
+        for i in range(1, len(data_dicts)):
+            if set(data_dicts[i].keys()) != columns_set:
+                raise ValueError("Column name not match")
 
-        assert self.table_info
-        columns = list(self.table_info[table].columns.keys())
+        pks = self.get_primary_key_names(table)
 
         one_value = "(" + ",".join(["?" for _ in columns]) + ")"
         many_values = ",\n".join([one_value for _ in data_dicts])
@@ -237,7 +241,7 @@ class Database(object):
 
         parse_args = []
         for data_dict in data_dicts:
-            parse_args.extend(data_dict.get(col) for col in columns)
+            parse_args.extend(data_dict[col] for col in columns)
 
         _LOGGER.debug("execute command %s with args: %s", insert_command, parse_args)
         self._last_command_and_args = (insert_command, parse_args)
