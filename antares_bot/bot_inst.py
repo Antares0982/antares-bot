@@ -137,6 +137,10 @@ class TelegramBot(TelegramBotBase):
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
 
+    @property
+    def bot_id(self):
+        return self.bot.bot.id
+
     async def _do_post_init(self, app: Application):
         tasks = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
         if self._custom_post_init_task is not None:

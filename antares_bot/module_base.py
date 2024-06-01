@@ -25,6 +25,10 @@ class TelegramBotModuleBase(TelegramBotBase):
     if TYPE_CHECKING:
         INST: Any
 
+    @property
+    def bot_id(self):
+        return self.parent.bot_id
+
     @classmethod
     def get_inst(cls) -> "Self":
         return cast("Self", cls.INST)

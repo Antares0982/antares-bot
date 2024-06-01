@@ -106,3 +106,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
         txt = update.message.text.strip()
         pre_command = txt.split()[0]
         return txt[len(pre_command):].strip()
+
+    @property
+    def bot_id(self):
+        raise NotImplementedError

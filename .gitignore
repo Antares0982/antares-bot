@@ -1,3 +1,4 @@
+.extra-stub-path/
 pika_interface.py
 test.py
 bot_cfg.py
