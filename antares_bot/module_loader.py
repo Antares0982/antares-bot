@@ -188,8 +188,11 @@ class ModuleKeeper(object):
                     exist = False
                     module = importlib.import_module(_module_full_name)
             except Exception as e:
-                _LOGGER.error(e)
-                return None
+                if read_user_cfg(AntaresBotConfig, "IGNORE_IMPORT_MODULE_ERROR"):
+                    _LOGGER.error(e)
+                    return None
+                else:
+                    raise
             return exist, module
 
         skip_load_formatter = "SKIP_LOAD_MODULE_{}"
@@ -235,7 +238,7 @@ class ModuleKeeper(object):
                 return
             # finalize
             if not exists:
-                _LOGGER.warning(f"loaded module {module_store_name}")
+                _LOGGER.info(f"loaded module {module_store_name}")
             # is_internal: e.g. internal_modules/test.py, internal_modules.test -> Test
             # not is_internal: e.g. modules/test.py, test -> Test
             # not is_internal: e.g. modules/sub_dir/sub_test.py, sub_test -> SubTest
