@@ -54,11 +54,11 @@ class CallbackBase(object):
                     return await self.__wrapped__(update, context)  # type: ignore
             except permission_exceptions() as e:
                 try:
-                    if isinstance(e, UserPermissionException):
-                        from antares_bot.bot_inst import get_bot_instance
-                        await get_bot_instance().reply(L.t(L.NO_PERMISSION))
-                    elif isinstance(e, InvalidChatTypeException):
-                        if self.handler_type == CommandHandler and not context.is_channel_message():
+                    if self.handler_type == CommandHandler and not context.is_channel_message():
+                        if isinstance(e, UserPermissionException):
+                            from antares_bot.bot_inst import get_bot_instance
+                            await get_bot_instance().reply(L.t(L.NO_PERMISSION))
+                        elif isinstance(e, InvalidChatTypeException):
                             from antares_bot.bot_inst import get_bot_instance
                             await get_bot_instance().reply(L.t(L.INVALID_CHAT_TYPE).format(context.chat_type_str()))
                 except Exception:
