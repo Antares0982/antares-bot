@@ -58,8 +58,9 @@ class CallbackBase(object):
                         from antares_bot.bot_inst import get_bot_instance
                         await get_bot_instance().reply(L.t(L.NO_PERMISSION))
                     elif isinstance(e, InvalidChatTypeException):
-                        from antares_bot.bot_inst import get_bot_instance
-                        await get_bot_instance().reply(L.t(L.INVALID_CHAT_TYPE).format(context.chat_type_str()))
+                        if self.handler_type == CommandHandler and not context.is_channel_message():
+                            from antares_bot.bot_inst import get_bot_instance
+                            await get_bot_instance().reply(L.t(L.INVALID_CHAT_TYPE).format(context.chat_type_str()))
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
             except InvalidQueryException:
