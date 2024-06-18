@@ -238,12 +238,14 @@ class TelegramBot(TelegramBotBase):
         self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
         signal.signal(signal.SIGINT, self.signal_stop)
+        signal.signal(signal.SIGTERM, self.signal_stop)
+        signal.signal(signal.SIGABRT, self.signal_stop)
 
         try:
             self.application.run_polling(
                 allowed_updates=Update.ALL_TYPES,
                 drop_pending_updates=True,
-                stop_signals=(signal.SIGTERM, signal.SIGABRT),
+                stop_signals=(),
             )
         except NetworkError:
             # catches the NetworkError when the bot is turned off.
@@ -296,7 +298,7 @@ class TelegramBot(TelegramBotBase):
         self._stop_hook()
         self.application.stop_running()
 
-    def signal_stop(self):
+    def signal_stop(self, *args, **kwargs):
         global _PROGRAM_SHUTDOWN_STARTED
         if _PROGRAM_SHUTDOWN_STARTED:
             return
