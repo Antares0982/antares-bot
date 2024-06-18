@@ -39,6 +39,8 @@ _T = TypeVar("_T", bound="TelegramBotModuleBase", covariant=True)
 _LOGGER = get_logger("main")
 TIME_IN_A_DAY = 24 * 60 * 60
 
+_PROGRAM_SHUTDOWN_STARTED = False
+
 # note that wildcard import is only allowed at module level
 _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
 from antares_bot.test_commands import *
@@ -235,7 +237,7 @@ class TelegramBot(TelegramBotBase):
 
         self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
 
-        signal.signal(signal.SIGINT, self.true_stop)
+        signal.signal(signal.SIGINT, self.signal_stop)
 
         try:
             self.application.run_polling(
@@ -253,11 +255,13 @@ class TelegramBot(TelegramBotBase):
         self._post_run()
 
     def _post_run(self):
+        global _PROGRAM_SHUTDOWN_STARTED
         if self._custom_finalize_task is not None:
             print("Running custom finalize task...")
             self._custom_finalize_task()
 
-        if self._post_stop_restart_flag:
+        if self._post_stop_restart_flag and not _PROGRAM_SHUTDOWN_STARTED:
+            _PROGRAM_SHUTDOWN_STARTED = True
             systemd_service_name, is_root = systemd_service_info()
             if systemd_service_name is not None:
                 restart_command = ["systemctl"] + (["--user"] if not is_root else []) + ["restart", systemd_service_name]
@@ -291,6 +295,13 @@ class TelegramBot(TelegramBotBase):
     def true_stop(self, *args, **kwargs):
         self._stop_hook()
         self.application.stop_running()
+
+    def signal_stop(self):
+        global _PROGRAM_SHUTDOWN_STARTED
+        if _PROGRAM_SHUTDOWN_STARTED:
+            return
+        _PROGRAM_SHUTDOWN_STARTED = True
+        self.true_stop()
 
     @command_callback_wrapper
     async def stop(self, u, c):
