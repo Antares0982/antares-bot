@@ -164,7 +164,7 @@ class TelegramBot(TelegramBotBase):
             try:
                 msg = str(subprocess.check_output(["git", "pull"], encoding='utf-8'))
                 if msg:
-                    if "Already up to date." not in msg:
+                    if "Already up to date." not in msg and "not a git repository" not in msg:
                         await self.send_to(self.get_master_id(), msg)
             except Exception:
                 await self.send_to(self.get_master_id(), "git pull failed!")
