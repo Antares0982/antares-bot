@@ -23,7 +23,7 @@ from antares_bot.context_manager import ContextHelper, get_context
 from antares_bot.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
 from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
-from antares_bot.patching.application_ex import ApplicationEx
+# from antares_bot.patching.application_ex import ApplicationEx
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
 from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
@@ -107,9 +107,9 @@ class TelegramBot(TelegramBotBase):
             bot_data=self.BotDataType  # type: ignore
         )
         self.application = cast(
-            "ApplicationEx[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
+            "Application[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
             Application.builder()
-            .application_class(ApplicationEx)
+            # .application_class(ApplicationEx)
             .token(read_user_cfg(BasicConfig, "TOKEN"))
             .context_types(context_types)
             .job_queue(JobQueueEx())
@@ -135,6 +135,7 @@ class TelegramBot(TelegramBotBase):
         self._custom_restart_command: str | list[str] | None = None
         self._custom_finalize_task: Callable[[], Any] | None = None
         self._normal_exit_flag = False
+        self.handler_docs: dict[str, str] = {}
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -196,13 +197,13 @@ class TelegramBot(TelegramBotBase):
                     handler = func
                 if isinstance(handler, CommandHandler):
                     for command in handler.commands:
-                        self.application.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                        self.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
                 elif isinstance(handler, ConversationHandler):
                     entry = handler.entry_points
                     for entry_point in entry:
                         if isinstance(entry_point, CommandHandler):
                             for command in entry_point.commands:
-                                self.application.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                                self.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
                 self.application.add_handler(handler)
                 # try get module logger
                 py_module = module.py_module()
@@ -226,10 +227,10 @@ class TelegramBot(TelegramBotBase):
             handler = method.to_handler()
             self.application.add_handler(handler)
             for command in handler.commands:
-                self.application.handler_docs[command] = method.__doc__ if method.__doc__ else "No doc"
+                self.handler_docs[command] = method.__doc__ if method.__doc__ else "No doc"
             _LOGGER.info(f"added handler: {handler}")
 
-        self.application.handler_docs["cancel"] = """
+        self.handler_docs["cancel"] = """
         Cancel the current operation.
         """
 
@@ -425,7 +426,7 @@ class TelegramBot(TelegramBotBase):
 
     async def _internal_full_help(self, context: RichCallbackContext):
         ret = ""
-        for command, doc in self.application.handler_docs.items():
+        for command, doc in self.handler_docs.items():
             ret += f"`/help {command}`\n"
         await self.success_info(ret, parse_mode="Markdown")
 
@@ -438,7 +439,7 @@ class TelegramBot(TelegramBotBase):
         if len(context.args) == 0:
             return await self._internal_full_help(context)
         command = context.args[0]
-        doc = self.application.handler_docs.get(command)
+        doc = self.handler_docs.get(command)
         if doc is None:
             return await self.error_info(f"没有找到命令：{command}")
         return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="Markdown")
