@@ -23,7 +23,6 @@ from antares_bot.context_manager import ContextHelper, get_context
 from antares_bot.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
 from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
-# from antares_bot.patching.application_ex import ApplicationEx
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
 from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
