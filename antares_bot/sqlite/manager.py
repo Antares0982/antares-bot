@@ -231,7 +231,7 @@ class Database(object):
             columns=",".join(columns),
             many_values=many_values,
         )
-        if len(pks) < len(columns):
+        if 0 < len(pks) < len(columns):
             upsert_args = ','.join([f"{col}=excluded.{col}" for col in columns if col not in pks])
             insert_command += INSERT_COMMAND_PART2_FORMAT.format(
                 pks=",".join(pks),
