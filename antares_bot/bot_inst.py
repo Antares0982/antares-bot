@@ -9,7 +9,7 @@ import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
-from telegram import Update
+from telegram import MessageOriginChannel, MessageOriginChat, MessageOriginHiddenUser, MessageOriginUser, Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
@@ -407,6 +407,30 @@ class TelegramBot(TelegramBotBase):
         Get the user id / chat id.
         In a group chat, if replying to a message, get the user id of the replied message.
         """
+        if update.message is not None and update.message.reply_to_message is not None:
+            message = update.message.reply_to_message
+            forward_origin = message.forward_origin
+            if forward_origin is not None:
+                if forward_origin.type == forward_origin.CHANNEL:
+                    forward_origin_channel = cast(MessageOriginChannel, forward_origin)
+                    return await self.reply(
+                        f"转发消息的来源频道id：`{forward_origin_channel.chat.id}`",
+                        parse_mode="MarkdownV2"
+                    )
+                elif forward_origin.type == forward_origin.CHAT:
+                    forward_origin_chat = cast(MessageOriginChat, forward_origin)
+                    return await self.reply(
+                        f"转发消息的来源群id：`{forward_origin_chat.sender_chat.id}`",
+                        parse_mode="MarkdownV2"
+                    )
+                elif forward_origin.type == forward_origin.USER:
+                    forward_origin_user = cast(MessageOriginUser, forward_origin)
+                    return await self.reply(
+                        f"转发消息的来源用户id：`{forward_origin_user.sender_user.id}`",
+                        parse_mode="MarkdownV2"
+                    )
+                elif forward_origin.type == forward_origin.HIDDEN_USER:
+                    return await self.reply(f"转发消息的来源用户已隐藏")
         if context.is_group_chat() and update.message is not None and update.message.reply_to_message is not None and update.message.reply_to_message.from_user is not None:
             return await self.reply(
                 f"群id：`{context.chat_id}`\n回复的消息的用户id：`{update.message.reply_to_message.from_user.id}`",
