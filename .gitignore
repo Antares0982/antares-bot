@@ -1,4 +1,4 @@
-.extra-stub-path/
+.nix-pyenv/
 pika_interface.py
 test.py
 bot_cfg.py

@@ -61,7 +61,10 @@ class TelegramBotBaseWrapper(object):
 
     @classmethod
     async def _reply_to(cls, message: "Message", text: str, **kwargs):
-        texts = longtext_split(text)
+        if "entities" in kwargs:
+            texts = [text]
+        else:
+            texts = longtext_split(text)
         if 'reply_to_message_id' not in kwargs:
             kwargs['reply_to_message_id'] = message.id
         async for m in cls._sequence_send(message.reply_text, texts, **kwargs):
@@ -92,7 +95,10 @@ class TelegramBotBaseWrapper(object):
         chat_id: int = kwargs['chat_id']
         if chat_id == context.chat_id and context.message_id is not None and 'reply_to_message_id' not in kwargs and not context.is_callback_query():
             kwargs['reply_to_message_id'] = context.message_id
-        texts = longtext_split(text)
+        if "entities" in kwargs:
+            texts = [text]
+        else:
+            texts = longtext_split(text)
         async for m in cls._sequence_send(context.bot.send_message, texts, **kwargs):
             yield m
 
@@ -117,7 +123,10 @@ class TelegramBotBaseWrapper(object):
     @classmethod
     async def _send_to(cls, chat_id: int, text: str, **kwargs):
         from antares_bot.bot_inst import get_bot_instance
-        texts = longtext_split(text)
+        if "entities" in kwargs:
+            texts = [text]
+        else:
+            texts = longtext_split(text)
         kwargs['chat_id'] = chat_id
         async for m in cls._sequence_send(get_bot_instance().bot.send_message, texts, **kwargs):
             yield m
@@ -198,9 +207,9 @@ class TelegramBotBaseWrapper(object):
             if str(e).find('parse') != -1:
                 parse_mode = kwargs.pop('parse_mode', None)
                 if parse_mode is None:
-                    raise BadRequest(e.message) from e
+                    raise
                 ret = await cls._send_ignore_parsemode_or_replyto_exceptions(interface_func, **kwargs)
                 # reset parse_mode for the next call
                 kwargs['parse_mode'] = parse_mode
                 return ret
-            raise BadRequest(e.message) from e
+            raise
