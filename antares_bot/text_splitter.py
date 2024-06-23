@@ -622,7 +622,7 @@ MARKDOWN_SUPPORTED_LANGUAGES = {
     "zig",
 }
 
-TEXT_LENGTH_LIMIT = 1024
+TEXT_LENGTH_LIMIT = 4096
 
 
 def find_special_sequences(text: str):
