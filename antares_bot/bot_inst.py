@@ -241,6 +241,10 @@ class TelegramBot(TelegramBotBase):
         signal.signal(signal.SIGTERM, self.signal_stop)
         signal.signal(signal.SIGABRT, self.signal_stop)
 
+        # use eager factory
+        if sys.version_info >= (3, 12):
+            asyncio.get_event_loop().set_task_factory(asyncio.eager_task_factory)
+
         try:
             self.application.run_polling(
                 allowed_updates=Update.ALL_TYPES,
