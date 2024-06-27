@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
+from antares_bot.bot_logging import get_logger
 from antares_bot.text_splitter import longtext_split
 
 
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
 
 _T = TypeVar("_T")
+_LOGGER = get_logger("bot_base")
 
 
 class TelegramBotBaseWrapper(object):
@@ -188,6 +190,10 @@ class TelegramBotBaseWrapper(object):
             except TelegramError as e:
                 if i == cls.RETRY_TIMES - 1:
                     raise e
+                try:
+                    _LOGGER.warning("retrying %s %d/%d due to %s", func.__name__, i + 1, cls.RETRY_TIMES, str(e))
+                except Exception:
+                    pass
                 _sleep_time = e.retry_after + 1 if isinstance(e, RetryAfter) else cls.RETRY_SLEEP_TIME
                 await asyncio.sleep(_sleep_time)
         raise RuntimeError(f"unreachable: RETRY_TIMES={cls.RETRY_TIMES}")
