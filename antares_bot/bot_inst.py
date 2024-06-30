@@ -162,7 +162,7 @@ class TelegramBot(TelegramBotBase):
         if self._post_stop_gitpull_flag:
             # create a subprocess to git pull
             try:
-                msg = str(subprocess.check_output(["git", "pull"], encoding='utf-8'))
+                msg = str(subprocess.check_output(["git", "pull", "--ff-only"], encoding='utf-8'))
                 if msg:
                     if "Already up to date." not in msg and "not a git repository" not in msg:
                         await self.send_to(self.get_master_id(), msg)
