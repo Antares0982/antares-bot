@@ -80,13 +80,12 @@ class PersistKeyboards(Generic[_DataType]):
 
     The normal usage is like:
     * construct with callback data manager.
-    * call `store_data()` to store all data into self.
-    * call `setup_use_keys()` by the key returned from last step, and also the repr_cb, which is used to generate the text of buttons.
+    * call `setup_use_data()` to store all data into self, and also the repr_cb, which is used to generate the text of buttons. If you want to customize, you can split this method into two steps: `store_data()`, `setup_use_keys()`.
     * call `get_reply_markup()` to get the InlineKeyboardMarkup.
 
     When the data is retrieved:
     * the type of data is `Tuple[_DataType, PersistKeyboards[_DataType]]`.
-    * the index can be retrieved by calling `idx()`.
+    * the index can be retrieved by calling `self.idx(get_cb_data_key)`, where `get_cb_data_key = bot_module._get_cb_data_key(query)`.
     """
 
     def __init__(self, cb_manager: CallbackDataManager) -> None:
@@ -137,6 +136,11 @@ class PersistKeyboards(Generic[_DataType]):
     def modify_data_by_index(self, idx: int, data: _DataType) -> None:
         cb_data_key = self.cb_data_keys[idx]
         self.cb_manager.modify_data(cb_data_key, (data, self))
+
+    def get_data_by_index(self, idx: int) -> _DataType:
+        cb_data_key = self.cb_data_keys[idx]
+        data: _DataType = self.cb_manager.peek_data(cb_data_key)[0]
+        return data
 
     def _get_text(self, idx: int) -> str:
         if self.repr_cb is None:

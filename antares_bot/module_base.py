@@ -1,3 +1,4 @@
+import asyncio
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, cast
 
 from telegram import Message
@@ -94,7 +95,8 @@ class TelegramBotModuleBase(TelegramBotBase):
         k = self._get_cb_data_key(query)
         ret = self.parent.callback_manager.pop_data(k) if pop else self.parent.callback_manager.peek_data(k)
         if ret is None and check_valid:
-            self.on_invalid_query(query)
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.on_invalid_query(query))
             raise InvalidQueryException
         return ret
 
