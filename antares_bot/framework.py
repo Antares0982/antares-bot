@@ -63,8 +63,8 @@ class CallbackBase(object):
                             await get_bot_instance().reply(L.t(L.INVALID_CHAT_TYPE).format(context.chat_type_str()))
                 except Exception:
                     _LOGGER.error("%s.__call__", self.__class__.__name__, exc_info=True)
-            except InvalidQueryException:
-                pass
+            except InvalidQueryException as e:
+                _LOGGER.warning("Invalid query: %s %s", update.callback_query, e)
 
     def __get__(self, instance, cls):
         if instance is not None:
