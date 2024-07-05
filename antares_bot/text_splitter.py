@@ -481,6 +481,7 @@ MARKDOWN_SUPPORTED_LANGUAGES = {
     "perl",
     "php",
     "phpdoc",
+    "plaintext",
     "plant-uml",
     "plantuml",
     "plsql",
@@ -621,6 +622,8 @@ MARKDOWN_SUPPORTED_LANGUAGES = {
     "yml",
     "zig",
 }
+
+MARKDOWN_SUPPORTED_LANGUAGES = set(map(lambda x: x.lower(), MARKDOWN_SUPPORTED_LANGUAGES))
 
 TEXT_LENGTH_LIMIT = 4096
 
@@ -784,13 +787,8 @@ class MarkdownParser:
     def feed(self, text: str, is_codeblock: bool):
         text = text.strip()
         if is_codeblock:
-            partitioned = text.partition("\n")
-            code_lang = None
-            if partitioned[1] == "\n" and partitioned[0] in MARKDOWN_SUPPORTED_LANGUAGES:
-                code_lang = partitioned[0]
-                code = partitioned[2]
-            else:
-                code = text
+            code, code_lang = self.get_code_lang(text)
+            code = self.trim_spaces_before_line(code)
             self.enqueue(TextObject(text=code, entity_type=MessageEntityType.PRE, code_language=code_lang))
         else:
             lines = text.split("\n")
@@ -800,6 +798,41 @@ class MarkdownParser:
                                ("**", MessageEntityType.BOLD), ("*", MessageEntityType.ITALIC)])
                 sep = "\n"
         self.digest()
+
+    @classmethod
+    def get_code_lang(cls, text: str):
+        _left, _sep, _right = text.partition("\n")
+        code_lang = None
+        if _sep == "\n" and _left.lower() in MARKDOWN_SUPPORTED_LANGUAGES:
+            code_lang = _left
+            code = _right
+        else:
+            code = text
+        return code, code_lang
+
+    @classmethod
+    def trim_spaces_before_line(cls, code: str):
+        lines = code.split("\n")
+        if len(lines) == 0:
+            return code
+        COMMON_SPACE_MAX = 5000
+        common_spaces = COMMON_SPACE_MAX
+        for line in lines:
+            if not line.strip():
+                continue
+            spaces_count = len(line) - len(line.lstrip(' '))
+            common_spaces = min(common_spaces, spaces_count)
+            if common_spaces == 0:
+                return code
+        if COMMON_SPACE_MAX == common_spaces:
+            return code
+
+        def xstrip(line: str):
+            if not line.strip():
+                return ""
+            return line[common_spaces:]
+        code = "\n".join(xstrip(line) for line in lines)
+        return code
 
     @classmethod
     def join_escaped(cls, splitted: list[str]) -> list[str]:
@@ -930,14 +963,17 @@ class MarkdownParser:
             parted_2 = last_part
         return parted_1, parted_2
 
+    def parse(self, txt: str) -> tuple[list[str], list[list[MessageEntity]]]:
+        first_level_split = txt.split("```")
+        if len(first_level_split) % 2 == 0:
+            # broken code block, or no code block
+            first_level_split = [txt]
+
+        for i, txt_part in enumerate(first_level_split):
+            self.feed(txt_part, is_codeblock=i % 2 == 1)
+        return self.digest_final()
+
 
 def longtext_markdown_split(txt: str) -> tuple[list[str], list[list[MessageEntity]]]:
     splitter = MarkdownParser()
-    first_level_split = txt.split("```")
-    if len(first_level_split) % 2 == 0:
-        # broken code block, or no code block
-        first_level_split = [txt]
-
-    for i, txt_part in enumerate(first_level_split):
-        splitter.feed(txt_part, is_codeblock=i % 2 == 1)
-    return splitter.digest_final()
+    return splitter.parse(txt)
