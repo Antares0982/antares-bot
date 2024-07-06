@@ -49,6 +49,12 @@ class TelegramBotModuleBase(TelegramBotBase):
     async def do_stop(self) -> None:
         ...
 
+    async def daily_job(self) -> None:
+        """
+        Run at 0 o'clock every day.
+        """
+        ...
+
     def _register_inst(self):
         self.__class__.INST = self
 

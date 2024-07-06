@@ -19,7 +19,7 @@ from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
 from antares_bot.context import ChatData, RichCallbackContext, UserData
-from antares_bot.context_manager import ContextHelper, get_context
+from antares_bot.context_manager import ContextHelper, ContextReverseHelper, get_context
 from antares_bot.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
 from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
@@ -127,7 +127,6 @@ class TelegramBot(TelegramBotBase):
         self.callback_manager = CallbackDataManager()
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
-        self.registered_daily_jobs: Dict[str, Callable[[RichCallbackContext], Coroutine[Any, Any, Any]]] = dict()
         self._custom_post_init_task: Coroutine[Any, Any, Any] | None = None
         self._custom_post_stop_task: Coroutine[Any, Any, Any] | None = None
         # TODO do a flags check at the end of the run. move the flags into a new class
@@ -425,7 +424,8 @@ class TelegramBot(TelegramBotBase):
             _LOGGER.debug(f"Daily job: removed {_debug_ids} keys from callback manager")
         #
         _LOGGER.warning(f"Start running daily jobs for each module")
-        await asyncio.gather(*(job(context) for job in self.registered_daily_jobs.values()))
+        with ContextReverseHelper():
+            await asyncio.gather(*(module.module_instance.daily_job() for module in self._module_keeper.get_all_enabled_modules() if module.module_instance is not None))
 
     @command_callback_wrapper
     async def get_id(self, update: Update, context: RichCallbackContext):
