@@ -25,6 +25,7 @@ from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
+from antares_bot.sqlite.manager import DataBasesManager
 from antares_bot.text_process import trim_spaces_before_line
 from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
 
@@ -146,20 +147,27 @@ class TelegramBot(TelegramBotBase):
         return self.bot.bot.id
 
     async def _do_post_init(self, app: Application):
+        time0 = time.time()
         tasks = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
         if self._custom_post_init_task is not None:
             tasks.append(self._custom_post_init_task)
             self._custom_post_init_task = None
         await asyncio.gather(*tasks)
+        time1 = time.time()
+        _LOGGER.warning(f"Post init time: {time1 - time0:.3f}s")
 
     async def _do_post_stop(self, app: Application):
+        time0 = time.time()
         if self._custom_post_stop_task is not None:
             await self._custom_post_stop_task
             self._custom_post_stop_task = None
         task_send_exit_msg = self.send_to(self.get_master_id(), "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
-        from antares_bot.sqlite.manager import DataBasesManager
+        time1 = time.time()
+        _LOGGER.warning(f"Post stop time: {time1 - time0:.3f}s")
         task_stop_db = DataBasesManager.get_inst().shutdown()
+        time2 = time.time()
+        _LOGGER.warning(f"Shutdown db time: {time2 - time1:.3f}s")
         # pull the repo if _post_stop_gitpull_flag is set.
         # if exit_fast (SIGTERM, SIGABRT), do not pull
         additional_tasks = []
@@ -175,6 +183,7 @@ class TelegramBot(TelegramBotBase):
             except Exception:
                 additional_tasks.append(self.send_to(self.get_master_id(), "git pull failed!"))
         task_stop_logger = stop_logger()
+        # wait for all tasks to finish
         await asyncio.gather(task_send_exit_msg, task_stop_db, task_stop_logger, *additional_tasks)
 
     def custom_post_init(self, task: Coroutine[Any, Any, Any]):
@@ -400,7 +409,8 @@ class TelegramBot(TelegramBotBase):
         command = self.get_message_after_command(update)
         await self._internal_exec(command)
 
-    def data_dir(self):
+    @classmethod
+    def data_dir(cls):
         return os.path.join(os.path.curdir, read_user_cfg(BasicConfig, "DATA_DIR"))
 
     async def _daily_job(self, context: RichCallbackContext):
@@ -414,7 +424,7 @@ class TelegramBot(TelegramBotBase):
         if is_debug:
             _LOGGER.debug(f"Daily job: removed {_debug_ids} keys from callback manager")
         #
-        _LOGGER.debug(f"Start running daily jobs for each module")
+        _LOGGER.warning(f"Start running daily jobs for each module")
         await asyncio.gather(*(job(context) for job in self.registered_daily_jobs.values()))
 
     @command_callback_wrapper
