@@ -486,14 +486,15 @@ class TelegramBot(TelegramBotBase):
         return None if is_extract else doc
 
     def _internal_generate_command_list(self) -> str:
-        content = ["```"]
+        content = []
         for command, doc in self.handler_docs.items():
             tmp = self._match_helpdoc_line0_command_list_format(command, doc)
             if tmp is not None:
                 content.append(tmp)
-        if len(content) == 1:
+        if len(content) == 0:
             return ""
-        content.append("```")
+        content.sort()
+        content = ["```"] + content + ["```"]
         return '\n'.join(content)
 
     @command_callback_wrapper
