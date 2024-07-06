@@ -476,16 +476,12 @@ class TelegramBot(TelegramBotBase):
     @classmethod
     def _match_helpdoc_line0_command_list_format(cls, command: str, doc: str, is_extract=True):
         doc = doc.strip()
-        _fail_ret = None if is_extract else doc
-        _left, sep, _right = doc.partition("\n")
-        if not sep:
-            return _fail_ret
+        _left, _, _right = doc.partition("\n")
         line0 = _left
-        # lines = doc.split("\n")
         command_prefix = command + " - "
         if line0.startswith(command_prefix):
             return line0 if is_extract else _right
-        return _fail_ret
+        return None if is_extract else doc
 
     def _internal_generate_command_list(self) -> str:
         content = ["```"]
