@@ -203,13 +203,15 @@ class TelegramBot(TelegramBotBase):
                     handler = func
                 if isinstance(handler, CommandHandler):
                     for command in handler.commands:
-                        self.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                        _doc = func.__doc__
+                        self.handler_docs[command] = _doc if _doc else "No doc"
                 elif isinstance(handler, ConversationHandler):
                     entry = handler.entry_points
                     for entry_point in entry:
                         if isinstance(entry_point, CommandHandler):
                             for command in entry_point.commands:
-                                self.handler_docs[command] = func.__doc__ if func.__doc__ else "No doc"
+                                _doc = entry_point.callback.__doc__
+                                self.handler_docs[command] = _doc if _doc else "No doc"
                 self.application.add_handler(handler)
                 # try get module logger
                 py_module = module.py_module()
