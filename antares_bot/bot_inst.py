@@ -135,6 +135,7 @@ class TelegramBot(TelegramBotBase):
         self._custom_finalize_task: Callable[[], Any] | None = None
         self._normal_exit_flag = False
         self.handler_docs: dict[str, str] = {}
+        self._exit_fast = False
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -154,21 +155,26 @@ class TelegramBot(TelegramBotBase):
         if self._custom_post_stop_task is not None:
             await self._custom_post_stop_task
             self._custom_post_stop_task = None
-        await self.send_to(self.get_master_id(), "主人再见QAQ")
+        task_send_exit_msg = self.send_to(self.get_master_id(), "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         from antares_bot.sqlite.manager import DataBasesManager
-        await DataBasesManager.get_inst().shutdown()
-        #
-        if self._post_stop_gitpull_flag:
+        task_stop_db = DataBasesManager.get_inst().shutdown()
+        # pull the repo if _post_stop_gitpull_flag is set.
+        # if exit_fast (SIGTERM, SIGABRT), do not pull
+        additional_tasks = []
+        if self._post_stop_gitpull_flag and not self._exit_fast:
             # create a subprocess to git pull
             try:
-                msg = str(subprocess.check_output(["git", "pull", "--ff-only"], encoding='utf-8'))
-                if msg:
-                    if "Already up to date." not in msg and "not a git repository" not in msg:
-                        await self.send_to(self.get_master_id(), msg)
+                msg = str(subprocess.check_output(
+                    ["git", "pull", "--ff-only"],
+                    encoding='utf-8')
+                )
+                if msg and "Already up to date." not in msg and "not a git repository" not in msg:
+                    additional_tasks.append(self.send_to(self.get_master_id(), msg))
             except Exception:
-                await self.send_to(self.get_master_id(), "git pull failed!")
-        await stop_logger()
+                additional_tasks.append(self.send_to(self.get_master_id(), "git pull failed!"))
+        task_stop_logger = stop_logger()
+        await asyncio.gather(task_send_exit_msg, task_stop_db, task_stop_logger, *additional_tasks)
 
     def custom_post_init(self, task: Coroutine[Any, Any, Any]):
         self._custom_post_init_task = task
@@ -295,18 +301,17 @@ class TelegramBot(TelegramBotBase):
         else:
             print("Stopped unexpectedly.", file=sys.stderr)
 
-    def _stop_hook(self):
-        self._normal_exit_flag = True
-
     def true_stop(self, *args, **kwargs):
-        self._stop_hook()
+        self._normal_exit_flag = True
         self.application.stop_running()
 
-    def signal_stop(self, *args, **kwargs):
+    def signal_stop(self, sig, *args, **kwargs):
         global _PROGRAM_SHUTDOWN_STARTED
         if _PROGRAM_SHUTDOWN_STARTED:
             return
         _PROGRAM_SHUTDOWN_STARTED = True
+        if sig == signal.SIGTERM or sig == signal.SIGABRT:
+            self._exit_fast = True
         self.true_stop()
 
     @command_callback_wrapper
