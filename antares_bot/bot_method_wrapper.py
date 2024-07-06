@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, List
 from telegram.error import BadRequest, ChatMigrated, Forbidden, InvalidToken, RetryAfter, TelegramError
 
 from antares_bot.bot_logging import get_logger
-from antares_bot.text_splitter import longtext_split
+from antares_bot.text_process import longtext_split
 
 
 if TYPE_CHECKING:

@@ -748,6 +748,30 @@ class TextObject:
     code_language: str | None = None
 
 
+def trim_spaces_before_line(code: str):
+    lines = code.split("\n")
+    if len(lines) == 0:
+        return code
+    COMMON_SPACE_MAX = 5000
+    common_spaces = COMMON_SPACE_MAX
+    for line in lines:
+        if not line.strip():
+            continue
+        spaces_count = len(line) - len(line.lstrip(' '))
+        common_spaces = min(common_spaces, spaces_count)
+        if common_spaces == 0:
+            return code
+    if COMMON_SPACE_MAX == common_spaces:
+        return code
+
+    def xstrip(line: str):
+        if not line.strip():
+            return ""
+        return line[common_spaces:]
+    code = "\n".join(xstrip(line) for line in lines)
+    return code
+
+
 class MarkdownParser:
     def __init__(self) -> None:
         self.texts: list[str] = []
@@ -788,7 +812,7 @@ class MarkdownParser:
         text = text.strip()
         if is_codeblock:
             code, code_lang = self.get_code_lang(text)
-            code = self.trim_spaces_before_line(code)
+            code = trim_spaces_before_line(code)
             self.enqueue(TextObject(text=code, entity_type=MessageEntityType.PRE, code_language=code_lang))
         else:
             lines = text.split("\n")
@@ -809,30 +833,6 @@ class MarkdownParser:
         else:
             code = text
         return code, code_lang
-
-    @classmethod
-    def trim_spaces_before_line(cls, code: str):
-        lines = code.split("\n")
-        if len(lines) == 0:
-            return code
-        COMMON_SPACE_MAX = 5000
-        common_spaces = COMMON_SPACE_MAX
-        for line in lines:
-            if not line.strip():
-                continue
-            spaces_count = len(line) - len(line.lstrip(' '))
-            common_spaces = min(common_spaces, spaces_count)
-            if common_spaces == 0:
-                return code
-        if COMMON_SPACE_MAX == common_spaces:
-            return code
-
-        def xstrip(line: str):
-            if not line.strip():
-                return ""
-            return line[common_spaces:]
-        code = "\n".join(xstrip(line) for line in lines)
-        return code
 
     @classmethod
     def join_escaped(cls, splitted: list[str]) -> list[str]:

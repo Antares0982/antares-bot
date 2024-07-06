@@ -25,6 +25,7 @@ from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
+from antares_bot.text_process import trim_spaces_before_line
 from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
 
 
@@ -236,7 +237,8 @@ class TelegramBot(TelegramBotBase):
             _LOGGER.info(f"added handler: {handler}")
 
         self.handler_docs["cancel"] = """
-        Cancel the current operation.
+        cancel - cancel the current operation
+        `/cancel`: Cancel the current operation.
         """
 
         self.application.add_error_handler(exception_handler)
@@ -317,6 +319,7 @@ class TelegramBot(TelegramBotBase):
     @command_callback_wrapper
     async def stop(self, u, c):
         """
+        stop - stop the bot
         Stop the bot.
         """
         self.check(CheckLevel.MASTER)
@@ -339,6 +342,7 @@ class TelegramBot(TelegramBotBase):
     @command_callback_wrapper
     async def debug_mode(self, update, context):
         """
+        debug_mode - switch debug mode on or off
         Switch debug mode on/off.
         """
         self.check(CheckLevel.MASTER)
@@ -375,6 +379,7 @@ class TelegramBot(TelegramBotBase):
     @command_callback_wrapper
     async def exec(self, update: Update, context: RichCallbackContext):
         """
+        exec - execute python code
         Execute python code.
         `antares_bot.test_commands` is wildcard imported by default.
         You can use `self` to refer to the bot instance.
@@ -413,8 +418,14 @@ class TelegramBot(TelegramBotBase):
     @command_callback_wrapper
     async def get_id(self, update: Update, context: RichCallbackContext):
         """
+        get_id - get the user id / chat id
         Get the user id / chat id.
-        In a group chat, if replying to a message, get the user id of the replied message.
+        If replying to a forwarded message, get the id information of the forward prigin.
+        Otherwise:
+        - In a group chat:
+          - If replying to a message, get the user id of the replied message;
+          - otherwise, get the id of you and the group.
+        - In a private chat: get your id.
         """
         if update.message is not None and update.message.reply_to_message is not None:
             message = update.message.reply_to_message
@@ -462,19 +473,58 @@ class TelegramBot(TelegramBotBase):
             ret += f"`/help {command}`\n"
         await self.success_info(ret, parse_mode="Markdown")
 
+    @classmethod
+    def _match_helpdoc_line0_command_list_format(cls, command: str, doc: str, is_extract=True):
+        doc = doc.strip()
+        _fail_ret = None if is_extract else doc
+        _left, sep, _right = doc.partition("\n")
+        if not sep:
+            return _fail_ret
+        line0 = _left
+        # lines = doc.split("\n")
+        command_prefix = command + " - "
+        if line0.startswith(command_prefix):
+            return line0 if is_extract else _right
+        return _fail_ret
+
+    def _internal_generate_command_list(self) -> str:
+        content = ["```"]
+        for command, doc in self.handler_docs.items():
+            tmp = self._match_helpdoc_line0_command_list_format(command, doc)
+            if tmp is not None:
+                content.append(tmp)
+        if len(content) == 1:
+            return ""
+        content.append("```")
+        return '\n'.join(content)
+
     @command_callback_wrapper
     async def help(self, update: Update, context: RichCallbackContext):
         """
-        `/help [command]`: get the docstring for commands
+        help - show command helps
+        `/help [command]`: get the docstring for commands.
+        `/help to-command-list`: get the command list for setting up at BotFather.
         """
         assert context.args is not None
         if len(context.args) == 0:
             return await self._internal_full_help(context)
+
         command = context.args[0]
+        if command == "to-command-list":
+            content = self._internal_generate_command_list()
+            if content:
+                return await self.reply(content, parse_mode="Markdown")
+            else:
+                return await self.error_info("No command list available")
         doc = self.handler_docs.get(command)
         if doc is None:
             return await self.error_info(f"没有找到命令：{command}")
-        return await self.success_info(f"/{markdown_escape(command)}: {doc}", parse_mode="Markdown")
+        doc = self._match_helpdoc_line0_command_list_format(command, doc, is_extract=False)
+        if doc is not None:
+            doc = trim_spaces_before_line(doc)
+        if not doc:
+            doc = "No doc"
+        return await self.success_info(f"/{markdown_escape(command)}:\n{doc}", parse_mode="Markdown")
 
     @command_callback_wrapper
     async def restart(self, update: Update, context: RichCallbackContext):
