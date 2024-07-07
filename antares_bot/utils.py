@@ -186,3 +186,14 @@ def systemd_service_info():
         is_root = os.geteuid() == 0
         return name, is_root
     return None, None
+
+
+def merge_dicts(dict1: dict, dict2: dict):
+    merged = dict1.copy()
+    for key, value2 in dict2.items():
+        value1 = merged.get(key)
+        if isinstance(value1, dict) and isinstance(value2, dict):
+            merged[key] = merge_dicts(value1, value2)
+        else:
+            merged[key] = value2
+    return merged

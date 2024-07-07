@@ -15,6 +15,11 @@ class AntaresBotConfig:
     Config to control the bot behavior.
     Details refers to bot_default_cfg.py.
     """
+    # JOB_QUEUE_CONFIG = {
+    #     "job_defaults" : {
+    #         "misfire_grace_time": 30  # default is 60
+    #     }
+    # }
     # SKIP_PIKA_SETUP = True
     # SKIP_LOAD_ALL_INTERNAL_MODULES = True
     # SKIP_LOAD_ALL_MODULES = True
@@ -23,4 +28,3 @@ class AntaresBotConfig:
     # OBJGRAPH_TRACE_AT_START = True
     # SYSTEMD_SERVICE_NAME = "antares_bot.service"
     # IGNORE_IMPORT_MODULE_ERROR = True
-    pass
