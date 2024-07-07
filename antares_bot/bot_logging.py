@@ -31,7 +31,10 @@ if PIKA_SUPPORTED:
             if _is_pika_logger_running():
                 try:
                     msg = self.format(record)
-                    send_message_nowait("logging." + record.name, msg)
+                    key = record.name
+                    if not key.startswith(__logger_top_name):
+                        key = __logger_top_name + "." + key
+                    send_message_nowait("logging." + key, msg)
                 except RecursionError:  # See issue 36272
                     raise
                 except Exception:
