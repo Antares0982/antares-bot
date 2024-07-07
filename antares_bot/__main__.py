@@ -74,3 +74,4 @@ def main():
     # start!
     bot_app.run()
     # exit
+    return 0
