@@ -8,6 +8,7 @@ class BasicConfig:
     # DATA_DIR = "data"
     TOKEN = "abcdef:123456"
     MASTER_ID = 123456789
+    BOT_NAME = "my_bot"  # mostly used in logging
 
 
 class AntaresBotConfig:
@@ -15,6 +16,7 @@ class AntaresBotConfig:
     Config to control the bot behavior.
     Details refers to bot_default_cfg.py.
     """
+    PULL_WHEN_STOP = True  # enable pull when bot stops
     # JOB_QUEUE_CONFIG = {
     #     "job_defaults" : {
     #         "misfire_grace_time": 30  # default is 60

@@ -7,6 +7,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatType
 
 from antares_bot.bot_default_cfg import AntaresBotConfig
+from antares_bot.init_hooks import read_user_cfg
 
 
 if TYPE_CHECKING:
@@ -169,15 +170,6 @@ def markdown_escape(s: str) -> str:
     for c in special_chars:
         s = s.replace(c, "\\" + c)
     return s
-
-
-def read_user_cfg(cfg_class, section: str):
-    import bot_cfg
-    class_name = cfg_class.__name__
-    if not hasattr(bot_cfg, class_name):
-        return None
-    cfg = getattr(bot_cfg, class_name)
-    return getattr(cfg, section, None)
 
 
 def systemd_service_info():

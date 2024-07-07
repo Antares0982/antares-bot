@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 from telegram import MessageOriginChannel, MessageOriginChat, MessageOriginUser, Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
@@ -15,7 +15,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Conversation
 
 from antares_bot.basic_language import BasicLanguage as Lang
 from antares_bot.bot_base import TelegramBotBase
-from antares_bot.bot_default_cfg import BasicConfig
+from antares_bot.bot_default_cfg import AntaresBotConfig, BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
 from antares_bot.context import ChatData, RichCallbackContext, UserData
@@ -127,11 +127,11 @@ class TelegramBot(TelegramBotBase):
         self.callback_manager = CallbackDataManager()
         self.callback_key_dict: Dict[Tuple[int, int], List[str]] = dict()
         self._old_log_level = None
-        self._custom_post_init_task: Coroutine[Any, Any, Any] | None = None
-        self._custom_post_stop_task: Coroutine[Any, Any, Any] | None = None
+        self._custom_post_init_task: Awaitable | None = None
+        self._custom_post_stop_task: Awaitable | None = None
         # TODO do a flags check at the end of the run. move the flags into a new class
         self._post_stop_restart_flag = False
-        self._post_stop_gitpull_flag = False
+        self._post_stop_gitpull_flag = bool(read_user_cfg(AntaresBotConfig, "PULL_WHEN_STOP"))
         self._custom_restart_command: str | list[str] | None = None
         self._custom_finalize_task: Callable[[], Any] | None = None
         self._normal_exit_flag = False
@@ -147,13 +147,17 @@ class TelegramBot(TelegramBotBase):
 
     async def _do_post_init(self, app: Application):
         time0 = time.time()
-        tasks = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
+        tasks: list[Awaitable] = [module.post_init(app) for module in self._module_keeper.get_all_enabled_modules()]
         if self._custom_post_init_task is not None:
             tasks.append(self._custom_post_init_task)
             self._custom_post_init_task = None
+        tasks.append(self.send_init_hello())
         await asyncio.gather(*tasks)
         time1 = time.time()
         _LOGGER.warning("Post init time: %.3fs", time1 - time0)
+
+    async def send_init_hello(self) -> None:
+        await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP))
 
     async def _do_post_stop(self, app: Application):
         time0 = time.time()
@@ -185,10 +189,10 @@ class TelegramBot(TelegramBotBase):
         # wait for all tasks to finish
         await asyncio.gather(task_send_exit_msg, task_stop_db, task_stop_logger, *additional_tasks)
 
-    def custom_post_init(self, task: Coroutine[Any, Any, Any]):
+    def custom_post_init(self, task: Awaitable):
         self._custom_post_init_task = task
 
-    def custom_post_stop(self, task: Coroutine[Any, Any, Any]):
+    def custom_post_stop(self, task: Awaitable):
         self._custom_post_stop_task = task
 
     def custom_restart_command(self, command: str | list[str]):
@@ -543,9 +547,6 @@ class TelegramBot(TelegramBotBase):
         self.check(CheckLevel.MASTER)
         self._post_stop_restart_flag = True
         self.true_stop()
-
-    def pull_when_stop(self, flag: bool = True):
-        self._post_stop_gitpull_flag = flag
 
 
 __bot_singleton = None

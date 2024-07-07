@@ -31,7 +31,8 @@ See antares_bot.bot_default_cfg for example.
                     if not hasattr(config_class, attr):
                         if attr in empty_checklist:
                             raise RuntimeError(
-                                f"Please set {', '.join(empty_checklist)} in {default_config_class.__name__} in bot_cfg.py. See bot_default_cfg.py for more details."
+                                f"Please set {', '.join(empty_checklist)} in {
+                                    default_config_class.__name__} in bot_cfg.py. See bot_default_cfg.py for more details."
                             )
                         setattr(config_class, attr, getattr(default_config_class, attr))
 
@@ -66,3 +67,12 @@ Do you want to continue? (y/N)""")
         print(f"failed to download {gh_file}", file=sys.stderr)
         return
     print(f"{gh_file} downloaded successfully.")
+
+
+def read_user_cfg(cfg_class, section: str):
+    import bot_cfg
+    class_name = cfg_class.__name__
+    if not hasattr(bot_cfg, class_name):
+        return None
+    cfg = getattr(bot_cfg, class_name)
+    return getattr(cfg, section, None)

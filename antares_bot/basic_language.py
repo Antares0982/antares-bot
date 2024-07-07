@@ -1,26 +1,26 @@
 class BasicLanguage:
     CANCELLED = {
-        "zh": "操作取消～",
+        "zh-CN": "操作取消～",
         "en": "Cancelled~",
     }
     END = {
-        "zh": "结束",
+        "zh-CN": "结束",
     }
     INVALID_CHAT_TYPE = {
-        "zh": "不能在聊天类型：{}中使用哦",
+        "zh-CN": "不能在聊天类型：{}中使用哦",
     }
     NO_PERMISSION = {
-        "zh": "你没有权限哦",
+        "zh-CN": "你没有权限哦",
     }
     SHORTSEP = {
-        "zh": "、",
+        "zh-CN": "、",
     }
     STARTUP = {
-        "zh": "Bot启动！",
+        "zh-CN": "Bot启动！",
         "en": "Bot is live!",
     }
     UNKNOWN_ERROR = {
-        "zh": "哎呀，出现了未知的错误呢……",
+        "zh-CN": "哎呀，出现了未知的错误呢……",
         "en": "Oops, an unknown error occurred...",
     }
 
