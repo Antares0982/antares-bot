@@ -1,3 +1,4 @@
+import datetime
 import os
 from typing import TYPE_CHECKING, List, Optional
 
@@ -10,6 +11,8 @@ from antares_bot.bot_default_cfg import AntaresBotConfig
 
 if TYPE_CHECKING:
     import logging
+
+SYSTEM_TIME_ZONE = datetime.datetime.now().astimezone().tzinfo
 
 
 class ObjectDict(dict):
