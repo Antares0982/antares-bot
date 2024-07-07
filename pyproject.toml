@@ -1,2 +1,5 @@
 [tool.autopep8]
 max-line-length = 160
+
+[tool.pylint]
+disable = ["C", "R", "W0603", "W0613", "W0718"]

@@ -66,22 +66,3 @@ Do you want to continue? (y/N)""")
         print(f"failed to download {gh_file}", file=sys.stderr)
         return
     print(f"{gh_file} downloaded successfully.")
-
-
-# TODO
-# def generate_language(locale: str):
-#     from antares_bot.bot_default_cfg import LOCALE as default_locale
-#     if locale != default_locale:
-#         # modify the language module
-#         import importlib
-#         try:
-#             new_language = importlib.import_module(f"antares_bot.multi_lang.{locale}")
-#         except ImportError:
-#             import sys
-
-#             print(f"language {locale} not found! Exiting.", file=sys.stderr)
-#             exit(1)
-#         from antares_bot import language
-#         for k, v in new_language.__dict__.items():
-#             if k.upper() == k:
-#                 setattr(language, k, v)

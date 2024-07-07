@@ -39,11 +39,13 @@ class RichCallbackContext(CallbackContext[ExtBot, UserData, ChatData, dict]):
         """Override from_update to set _message_id."""
         context = super().from_update(update, application)
         if isinstance(update, Update):
+            # pylint: disable=protected-access
             context._last_message_id = get_msg_id(update)
             context._reply_to_message_id = get_reply_to_msg_id(update)
             context._update = update
             if update.effective_chat is not None:
                 context._type = update.effective_chat.type
+            # pylint: enable=protected-access
         return context
 
     def is_private_chat(self):

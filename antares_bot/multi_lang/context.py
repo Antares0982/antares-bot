@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from antares_bot.context import RichCallbackContext
 
 
-def get_default_locale():
+def get_default_locale() -> str | None:
     return read_user_cfg(BasicConfig, "LOCALE")
 
 
@@ -18,7 +18,7 @@ def lang_context():
         ct = get_context()
         if ct is None:
             return get_default_locale()
-    except:
+    except Exception:
         return get_default_locale()
     return LangContextManager.get_inst().get_user_lang(ct)
 
@@ -27,8 +27,6 @@ def set_lang(_id: int, locale: str):
     # id < 0 -> group, id > 0 -> private
     LangContextManager.get_inst().set_user_lang(_id, locale)
 
-# TODO SQLITE
-
 
 class LangContextManager:
     INST: Optional["LangContextManager"] = None
@@ -36,8 +34,8 @@ class LangContextManager:
     def __init__(self) -> None:
         self.user_lang_context: dict[int, str] = dict()
 
-    def get_user_lang(self, ct: "RichCallbackContext") -> str:
-        return self.user_lang_context.get(ct.user_id, get_default_locale())
+    def get_user_lang(self, ct: "RichCallbackContext") -> str | None:
+        return self.user_lang_context.get(ct.user_id, get_default_locale())  # type: ignore
 
     def set_user_lang(self, _id: int, locale: str):
         self.user_lang_context[_id] = locale

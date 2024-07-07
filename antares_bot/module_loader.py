@@ -175,7 +175,7 @@ class ModuleKeeper(object):
                 if not issubclass(kls, TelegramBotModuleBase):  # type: ignore
                     return None
             except Exception:
-                _LOGGER.error(f"{module_store_name} is not a subclass of TelegramBotModuleBase")
+                _LOGGER.error("%s is not a subclass of TelegramBotModuleBase", module_store_name)
                 return None
             return kls
 
@@ -218,7 +218,7 @@ class ModuleKeeper(object):
                 module_store_name = module_top_name
 
             if module_store_name in ret:
-                _LOGGER.error(f"{module_store_name} is duplicated")
+                _LOGGER.error("%s is duplicated", module_store_name)
                 return
             if is_internal:
                 # e.g. internal_modules.test -> {cur_path_folder_name}.internal_modules.test
@@ -238,7 +238,7 @@ class ModuleKeeper(object):
                 return
             # finalize
             if not exists:
-                _LOGGER.info(f"loaded module {module_store_name}")
+                _LOGGER.info("loaded module %s", module_store_name)
             # is_internal: e.g. internal_modules/test.py, internal_modules.test -> Test
             # not is_internal: e.g. modules/test.py, test -> Test
             # not is_internal: e.g. modules/sub_dir/sub_test.py, sub_test -> SubTest
@@ -247,7 +247,7 @@ class ModuleKeeper(object):
         # first load the internal modules
 
         os.path.join(cur_path, "internal_modules")
-        if read_user_cfg(AntaresBotConfig, f"SKIP_LOAD_ALL_INTERNAL_MODULES"):
+        if read_user_cfg(AntaresBotConfig, "SKIP_LOAD_ALL_INTERNAL_MODULES"):
             _LOGGER.warning("SKIP_LOAD_ALL_INTERNAL_MODULES is set to True, no internal modules will be loaded")
         else:
             for filename in os.listdir(os.path.join(cur_path, "internal_modules")):

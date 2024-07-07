@@ -9,7 +9,7 @@ import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
-from telegram import MessageOriginChannel, MessageOriginChat, MessageOriginHiddenUser, MessageOriginUser, Update
+from telegram import MessageOriginChannel, MessageOriginChat, MessageOriginUser, Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler
 
@@ -153,7 +153,7 @@ class TelegramBot(TelegramBotBase):
             self._custom_post_init_task = None
         await asyncio.gather(*tasks)
         time1 = time.time()
-        _LOGGER.warning(f"Post init time: {time1 - time0:.3f}s")
+        _LOGGER.warning("Post init time: %.3fs", time1 - time0)
 
     async def _do_post_stop(self, app: Application):
         time0 = time.time()
@@ -163,10 +163,10 @@ class TelegramBot(TelegramBotBase):
         task_send_exit_msg = self.send_to(self.get_master_id(), "主人再见QAQ")
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         time1 = time.time()
-        _LOGGER.warning(f"Post stop time: {time1 - time0:.3f}s")
+        _LOGGER.warning("Post stop time: %.3fs", time1 - time0)
         task_stop_db = DataBasesManager.get_inst().shutdown()
         time2 = time.time()
-        _LOGGER.warning(f"Shutdown db time: {time2 - time1:.3f}s")
+        _LOGGER.warning("Shutdown db time: %.3fs", time2 - time1)
         # pull the repo if _post_stop_gitpull_flag is set.
         # if exit_fast (SIGTERM, SIGABRT), do not pull
         additional_tasks = []
@@ -228,7 +228,7 @@ class TelegramBot(TelegramBotBase):
                 else:
                     logger = get_logger(module.top_name)
                     setattr(py_module, "_LOGGER", logger)
-                logger.info(f"added handler: {func}")
+                logger.info("added handler: %s", func)
 
         main_handlers = [
             self.stop,
@@ -240,11 +240,11 @@ class TelegramBot(TelegramBotBase):
         ]
 
         for method in main_handlers:
-            handler = method.to_handler()
+            handler = method.to_handler()  # pylint: disable=no-member
             self.application.add_handler(handler)
             for command in handler.commands:
                 self.handler_docs[command] = method.__doc__ if method.__doc__ else "No doc"
-            _LOGGER.info(f"added handler: {handler}")
+            _LOGGER.info("added handler: %s", handler)
 
         self.handler_docs["cancel"] = """
         cancel - cancel the current operation
@@ -378,8 +378,8 @@ class TelegramBot(TelegramBotBase):
         codes = command.split("\n")
         try:
             code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {l}' for l in codes)
-            _LOGGER.warning(f"executing: {code_string}")
-            exec(code_string)
+            _LOGGER.warning("executing: %s", code_string)
+            exec(code_string)  # pylint: disable=exec-used
             ans = await locals()["__t"]()
         except Exception:
             asyncio.get_running_loop().create_task(self.reply("执行失败……"))
@@ -421,9 +421,9 @@ class TelegramBot(TelegramBotBase):
             if is_debug:
                 _debug_ids.append(old_id)
         if is_debug:
-            _LOGGER.debug(f"Daily job: removed {_debug_ids} keys from callback manager")
+            _LOGGER.debug("Daily job: removed %s keys from callback manager", _debug_ids)
         #
-        _LOGGER.warning(f"Start running daily jobs for each module")
+        _LOGGER.warning("Start running daily jobs for each module")
         with ContextReverseHelper():
             await asyncio.gather(*(module.module_instance.daily_job() for module in self._module_keeper.get_all_enabled_modules() if module.module_instance is not None))
 
@@ -462,7 +462,7 @@ class TelegramBot(TelegramBotBase):
                         parse_mode="MarkdownV2"
                     )
                 elif forward_origin.type == forward_origin.HIDDEN_USER:
-                    return await self.reply(f"转发消息的来源用户已隐藏")
+                    return await self.reply("转发消息的来源用户已隐藏")
         if context.is_group_chat() and update.message is not None and update.message.reply_to_message is not None and update.message.reply_to_message.from_user is not None:
             return await self.reply(
                 f"群id：`{context.chat_id}`\n回复的消息的用户id：`{update.message.reply_to_message.from_user.id}`",
@@ -481,7 +481,7 @@ class TelegramBot(TelegramBotBase):
 
     async def _internal_full_help(self, context: RichCallbackContext):
         ret = ""
-        for command, doc in self.handler_docs.items():
+        for command in self.handler_docs.keys():
             ret += f"`/help {command}`\n"
         await self.success_info(ret, parse_mode="Markdown")
 

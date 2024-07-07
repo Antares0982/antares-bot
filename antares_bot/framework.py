@@ -1,10 +1,10 @@
+# pylint: disable=no-member, not-callable, arguments-differ
 import re
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Pattern, Type, Union, overload
 
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
-from telegram.ext import filters
 from telegram.ext import filters as filters_module
 
 from antares_bot.basic_language import BasicLanguage as L
@@ -99,7 +99,7 @@ class CommandCallback(CallbackBase):
         return {
             "filters": self.filters,
             "block": self.block,
-            "command": self.__wrapped__.__name__,
+            "command": self.__wrapped__.__name__,  # pylint: disable=no-member
         }
 
 
@@ -122,7 +122,7 @@ class _CommandCallbackMethodDecor(object):
 
     def __init__(
         self,
-        filters: Optional[filters.BaseFilter] = None,
+        filters: Optional[filters_module.BaseFilter] = None,
         block: bool = False
     ):
         self.filters = filters
@@ -150,6 +150,7 @@ class GeneralCallbackWrapper(object):
 
 class ConditionFilter(filters_module.BaseFilter):
     def __init__(self, condition: Callable[[Update], bool]):
+        super().__init__()
         self.condition = condition
 
     def check_update(self, update: Update) -> bool:
@@ -164,14 +165,14 @@ def command_callback_wrapper(func: Callable) -> CommandCallback:
 @overload
 def command_callback_wrapper(
     block: bool = False,
-    filters: Optional[filters.BaseFilter] = None,
+    filters: Optional[filters_module.BaseFilter] = None,
 ) -> CommandCallback:
     ...
 
 
 def command_callback_wrapper(  # type: ignore
     block: Any = False,
-    filters: Optional[filters.BaseFilter] = None,
+    filters: Optional[filters_module.BaseFilter] = None,
 ):
     if callable(block):
         return _CommandCallbackMethodDecor()(block)
@@ -215,7 +216,7 @@ def msg_handle_wrapper(func: Callable[[Any, "Update", "RichCallbackContext"], An
 
 
 @overload
-def msg_handle_wrapper(filters: Optional[filters.BaseFilter] = None) -> GeneralCallbackWrapper:
+def msg_handle_wrapper(filters: Optional[filters_module.BaseFilter] = None) -> GeneralCallbackWrapper:
     ...
 
 
@@ -235,4 +236,4 @@ def msg_handle_wrapper(*args, **kwargs):
     return general_callback_wrapper(MessageHandler, *args, **kwargs)
 
 
-photo_handle_wrapper = general_callback_wrapper(MessageHandler, filters=filters.PHOTO & (~filters.ChatType.CHANNEL))
+photo_handle_wrapper = general_callback_wrapper(MessageHandler, filters=filters_module.PHOTO & (~filters_module.ChatType.CHANNEL))

@@ -23,7 +23,7 @@ if PIKA_SUPPORTED:
 
     def _is_pika_logger_running():
         if not (threading.current_thread() is threading.main_thread()):
-            return False  # TODO
+            return False
         return not __pika_logger_stopped
 
     class PikaHandler(Handler):

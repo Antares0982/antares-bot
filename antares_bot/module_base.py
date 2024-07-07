@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, cast
 
 from telegram import Message
@@ -9,6 +10,7 @@ from antares_bot.basic_language import BasicLanguage as L
 from antares_bot.bot_base import TelegramBotBase
 from antares_bot.error import InvalidQueryException
 from antares_bot.framework import command_callback_wrapper
+from antares_bot.utils import exception_manual_handle
 
 
 if TYPE_CHECKING:
@@ -53,7 +55,6 @@ class TelegramBotModuleBase(TelegramBotBase):
         """
         Run at 0 o'clock every day.
         """
-        ...
 
     def _register_inst(self):
         self.__class__.INST = self
@@ -120,8 +121,8 @@ class TelegramBotModuleBase(TelegramBotBase):
     def job_queue(self):
         return self.parent.job_queue
 
-    def _manual_handle_exception(self, e: Exception):
-        pass  # TODO
+    async def _manual_handle_exception(self, logger: logging.Logger, e: Exception):
+        return await exception_manual_handle(logger, e)
 
     def cache_cb_keys_by_id(self, chat_id: int, msg_id: int, cb_keys: List[str]) -> None:
         """
