@@ -13,7 +13,7 @@ except ImportError:
     print("Pika not supported due to an ImportError. Safely ignore it if you do not use pika.")
     PIKA_SUPPORTED = False
 
-__logger_top_name = "antares_bot"
+_logger_top_name = "antares_bot"
 __logger_inited = False
 __root_logger = cast(logging.Logger, None)
 
@@ -32,12 +32,12 @@ if PIKA_SUPPORTED:
                 try:
                     msg = self.format(record)
                     key = record.name
-                    if not key.startswith(__logger_top_name):
-                        key = __logger_top_name + "." + key
+                    if not key.startswith(_logger_top_name):
+                        key = _logger_top_name + "." + key
                     send_message_nowait("logging." + key, msg)
                 except RecursionError:  # See issue 36272
                     raise
-                except Exception:
+                except Exception as e:
                     self.handleError(record)
 
         def __repr__(self):
@@ -53,14 +53,14 @@ if PIKA_SUPPORTED:
 
 
 def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
-    global __logger_inited, __root_logger, __logger_top_name
+    global __logger_inited, __root_logger, _logger_top_name
     if __logger_inited:
         return __root_logger
     __logger_inited = True
     if logger_top_name is not None:
-        __logger_top_name = logger_top_name
+        _logger_top_name = logger_top_name
 
-    __root_logger = logging.getLogger(__logger_top_name)
+    __root_logger = logging.getLogger(_logger_top_name)
     if PIKA_SUPPORTED:
         handler = PikaHandler()
         __root_logger.addHandler(handler)
@@ -79,7 +79,7 @@ def get_logger(module_name: str):
         module_name = module_name[len(strip_prefix):]
     if not __logger_inited:
         raise RuntimeError("logger not inited")
-    name = __logger_top_name + "." + module_name
+    name = _logger_top_name + "." + module_name
     logger = logging.getLogger(name)
     return logger
 
