@@ -48,9 +48,7 @@ class JobQueueEx(JobQueue):
     def scheduler_configuration(self):
         ret = super().scheduler_configuration
         scheduler_config = read_user_cfg(AntaresBotConfig, "JOB_QUEUE_CONFIG")
-        if scheduler_config is None:
-            return ret
-        else:
+        if scheduler_config is not None:
             ret = merge_dicts(ret, scheduler_config)
         fix_misfire_grace_time(ret)
         return ret
