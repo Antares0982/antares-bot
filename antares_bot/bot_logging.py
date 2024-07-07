@@ -37,7 +37,7 @@ if PIKA_SUPPORTED:
                     send_message_nowait("logging." + key, msg)
                 except RecursionError:  # See issue 36272
                     raise
-                except Exception as e:
+                except Exception:
                     self.handleError(record)
 
         def __repr__(self):
