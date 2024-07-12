@@ -1,6 +1,8 @@
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, overload, Any, Awaitable, Callable, Coroutine, TypeVar
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, TypeVar, overload
+
 from antares_bot.context import RichCallbackContext
+
 
 if TYPE_CHECKING:
     from contextvars import Token
@@ -70,9 +72,13 @@ class ContextHelper:
         return False
 
 
-class _InvalidContext:
+class InvalidContextError(RuntimeError):
+    pass
+
+
+class InvalidContext:
     def __getattr__(self, _):
-        raise RuntimeError("Invalid context. Did you forget to use `callback_job_wrapper` when creating callback?")
+        raise InvalidContextError("Invalid context. Did you forget to use `callback_job_wrapper` when creating callback?")
 
 
 class ContextReverseHelper:
@@ -80,7 +86,7 @@ class ContextReverseHelper:
         self.token = None
 
     def __enter__(self):
-        self.token = context_manager.set(_InvalidContext())
+        self.token = context_manager.set(InvalidContext())
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

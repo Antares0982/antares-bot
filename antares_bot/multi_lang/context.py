@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from antares_bot.bot_default_cfg import BasicConfig
-from antares_bot.context_manager import get_context
+from antares_bot.context_manager import InvalidContext, get_context
 from antares_bot.utils import read_user_cfg
 
 
@@ -16,7 +16,7 @@ def get_default_locale() -> str | None:
 def lang_context():
     try:
         ct = get_context()
-        if ct is None:
+        if ct is None or isinstance(ct, InvalidContext):
             return get_default_locale()
     except Exception:
         return get_default_locale()
