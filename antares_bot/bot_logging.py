@@ -3,6 +3,9 @@ from logging import Handler, getLevelName
 from types import GenericAlias
 from typing import Optional, cast
 
+from antares_bot.bot_default_cfg import BasicConfig
+from antares_bot.init_hooks import read_user_cfg
+
 
 try:
     from pika_interface import close_sustained_connection, send_message_nowait
@@ -56,7 +59,7 @@ if PIKA_SUPPORTED:
         __class_getitem__ = classmethod(GenericAlias)  # type: ignore
 
 
-def log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
+def _log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
     global __logger_inited, __root_logger, _logger_top_name
     if __logger_inited:
         return __root_logger
@@ -119,3 +122,6 @@ async def stop_logger():
         global __pika_logger_stopped
         __pika_logger_stopped = True
         await close_sustained_connection()
+
+
+_log_start(read_user_cfg(BasicConfig, "BOT_NAME"))

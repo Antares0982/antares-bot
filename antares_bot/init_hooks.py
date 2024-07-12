@@ -39,7 +39,7 @@ class AntaresBotConfig:
 """
 
 
-def hook_cfg():
+def _hook_cfg():
     try:
         import bot_cfg as cfg
     except ImportError:
@@ -143,3 +143,6 @@ def create_blank_cfg():
         "bot_cfg.py created successfully."
         " Please fill in the required fields."
     )
+
+
+_hook_cfg()
