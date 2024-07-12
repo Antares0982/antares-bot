@@ -42,7 +42,7 @@ class DataBasesManager:
         self._registered_databases = {}
         task = asyncio.gather(*(db.close() for db in databases.values()))
         await task
-        _LOGGER.info(f"Closed {len(databases)} databases")
+        _LOGGER.info("Closed %d databases", len(databases))
 
     def register_database(self, name: str, db: "Database"):
         self._registered_databases[name] = db
@@ -239,7 +239,7 @@ class Database(object):
             )
         insert_command += ";"
 
-        parse_args = []
+        parse_args:list[Any] = []
         for data_dict in data_dicts:
             parse_args.extend(data_dict[col] for col in columns)
 

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import aiosqlite
 
@@ -123,7 +123,7 @@ class TableDataCreator(object):
         for col in self.table.columns.values():
             if col.column_name not in self.data:
                 if col.is_not_null and col.default is None:
-                    raise Exception("column {} is not nullable".format(col.column_name))
+                    raise RuntimeError("column {} is not nullable".format(col.column_name))
         return self.data
 
 
@@ -180,7 +180,7 @@ class DbDeclarer(object):
             _LOGGER.debug(command)
             await c.execute(command)
             if not await c.fetchone():
-                _LOGGER.warning("Table {} not exists".format(table.table_name))
+                _LOGGER.warning("Table %s not exists", table.table_name)
                 command = table.get_creation_cmd()
                 _LOGGER.warning(command)
                 await c.execute(command)
