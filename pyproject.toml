@@ -40,7 +40,7 @@ keywords = [
 ]
 
 [tool.setuptools]
-py-modules = ["antares_bot"]
+packages = ["antares_bot"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/Antares0982/telegram-bot-template/issues"
