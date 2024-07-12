@@ -5,7 +5,7 @@ setup(
     name='antares_bot',
     packages=find_packages(),
     install_requires=[
-        "python-telegram-bot[job-queue]",
+        "python-telegram-bot[job-queue] @ git+https://github.com/Antares0982/python-telegram-bot@v21.3",
         "aiosqlite",
         "objgraph",
     ],
