@@ -10,7 +10,11 @@ try:
     PIKA_SUPPORTED = True
     __pika_logger_stopped = False
 except ImportError:
-    print("Pika not supported due to an ImportError. Safely ignore it if you do not use pika.")
+    print(
+        "Pika not supported due to an ImportError."
+        " Safely ignore it if you do not use pika."
+        " Check whether aio-pika is installed if you use pika."
+    )
     PIKA_SUPPORTED = False
 
 _logger_top_name = "antares_bot"
