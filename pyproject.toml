@@ -1,5 +1,92 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antares_bot"
+dynamic = ["version"]
+description = "A Telegram bot framework wrapping many things."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-telegram-bot[job-queue] @ git+https://github.com/Antares0982/python-telegram-bot@v21.3",
+    "aiosqlite",
+    "objgraph",
+]
+authors = [
+    { name = "Antares", email = "antares@alyr.dev" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = [
+    "python",
+    "telegram",
+    "bot",
+    "api",
+    "wrapper",
+]
+
+[tool.setuptools]
+py-modules = ["antares_bot"]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/Antares0982/telegram-bot-template/issues"
+"Source Code" = "https://github.com/Antares0982/telegram-bot-template"
+
+[project.scripts]
+antares_bot = "antares_bot.__main__:main"
+
+[project.optional-dependencies]
+pika = [
+    "aio-pika"
+]
+
+[tool.setuptools_scm]
+
 [tool.autopep8]
 max-line-length = 160
 
 [tool.pylint]
 disable = ["C", "R", "W0603", "W0613", "W0718"]
+
+[project.entry-points."setuptools_scm.files_command"]
+".git" = "setuptools_scm._file_finders.git:git_find_files"
+".hg" = "setuptools_scm._file_finders.hg:hg_find_files"
+[project.entry-points."setuptools_scm.files_command_fallback"]
+".git_archival.txt" = "setuptools_scm._file_finders.git:git_archive_find_files"
+".hg_archival.txt" = "setuptools_scm._file_finders.hg:hg_archive_find_files"
+[project.entry-points."setuptools_scm.local_scheme"]
+dirty-tag = "setuptools_scm.version:get_local_dirty_tag"
+no-local-version = "setuptools_scm.version:get_no_local_node"
+node-and-date = "setuptools_scm.version:get_local_node_and_date"
+node-and-timestamp = "setuptools_scm.version:get_local_node_and_timestamp"
+[project.entry-points."setuptools_scm.parse_scm"]
+".git" = "setuptools_scm.git:parse"
+".hg" = "setuptools_scm.hg:parse"
+[project.entry-points."setuptools_scm.parse_scm_fallback"]
+".git_archival.txt" = "setuptools_scm.git:parse_archival"
+".hg_archival.txt" = "setuptools_scm.hg:parse_archival"
+PKG-INFO = "setuptools_scm.fallbacks:parse_pkginfo"
+"pyproject.toml" = "setuptools_scm.fallbacks:fallback_version"
+"setup.py" = "setuptools_scm.fallbacks:fallback_version"
+[project.entry-points."setuptools_scm.version_scheme"]
+"calver-by-date" = "setuptools_scm.version:calver_by_date"
+"guess-next-dev" = "setuptools_scm.version:guess_next_dev_version"
+"no-guess-dev" = "setuptools_scm.version:no_guess_dev_version"
+"only-version" = "setuptools_scm.version:only_version"
+"post-release" = "setuptools_scm.version:postrelease_version"
+"python-simplified-semver" = "setuptools_scm.version:simplified_semver_version"
+"release-branch-semver" = "setuptools_scm.version:release_branch_semver_version"
