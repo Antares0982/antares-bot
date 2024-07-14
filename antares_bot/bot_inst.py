@@ -27,7 +27,7 @@ from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
 from antares_bot.sqlite.manager import DataBasesManager
 from antares_bot.text_process import trim_spaces_before_line
-from antares_bot.utils import markdown_escape, read_user_cfg, systemd_service_info
+from antares_bot.utils import SYSTEM_TIME_ZONE, markdown_escape, read_user_cfg, systemd_service_info
 
 
 if TYPE_CHECKING:
@@ -59,11 +59,11 @@ def format_traceback(err: Exception) -> str:
 async def _leaked_permission_exception_handler(err: Exception):
     try:
         if isinstance(err, UserPermissionException):
-            await get_bot_instance().reply("你没有权限哦")
+            await get_bot_instance().reply(Lang.t(Lang.NO_PERMISSION))
         elif isinstance(err, InvalidChatTypeException):
-            await get_bot_instance().reply("不能在这里使用哦")
+            await get_bot_instance().reply(Lang.t(Lang.INVALID_CHAT_TYPE))
     except Exception:
-        pass
+        _LOGGER.error(format_traceback(err))
 
 
 async def exception_handler(update: Any, context: RichCallbackContext):
@@ -164,7 +164,7 @@ class TelegramBot(TelegramBotBase):
         if self._custom_post_stop_task is not None:
             await self._custom_post_stop_task
             self._custom_post_stop_task = None
-        task_send_exit_msg = self.send_to(self.get_master_id(), "主人再见QAQ")
+        task_send_exit_msg = self.send_to(self.get_master_id(), Lang.t(Lang.SHUTDOWN_GOODBYTE))
         await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         time1 = time.time()
         _LOGGER.warning("Post stop time: %.3fs", time1 - time0)
@@ -257,13 +257,13 @@ class TelegramBot(TelegramBotBase):
 
         self.application.add_error_handler(exception_handler)
 
-        self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0), name="daily_job")
+        self.job_queue.run_daily(self._daily_job, time=datetime.time(hour=0, minute=0, tzinfo=SYSTEM_TIME_ZONE), name="daily_job")
 
         signal.signal(signal.SIGINT, self.signal_stop)
         signal.signal(signal.SIGTERM, self.signal_stop)
         signal.signal(signal.SIGABRT, self.signal_stop)
 
-        # use eager factory
+        # use eager factory for python 3.12+
         if sys.version_info >= (3, 12):
             asyncio.get_event_loop().set_task_factory(asyncio.eager_task_factory)
 
@@ -368,16 +368,16 @@ class TelegramBot(TelegramBotBase):
             self.debug_info("debug off")
             root_logger.setLevel(self._old_log_level)
             self._old_log_level = None
-            await self.reply("已关闭debug模式")
+            await self.reply(Lang.t(Lang.DEBUG_MODE_OFF))
         else:
             self._old_log_level = old_level
             root_logger.setLevel(LOGLEVEL_DEBUG)
             self.debug_info("debug on")
-            await self.reply("已开启debug模式")
+            await self.reply(Lang.t(Lang.DEBUG_MODE_ON))
 
     async def _internal_exec(self, command: str):
         if not command:
-            await self.error_info("没有接收到命令诶")
+            await self.error_info(Lang.t(Lang.NO_EXEC_COMMAND))
             return
         codes = command.split("\n")
         try:
@@ -386,9 +386,9 @@ class TelegramBot(TelegramBotBase):
             exec(code_string)  # pylint: disable=exec-used
             ans = await locals()["__t"]()
         except Exception:
-            asyncio.get_running_loop().create_task(self.reply("执行失败……"))
+            asyncio.get_running_loop().create_task(self.reply(Lang.t(Lang.EXEC_FAILED)))
             raise
-        await self.reply(f"执行成功，返回值：{ans}")
+        await self.reply(Lang.t(Lang.EXEC_SUCCEEDED).format(ans))
 
     @command_callback_wrapper
     async def exec(self, update: Update, context: RichCallbackContext):
@@ -404,7 +404,7 @@ class TelegramBot(TelegramBotBase):
             try:
                 reply_to = update.message.reply_to_message.text.strip()  # type: ignore
             except AttributeError:
-                await self.error_info("没有接收到命令诶")
+                await self.error_info(Lang.t(Lang.NO_EXEC_COMMAND))
                 return
             await self._internal_exec(reply_to)
             return
@@ -450,36 +450,36 @@ class TelegramBot(TelegramBotBase):
                 if forward_origin.type == forward_origin.CHANNEL:
                     forward_origin_channel = cast(MessageOriginChannel, forward_origin)
                     return await self.reply(
-                        f"转发消息的来源频道id：`{forward_origin_channel.chat.id}`",
+                        Lang.t(Lang.FORWARD_MESSAGE_FROM_CHANNEL).format(forward_origin_channel.chat.id),
                         parse_mode="MarkdownV2"
                     )
                 elif forward_origin.type == forward_origin.CHAT:
                     forward_origin_chat = cast(MessageOriginChat, forward_origin)
                     return await self.reply(
-                        f"转发消息的来源群id：`{forward_origin_chat.sender_chat.id}`",
+                        Lang.t(Lang.FORWARD_MESSAGE_FROM_GROUP).format(forward_origin_chat.sender_chat.id),
                         parse_mode="MarkdownV2"
                     )
                 elif forward_origin.type == forward_origin.USER:
                     forward_origin_user = cast(MessageOriginUser, forward_origin)
                     return await self.reply(
-                        f"转发消息的来源用户id：`{forward_origin_user.sender_user.id}`",
+                        Lang.t(Lang.FORWARD_MESSAGE_FROM_USER).format(forward_origin_user.sender_user.id),
                         parse_mode="MarkdownV2"
                     )
                 elif forward_origin.type == forward_origin.HIDDEN_USER:
-                    return await self.reply("转发消息的来源用户已隐藏")
+                    return await self.reply(Lang.t(Lang.FORWARD_FROM_HIDDEN_USER))
         if context.is_group_chat() and update.message is not None and update.message.reply_to_message is not None and update.message.reply_to_message.from_user is not None:
             return await self.reply(
-                f"群id：`{context.chat_id}`\n回复的消息的用户id：`{update.message.reply_to_message.from_user.id}`",
+                f"{Lang.t(Lang.GROUP_ID).format(context.chat_id)}\n{Lang.t(Lang.REPLY_MESSAGE_USER_ID).format(update.message.reply_to_message.from_user.id)}",
                 parse_mode="MarkdownV2"
             )
         elif context.is_group_chat():
             return await self.reply(
-                f"群id：`{context.chat_id}`\n您的id：`{context.user_id}`",
+                f"{Lang.t(Lang.GROUP_ID).format(context.chat_id)}\n{Lang.t(Lang.USER_ID).format(context.user_id)}",
                 parse_mode="MarkdownV2"
             )
         else:
             return await self.reply(
-                f"您的id：\n`{context.user_id}`",
+                Lang.t(Lang.USER_ID).format(context.user_id),
                 parse_mode="MarkdownV2"
             )
 
@@ -531,7 +531,7 @@ class TelegramBot(TelegramBotBase):
                 return await self.error_info("No command list available")
         doc = self.handler_docs.get(command)
         if doc is None:
-            return await self.error_info(f"没有找到命令：{command}")
+            return await self.error_info(Lang.t(Lang.NO_SUCH_COMMAND).format(command))
         doc = self._match_helpdoc_line0_command_list_format(command, doc, is_extract=False)
         if doc is not None:
             doc = trim_spaces_before_line(doc)
