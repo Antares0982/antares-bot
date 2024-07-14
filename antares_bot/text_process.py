@@ -926,18 +926,9 @@ class MarkdownParser:
         return self.texts, self.entities
 
     def fix_entities_offset(self):
-        for text, entities in zip(self.texts, self.entities):
-            cur_index = 0
-            accumulated_len = 0
-            for i, entity in enumerate(entities):
-                cur_text = text[cur_index:entity.offset]
-                accumulated_len += len(cur_text.encode('utf-16-le'))
-                cur_off = accumulated_len // 2
-                cur_text = text[entity.offset:entity.offset + entity.length]
-                accumulated_len += len(cur_text.encode('utf-16-le'))
-                cur_len = accumulated_len // 2 - cur_off
-                entities[i] = MessageEntity(offset=cur_off, length=cur_len, type=entity.type, language=entity.language)
-                cur_index = entity.offset + entity.length
+        for i, (text, entities) in enumerate(zip(self.texts, self.entities)):
+            new_entities = MessageEntity.adjust_message_entities_to_utf_16(text, entities)
+            self.entities[i] = new_entities
 
     @classmethod
     def force_split_up_text_object(cls, text_object: TextObject) -> list[TextObject]:
