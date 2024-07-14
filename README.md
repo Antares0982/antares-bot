@@ -115,7 +115,7 @@ Custom commands:
   ```python
   /exec import objgraph
   return list(map(lambda x:x.misfire_grace_time, objgraph.by_type("Job")))
-  # 执行成功，返回值：[60, 60]
+  # Execution succeeded, return value: [60, 60]
   ```
 
 * `restart`, `stop` restart/stop the bot (master only). If `AntaresBotConfig.SYSTEMD_SERVICE_NAME` is configured, `/restart` will try to call `systemctl restart` for you. If `AntaresBotConfig.PULL_WHEN_STOP` is configured, these two commands will perform `git pull`.
