@@ -9,7 +9,7 @@ description = "A Telegram bot framework wrapping many things."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "antares-ptb[job-queue]==v21.3",
+    "antares-ptb[job-queue]==v21.4",
     "aiosqlite",
     "objgraph",
 ]
@@ -43,8 +43,8 @@ keywords = [
 packages = ["antares_bot"]
 
 [project.urls]
-"Bug Tracker" = "https://github.com/Antares0982/telegram-bot-template/issues"
-"Source Code" = "https://github.com/Antares0982/telegram-bot-template"
+"Bug Tracker" = "https://github.com/Antares0982/antares-bot/issues"
+"Source Code" = "https://github.com/Antares0982/antares-bot"
 
 [project.scripts]
 antares_bot = "antares_bot.__main__:main"
