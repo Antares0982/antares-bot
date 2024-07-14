@@ -4,7 +4,16 @@ import sys
 
 
 _BLANK_CFG = \
-    """class BasicConfig:
+    """\"\"\"Naming convention: as long as the config item can be retrieved like:
+```
+bot_cfg.<SectionName>.<ITEM_NAME>
+```
+it is valid. For example: `bot_cfg.BasicConfig.TOKEN`
+The `BasicConfig` and `AntaresBotConfig` are required.
+\"\"\"
+
+
+class BasicConfig:
     \"\"\"
     Basic sample config.
     TOKEN and MASTER_ID must be provided.
@@ -41,7 +50,7 @@ class AntaresBotConfig:
 
 def _hook_cfg():
     try:
-        import bot_cfg as cfg
+        import bot_cfg as cfg  # type: ignore
     except ImportError:
         print(
             "./bot_cfg.py not found or cannot be imported, I will try to create one for you.",
@@ -121,24 +130,23 @@ def init_pika(force_update: bool = False):
 
 
 def read_user_cfg(cfg_class, section: str):
-    import bot_cfg
+    import bot_cfg  # type: ignore
     class_name = cfg_class.__name__
-    if not hasattr(bot_cfg, class_name):
-        return None
-    cfg = getattr(bot_cfg, class_name)
-    return getattr(cfg, section, None)
+    cfg = getattr(bot_cfg, class_name, None)
+    return None if cfg is None else getattr(cfg, section, None)
 
 
 def create_blank_cfg():
-    if os.path.exists("bot_cfg.py"):
+    try:
+        with open("bot_cfg.py", "x", encoding="utf-8", opener=lambda x, y: os.open(x, y, 0o600)) as f:
+            f.write(_BLANK_CFG)
+    except FileExistsError:
         print(
             "bot_cfg.py already exists but cannot be imported, skipping creation.\n"
             "Please remove/modify it before running.",
             file=sys.stderr
         )
         return
-    with open("bot_cfg.py", "w", encoding="utf-8") as f:
-        f.write(_BLANK_CFG)
     print(
         "bot_cfg.py created successfully."
         " Please fill in the required fields."
