@@ -9,7 +9,7 @@ description = "A Telegram bot framework wrapping many things."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "python-telegram-bot[job-queue] @ git+https://github.com/Antares0982/python-telegram-bot@v21.3",
+    "antares-ptb[job-queue]==v21.3",
     "aiosqlite",
     "objgraph",
 ]
