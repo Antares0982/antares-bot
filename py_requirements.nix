@@ -14,5 +14,9 @@ pkgs: pypkgs: with pypkgs;
   }))
   aiosqlite
   objgraph
-  aio-pika # optional
+  # deps for job-queue
+  apscheduler
+  pytz
+  # optional
+  aio-pika
 ]

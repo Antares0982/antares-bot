@@ -60,7 +60,7 @@ pika = [
 max-line-length = 160
 
 [tool.pylint]
-disable = ["C", "R", "W0603", "W0613", "W0718"]
+disable = ["C", "R", "W0401", "W0603", "W0613", "W0718"]
 
 [project.entry-points."setuptools_scm.files_command"]
 ".git" = "setuptools_scm._file_finders.git:git_find_files"
