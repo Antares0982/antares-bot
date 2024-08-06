@@ -388,7 +388,7 @@ class TelegramBot(TelegramBotBase):
         except Exception:
             asyncio.get_running_loop().create_task(self.reply(Lang.t(Lang.EXEC_FAILED)))
             raise
-        await self.reply(Lang.t(Lang.EXEC_SUCCEEDED).format(ans))
+        await self.reply(Lang.t(Lang.EXEC_SUCCEEDED).format(ans), parse_mode="MarkdownV2")
 
     @command_callback_wrapper
     async def exec(self, update: Update, context: RichCallbackContext):

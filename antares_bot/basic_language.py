@@ -44,8 +44,8 @@ class BasicLanguage:
         "en": "Execution failed...",
     }
     EXEC_SUCCEEDED = {
-        "zh-CN": "执行成功，返回值：{}",
-        "en": "Execution succeeded, return value: {}",
+        "zh-CN": "执行成功，返回值：\n```\n{}\n```",
+        "en": "Execution succeeded, return value:\n```\n{}\n```",
     }
     NO_EXEC_COMMAND = {
         "zh-CN": "没有接收到命令诶",
