@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, cast
 
 import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -13,7 +13,7 @@ from antares_bot.init_hooks import read_user_cfg
 if TYPE_CHECKING:
     import logging
 
-SYSTEM_TIME_ZONE = datetime.datetime.now().astimezone().tzinfo
+SYSTEM_TIME_ZONE = cast(datetime.tzinfo, datetime.datetime.now().astimezone().tzinfo)
 
 
 class ObjectDict(dict):

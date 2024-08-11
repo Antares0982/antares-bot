@@ -107,6 +107,8 @@ class TelegramBot(TelegramBotBase):
             user_data=self.UserDataType,
             bot_data=self.BotDataType  # type: ignore
         )
+        from telegram.ext import Defaults
+        defaults = Defaults(tzinfo=SYSTEM_TIME_ZONE)
         self.application = cast(
             "Application[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
             Application.builder()
@@ -116,6 +118,7 @@ class TelegramBot(TelegramBotBase):
             .job_queue(JobQueueEx())
             .post_init(self._do_post_init)
             .post_stop(self._do_post_stop)
+            .defaults(defaults)
             .build()
         )
         self.bot = self.application.bot

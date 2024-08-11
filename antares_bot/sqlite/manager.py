@@ -138,6 +138,9 @@ class Database(object):
         self._last_command_and_args: tuple[str, Any] | None = None
 
     async def connect(self) -> None:
+        """
+        Must be called once at init.
+        """
         await self.close()
         self.conn = await aiosqlite.connect(self.db_path)
         self.conn.row_factory = aiosqlite.Row
@@ -145,6 +148,10 @@ class Database(object):
         await self.update_table_info()
 
     async def close(self) -> None:
+        """
+        Call this to close the database.
+        It will be called automatically when shutdown, so you do not need to call it manually.
+        """
         DataBasesManager.get_inst().remove_database(self.db_path)
         if self.conn is not None:
             try:
