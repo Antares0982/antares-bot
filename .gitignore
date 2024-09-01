@@ -1,3 +1,5 @@
+/.envrc
+/main.py
 .nix-pyenv/
 pika_interface.py
 test.py

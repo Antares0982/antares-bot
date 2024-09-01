@@ -1,4 +1,4 @@
-antares-ptb[job-queue]==21.4
+antares-ptb[job-queue]==21.5
 aiosqlite
 objgraph
 aio-pika
