@@ -33,8 +33,8 @@ class SustainedChannel:
         await self.conn.close()
 
 
-class GlobalLoggerOptions:
-    INST: "GlobalLoggerOptions | None" = None
+class GlobalLoggerInstance:
+    INST: "GlobalLoggerInstance | None" = None
 
     def __init__(self, logger_top_name: str):
         self.logger_top_name = logger_top_name
@@ -49,7 +49,7 @@ class GlobalLoggerOptions:
         self._root_logger = logger
 
 
-class PikaGlobalLoggerOptions(GlobalLoggerOptions):
+class PikaGlobalLoggerInstance(GlobalLoggerInstance):
     def __init__(self, logger_top_name: str):
         super().__init__(logger_top_name)
         self.pika_enabled = True
@@ -120,7 +120,7 @@ class PikaHandler(Handler):
             try:
                 msg = self.format(record)
                 key = record.name
-                pika_global_opt = cast(PikaGlobalLoggerOptions, GlobalLoggerOptions.INST)
+                pika_global_opt = cast(PikaGlobalLoggerInstance, GlobalLoggerInstance.INST)
                 logger_top_name = pika_global_opt.logger_top_name
                 if not key.startswith(logger_top_name):
                     key = logger_top_name + "." + key
@@ -193,7 +193,7 @@ def _check_enable_pika() -> bool:
 
 
 def _is_pika_logger_running():
-    return GlobalLoggerOptions.INST is not None
+    return GlobalLoggerInstance.INST is not None
 
 
 def _log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
@@ -201,8 +201,8 @@ def _log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
     The main entrance of creating logger.
     """
     # global __logger_inited, __root_logger, _logger_top_name
-    if GlobalLoggerOptions.INST is not None:
-        return GlobalLoggerOptions.INST.root_logger
+    if GlobalLoggerInstance.INST is not None:
+        return GlobalLoggerInstance.INST.root_logger
     if logger_top_name is None:
         logger_top_name = "antares_bot"
 
@@ -212,17 +212,17 @@ def _log_start(logger_top_name: Optional[str] = None) -> logging.Logger:
     # if PIKA_LOGGER_ENABLED is specified to `True` or `False`, skip runtime checking
 
     if pika_enabled:
-        logger_options_inst: GlobalLoggerOptions = PikaGlobalLoggerOptions(logger_top_name)
+        logger_options_inst: GlobalLoggerInstance = PikaGlobalLoggerInstance(logger_top_name)
     else:
-        logger_options_inst = GlobalLoggerOptions(logger_top_name)
-    GlobalLoggerOptions.INST = logger_options_inst
+        logger_options_inst = GlobalLoggerInstance(logger_top_name)
+    GlobalLoggerInstance.INST = logger_options_inst
 
     root_logger = logging.getLogger(logger_top_name)
     logger_options_inst.set_root_logger(root_logger)
 
     if pika_enabled:
         handler = PikaHandler()
-        cast(PikaGlobalLoggerOptions, logger_options_inst).set_pika_handler(handler)
+        cast(PikaGlobalLoggerInstance, logger_options_inst).set_pika_handler(handler)
         root_logger.addHandler(handler)
         # add handler to telegram internal logger
         logging.getLogger("telegram").addHandler(handler)
@@ -235,9 +235,9 @@ def get_logger(module_name: str):
     strip_prefix = "modules."
     if module_name.startswith(strip_prefix):
         module_name = module_name[len(strip_prefix):]
-    if GlobalLoggerOptions.INST is None:
+    if GlobalLoggerInstance.INST is None:
         raise RuntimeError("logger not inited")
-    logger_top_name = GlobalLoggerOptions.INST.logger_top_name
+    logger_top_name = GlobalLoggerInstance.INST.logger_top_name
     name = logger_top_name + "." + module_name
     logger = logging.getLogger(name)
     return logger
@@ -249,7 +249,7 @@ def add_pika_log_handler(logger: str | logging.Logger) -> bool:
     One should only add pika handler to the logger after the logger is initialized.
     The handler will take effect for the logger and all its children.
     """
-    inst = GlobalLoggerOptions.INST
+    inst = GlobalLoggerInstance.INST
     if not inst:
         raise RuntimeError("logger not inited")
     if not inst.pika_enabled:
@@ -257,24 +257,24 @@ def add_pika_log_handler(logger: str | logging.Logger) -> bool:
         return False
     if isinstance(logger, str):
         logger = logging.getLogger(logger)
-    handler = cast(PikaGlobalLoggerOptions, inst).pika_handler
+    handler = cast(PikaGlobalLoggerInstance, inst).pika_handler
     logger.addHandler(handler)
     return True
 
 
 def get_root_logger():
-    if GlobalLoggerOptions.INST is None:
+    if GlobalLoggerInstance.INST is None:
         raise RuntimeError("root logger not inited")
-    return GlobalLoggerOptions.INST.root_logger
+    return GlobalLoggerInstance.INST.root_logger
 
 
 def stop_logger():
-    if GlobalLoggerOptions.INST is None:
+    if GlobalLoggerInstance.INST is None:
         return
-    inst = GlobalLoggerOptions.INST
-    GlobalLoggerOptions.INST = None
+    inst = GlobalLoggerInstance.INST
+    GlobalLoggerInstance.INST = None
     if inst.pika_enabled:
-        inst_pika = cast(PikaGlobalLoggerOptions, inst)
+        inst_pika = cast(PikaGlobalLoggerInstance, inst)
         for loop, chan in inst_pika.running_channels.items():
             try:
                 loop.create_task(chan.close())
