@@ -334,14 +334,23 @@ class TelegramBot(TelegramBotBase):
                 # cannot use logger here, the logger is stopped
                 print(f"Failed to restart the bot with command: {restart_command}", file=sys.stderr)
                 raise
+            self._exit_fast = True
 
         if self._normal_exit_flag:
             print("Stopped gracefully.")
+            if self._exit_fast:
+                print("Exiting immediately since exit_fast flag is set.")
+                sys.stdout.close()
+                sys.stderr.close()
+                exit(0)
             # shutdown the stdout and stderr since the aiormq will still be printing rabbish
             sys.stdout.close()
             sys.stderr.close()
         else:
             print("Stopped unexpectedly.", file=sys.stderr)
+            if self._exit_fast:
+                print("Exiting immediately with error code 1 since exit_fast flag is set.")
+                exit(1)
 
     def true_stop(self, *args, **kwargs):
         self._normal_exit_flag = True
