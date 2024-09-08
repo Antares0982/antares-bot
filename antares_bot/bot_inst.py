@@ -7,7 +7,20 @@ import sys
 import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from telegram import MessageOriginChannel, MessageOriginChat, MessageOriginUser, Update
 from telegram.error import Conflict, NetworkError, RetryAfter, TimedOut
@@ -20,15 +33,23 @@ from antares_bot.bot_logging import get_logger, get_root_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
 from antares_bot.context import ChatData, RichCallbackContext, UserData
 from antares_bot.context_manager import ContextHelper, ContextReverseHelper, get_context
-from antares_bot.error import InvalidChatTypeException, UserPermissionException, permission_exceptions
+from antares_bot.error import (
+    InvalidChatTypeException,
+    UserPermissionException,
+    permission_exceptions,
+)
 from antares_bot.framework import CallbackBase, command_callback_wrapper
 from antares_bot.module_loader import ModuleKeeper
 from antares_bot.patching.job_quque_ex import JobQueueEx
 from antares_bot.permission_check import CheckLevel
 from antares_bot.sqlite.manager import DataBasesManager
 from antares_bot.text_process import trim_spaces_before_line
-from antares_bot.utils import SYSTEM_TIME_ZONE, markdown_escape, read_user_cfg, systemd_service_info
-
+from antares_bot.utils import (
+    SYSTEM_TIME_ZONE,
+    markdown_escape,
+    read_user_cfg,
+    systemd_service_info,
+)
 
 if TYPE_CHECKING:
     from telegram.ext import ExtBot
@@ -110,7 +131,7 @@ class TelegramBot(TelegramBotBase):
         from telegram.ext import Defaults
         defaults = Defaults(tzinfo=SYSTEM_TIME_ZONE)
         self.application = cast(
-            "Application[ExtBot[None], self.ContextType, self.UserDataType, self.ChatDataType, self.BotDataType, JobQueueEx]",
+            "Application[ExtBot[None], RichCallbackContext, UserData, ChatData, dict, JobQueueEx]",
             Application.builder()
             # .application_class(ApplicationEx)
             .token(read_user_cfg(BasicConfig, "TOKEN"))
@@ -163,6 +184,7 @@ class TelegramBot(TelegramBotBase):
         await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP))
 
     async def _do_post_stop(self, app: Application):
+        _LOGGER.warning("Started post stop...")
         time0 = time.time()
         if self._custom_post_stop_task is not None:
             await self._custom_post_stop_task
@@ -172,8 +194,6 @@ class TelegramBot(TelegramBotBase):
         time1 = time.time()
         _LOGGER.warning("Post stop time: %.3fs", time1 - time0)
         task_stop_db = DataBasesManager.get_inst().shutdown()
-        time2 = time.time()
-        _LOGGER.warning("Shutdown db time: %.3fs", time2 - time1)
         # pull the repo if _post_stop_gitpull_flag is set.
         # if exit_fast (SIGTERM, SIGABRT), do not pull
         additional_tasks = []
@@ -188,9 +208,12 @@ class TelegramBot(TelegramBotBase):
                     additional_tasks.append(self.send_to(self.get_master_id(), msg))
             except Exception:
                 additional_tasks.append(self.send_to(self.get_master_id(), "git pull failed!"))
-        task_stop_logger = stop_logger()
         # wait for all tasks to finish
-        await asyncio.gather(task_send_exit_msg, task_stop_db, task_stop_logger, *additional_tasks)
+        time0 = time.time()
+        await asyncio.gather(task_send_exit_msg, task_stop_db, *additional_tasks)
+        time1 = time.time()
+        _LOGGER.warning("Finalize time: %.3fs", time1 - time0)
+        stop_logger()
 
     def custom_post_init(self, task: Awaitable):
         self._custom_post_init_task = task
@@ -329,9 +352,14 @@ class TelegramBot(TelegramBotBase):
         if _PROGRAM_SHUTDOWN_STARTED:
             return
         _PROGRAM_SHUTDOWN_STARTED = True
+        _LOGGER.warning("Application received stop signal %s. Shutting down.", signal.Signals(sig).name)
         if sig == signal.SIGTERM or sig == signal.SIGABRT:
             self._exit_fast = True
         self.true_stop()
+
+    @property
+    def exit_fast(self):
+        return self._exit_fast
 
     @command_callback_wrapper
     async def stop(self, u, c):
@@ -384,7 +412,7 @@ class TelegramBot(TelegramBotBase):
             return
         codes = command.split("\n")
         try:
-            code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {l}' for l in codes)
+            code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {line}' for line in codes)
             _LOGGER.warning("executing: %s", code_string)
             exec(code_string)  # pylint: disable=exec-used
             ans = await locals()["__t"]()

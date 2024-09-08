@@ -1,7 +1,6 @@
 /.envrc
 /main.py
 .nix-pyenv/
-pika_interface.py
 test.py
 bot_cfg.py
 .vscode/

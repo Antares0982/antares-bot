@@ -32,12 +32,20 @@ class AntaresBotConfig:
     For more details, refers to bot_default_cfg.py.
     \"\"\"
     PULL_WHEN_STOP = True  # enable pulling when bot stops
+    # PIKA_LOGGER_ENABLED = False  # enable pika logger
+    # PIKA_CONFIG = {
+    #     "host" : "example.com",
+    #     "virtualhost" : "/",
+    #     "port" : 5671,
+    #     "ssl" : True,
+    #     "login" : "login",
+    #     "password" : "password",
+    # }
     # JOB_QUEUE_CONFIG = {
     #     "job_defaults" : {
     #         "misfire_grace_time": 30  # default is 60
     #     }
     # }
-    # SKIP_PIKA_SETUP = True
     # SKIP_LOAD_ALL_INTERNAL_MODULES = True
     # SKIP_LOAD_ALL_MODULES = True
     # SKIP_LOAD_INTERNAL_MODULE_{module_name_upper_case} = True
@@ -93,40 +101,6 @@ def _hook_cfg():
                             )
                             exit(1)
                         setattr(config_class, attr, getattr(default_config_class, attr))
-
-
-def init_pika(force_update: bool = False):
-    # for better check
-    gh_username = 'Antares0982'
-    gh_repo = 'PikaInterface'
-    gh_file = 'pika_interface.py'
-    if not force_update and os.path.exists(gh_file):
-        print(f"{gh_file} already exists, skipping download")
-        return
-    if force_update:
-        print(f"Force updating {gh_file}")
-    else:
-        # read stdin to ensure the user is aware of the download
-        read_input = input(
-            "This operation will download the latest version of"
-            f"{gh_file} from GitHub (Please note that using pika for logging also requires installing aio-pika, e.g. `pip install aio-pika`).\n"
-            f"You may want to check the source code here: https://github.com/{gh_username}/{gh_repo}/blob/main/{gh_file}.\n"
-            "Do you want to continue? (y/N)"
-        )
-        if not read_input.lower().strip().startswith('y'):
-            print("Download skipped. If you want to skip this step forever, set SKIP_PIKA_SETUP in AntaresBotConfig to True.")
-            # make sure the user is aware of this message
-            import time
-            time.sleep(2)
-            return
-    import subprocess
-    command = f'curl -O https://raw.githubusercontent.com/{gh_username}/{gh_repo}/main/{gh_file}'
-    print(command)
-    code = subprocess.call(command, shell=True)
-    if code != 0:
-        print(f"failed to download {gh_file}", file=sys.stderr)
-        return
-    print(f"{gh_file} downloaded successfully.")
 
 
 def read_user_cfg(cfg_class, section: str):
