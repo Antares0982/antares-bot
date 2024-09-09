@@ -359,7 +359,8 @@ class TelegramBot(TelegramBotBase):
     def signal_stop(self, sig, *args, **kwargs):
         global _PROGRAM_SHUTDOWN_STARTED
         if _PROGRAM_SHUTDOWN_STARTED:
-            return
+            print("Shutdown requested repeatedly, exit now!")
+            exit(0 if self._normal_exit_flag else 1)
         _PROGRAM_SHUTDOWN_STARTED = True
         _LOGGER.warning("Application received stop signal %s. Shutting down.", signal.Signals(sig).name)
         if sig == signal.SIGTERM or sig == signal.SIGABRT:
