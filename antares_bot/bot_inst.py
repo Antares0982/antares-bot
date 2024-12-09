@@ -199,6 +199,7 @@ class TelegramBot(TelegramBotBase):
         additional_tasks = []
         if self._post_stop_gitpull_flag and not self._exit_fast:
             # create a subprocess to git pull
+            msg = None
             try:
                 msg = str(subprocess.check_output(
                     ["git", "pull", "--ff-only"],
@@ -207,6 +208,7 @@ class TelegramBot(TelegramBotBase):
                 if msg and "Already up to date." not in msg and "not a git repository" not in msg:
                     additional_tasks.append(self.send_to(self.get_master_id(), msg))
             except Exception:
+                _LOGGER.error("Error when running pull when post stop: %s", str(msg))
                 additional_tasks.append(self.send_to(self.get_master_id(), "git pull failed!"))
         # wait for all tasks to finish
         time0 = time.time()
