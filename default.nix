@@ -1,8 +1,6 @@
 {
   fetchFromGitHub,
-  python3Packages,
   buildPythonPackage,
-  buildPythonApplication,
   pythonOlder,
   builder ? buildPythonPackage,
   aiosqlite,
