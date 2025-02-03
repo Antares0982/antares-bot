@@ -1,16 +1,17 @@
 {
-  setuptools,
+  fetchFromGitHub,
+  python3Packages,
   pythonOlder,
-  python-telegram-bot,
+  builder ? python3Packages.buildPythonPackage,
   aiosqlite,
-  objgraph,
-  apscheduler,
-  pytz,
   aio-pika,
-  pkgs,
+  apscheduler,
   hatchling,
+  objgraph,
+  python-telegram-bot,
+  pytz,
+  setuptools,
   setuptools-scm,
-  builder,
   ...
 }:
 builder {
@@ -26,7 +27,7 @@ builder {
 
   dependencies = [
     (python-telegram-bot.overrideAttrs (super: {
-      src = pkgs.fetchFromGitHub {
+      src = fetchFromGitHub {
         # antares-ptb
         owner = "Antares0982";
         repo = "python-telegram-bot";

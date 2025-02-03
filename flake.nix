@@ -27,16 +27,26 @@
           );
     in
     {
-      apps = forAllSystems (pkgs: rec {
-        default = pkgs.callPackage ./. (
-          pkgs.python3Packages // { builder = pkgs.python3Packages.buildPythonApplication; }
-        );
-      });
-      packages = forAllSystems (pkgs: rec {
-        default = pkgs.callPackage ./. (
-          pkgs.python3Packages // { builder = pkgs.python3Packages.buildPythonPackage; }
-        );
-      });
+      apps = forAllSystems (
+        pkgs:
+        let
+          python3Packages = pkgs.python3Packages;
+        in
+        {
+          default = python3Packages.callPackage ./. {
+            builder = python3Packages.buildPythonApplication;
+          };
+        }
+      );
+      packages = forAllSystems (
+        pkgs:
+        let
+          python3Packages = pkgs.python3Packages;
+        in
+        {
+          default = python3Packages.callPackage ./. { };
+        }
+      );
       modules.default = import ./.;
     };
 }
