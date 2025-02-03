@@ -1,8 +1,10 @@
 {
   fetchFromGitHub,
   python3Packages,
+  buildPythonPackage,
+  buildPythonApplication,
   pythonOlder,
-  builder ? python3Packages.buildPythonPackage,
+  builder ? buildPythonPackage,
   aiosqlite,
   aio-pika,
   apscheduler,
