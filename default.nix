@@ -11,9 +11,10 @@
   buildPythonPackage,
   hatchling,
   setuptools-scm,
+  buildPythonApplication,
   ...
 }:
-buildPythonPackage {
+buildPythonApplication {
   pname = "antares-bot";
   version = "0.1.0";
   src = ./.;
@@ -35,7 +36,7 @@ buildPythonPackage {
       };
       doCheck = false;
       doInstallCheck = false;
-      propagatedBuildInputs = super.propagatedBuildInputs ++ (with pkgs; [ hatchling ]);
+      propagatedBuildInputs = super.propagatedBuildInputs ++ [ hatchling ];
     }))
     aiosqlite
     objgraph

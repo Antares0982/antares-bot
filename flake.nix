@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "AntaresBot Nix Flake";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -28,7 +28,7 @@
     in
     {
       packages = forAllSystems (pkgs: rec {
-        default = pkgs.python3.pkgs.callPackage ./. { };
+        default = pkgs.callPackage ./. pkgs.python3Packages;
       });
     };
 }
