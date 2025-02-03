@@ -8,13 +8,12 @@
   pytz,
   aio-pika,
   pkgs,
-  buildPythonPackage,
   hatchling,
   setuptools-scm,
-  buildPythonApplication,
+  builder,
   ...
 }:
-buildPythonApplication {
+builder {
   pname = "antares-bot";
   version = "0.1.0";
   src = ./.;

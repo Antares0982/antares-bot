@@ -27,8 +27,15 @@
           );
     in
     {
+      apps = forAllSystems (pkgs: rec {
+        default = pkgs.callPackage ./. (
+          pkgs.python3Packages // { builder = pkgs.python3Packages.buildPythonApplication; }
+        );
+      });
       packages = forAllSystems (pkgs: rec {
-        default = pkgs.callPackage ./. pkgs.python3Packages;
+        default = pkgs.callPackage ./. (
+          pkgs.python3Packages // { builder = pkgs.python3Packages.buildPythonPackage; }
+        );
       });
     };
 }
