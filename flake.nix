@@ -37,5 +37,6 @@
           pkgs.python3Packages // { builder = pkgs.python3Packages.buildPythonPackage; }
         );
       });
+      modules.default = import ./.;
     };
 }
