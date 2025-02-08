@@ -71,6 +71,7 @@ MASTER_ID = BasicConfig.MASTER_ID
 async def _t__():
     self = get_bot_instance()
 """
+_IS_PY313 = sys.version_info >= (3, 13)
 
 
 def format_traceback(exc, value, tb) -> str:
@@ -430,8 +431,13 @@ class TelegramBot(TelegramBotBase):
         try:
             code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {line}' for line in codes)
             _LOGGER.warning("executing: %s", code_string)
-            exec(code_string)  # pylint: disable=exec-used
-            ans = await locals()["_t__"]()
+            if _IS_PY313:
+                tmp_locals: dict[str, Any] = {}
+                exec(code_string, locals=tmp_locals)  # pylint: disable=exec-used
+                ans = await tmp_locals["_t__"]()
+            else:
+                exec(code_string)  # pylint: disable=exec-used
+                ans = await locals()["_t__"]()
         except Exception:
             asyncio.get_running_loop().create_task(self.reply(Lang.t(Lang.EXEC_FAILED)))
             raise
