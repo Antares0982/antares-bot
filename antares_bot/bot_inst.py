@@ -68,13 +68,13 @@ _INTERNAL_TEST_EXEC_COMMAND_PREFIX = """\
 from antares_bot.test_commands import *
 from bot_cfg import BasicConfig
 MASTER_ID = BasicConfig.MASTER_ID
-async def __t():
+async def _t__():
     self = get_bot_instance()
 """
 
 
-def format_traceback(err: Exception) -> str:
-    return '\n'.join(traceback.format_tb(err.__traceback__))
+def format_traceback(exc, value, tb) -> str:
+    return '\n'.join(traceback.format_exception(exc, value, tb))
 
 
 async def _leaked_permission_exception_handler(err: Exception):
@@ -84,7 +84,7 @@ async def _leaked_permission_exception_handler(err: Exception):
         elif isinstance(err, InvalidChatTypeException):
             await get_bot_instance().reply(Lang.t(Lang.INVALID_CHAT_TYPE))
     except Exception:
-        _LOGGER.error(format_traceback(err))
+        _LOGGER.error(format_traceback(type(err), err, err.__traceback__))
 
 
 async def exception_handler(update: Any, context: RichCallbackContext):
@@ -102,14 +102,14 @@ async def exception_handler(update: Any, context: RichCallbackContext):
             with ContextHelper(context):
                 await _leaked_permission_exception_handler(err)
             return
-        tb = format_traceback(err)
+        tb = format_traceback(type(err), err, err.__traceback__)
         log_text = f"{err.__class__}\n{err}\ntraceback:\n{tb}"
         _LOGGER.error(log_text)
         text = Lang.t(Lang.UNKNOWN_ERROR) + f"\n{err.__class__}: {err}"
         await get_bot_instance().send_to(TelegramBot.get_master_id(), text)
     except Exception as _e:
         try:
-            _LOGGER.error(format_traceback(_e))
+            _LOGGER.error(format_traceback(type(_e), _e, _e.__traceback__))
         except Exception:
             pass
 
@@ -161,6 +161,10 @@ class TelegramBot(TelegramBotBase):
         self._normal_exit_flag = False
         self.handler_docs: dict[str, str] = {}
         self._exit_fast = False
+        _patch_traceback = read_user_cfg(AntaresBotConfig, "PATCH_TRACEBACK")
+        if _patch_traceback:
+            from antares_bot.format_exc import format_exception_with_local_vars
+            traceback.format_exception = format_exception_with_local_vars
         # some pre-checks
         if self._is_debug_level():
             _LOGGER.debug("Warning: the initial logging level is DEBUG. The built-in /debug_mode command will not work.")
@@ -427,7 +431,7 @@ class TelegramBot(TelegramBotBase):
             code_string = _INTERNAL_TEST_EXEC_COMMAND_PREFIX + ''.join(f'\n    {line}' for line in codes)
             _LOGGER.warning("executing: %s", code_string)
             exec(code_string)  # pylint: disable=exec-used
-            ans = await locals()["__t"]()
+            ans = await locals()["_t__"]()
         except Exception:
             asyncio.get_running_loop().create_task(self.reply(Lang.t(Lang.EXEC_FAILED)))
             raise

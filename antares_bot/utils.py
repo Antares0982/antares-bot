@@ -9,7 +9,6 @@ from telegram.constants import ChatType
 from antares_bot.bot_default_cfg import AntaresBotConfig
 from antares_bot.init_hooks import read_user_cfg
 
-
 if TYPE_CHECKING:
     import logging
 
@@ -136,7 +135,7 @@ async def exception_manual_handle(logger: "logging.Logger", e: Exception):
     except Exception as _e:
         try:
             from antares_bot.bot_inst import format_traceback
-            logger.error("when manually handling exception, another exception raised: %s", format_traceback(_e))
+            logger.error("when manually handling exception, another exception raised: %s", format_traceback(type(_e), _e, _e.__traceback__))
         except Exception:
             pass
         return

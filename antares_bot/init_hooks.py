@@ -53,6 +53,7 @@ class AntaresBotConfig:
     # OBJGRAPH_TRACE_AT_START = True
     # SYSTEMD_SERVICE_NAME = "antares_bot.service"
     # IGNORE_IMPORT_MODULE_ERROR = True
+    # PATCH_TRACEBACK = True
 """
 
 
