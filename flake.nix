@@ -48,5 +48,14 @@
         }
       );
       modules.default = import ./.;
+      devShells = forAllSystems (
+        pkgs:
+        let
+          python3Packages = pkgs.python3Packages;
+        in
+        {
+          default = pkgs.callPackage ./shell.nix { };
+        }
+      );
     };
 }

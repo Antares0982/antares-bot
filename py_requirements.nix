@@ -1,5 +1,5 @@
-pkgs: pypkgs: with pypkgs;
-[
+{ pkgs, ... }:
+pypkgs: with pypkgs; [
   (python-telegram-bot.overrideAttrs (super: {
     # src = pkgs.fetchPypi {
     #   version = "v21.6";
@@ -15,7 +15,7 @@ pkgs: pypkgs: with pypkgs;
     };
     doCheck = false;
     doInstallCheck = false;
-    propagatedBuildInputs = super.propagatedBuildInputs ++ (with pypkgs;[ hatchling ]);
+    propagatedBuildInputs = super.propagatedBuildInputs ++ (with pypkgs; [ hatchling ]);
   }))
   aiosqlite
   objgraph
