@@ -868,7 +868,7 @@ class MarkdownParser:
             for i, sub_text in enumerate(splitted):
                 if i % 2 == 0:
                     if len(split_config) == 1:
-                        self.enqueue(TextObject(text=text, entity_type=None))
+                        self.enqueue(TextObject(text=sub_text, entity_type=None))
                     else:
                         self.push_text(sub_text, split_config[1:])
                 else:
