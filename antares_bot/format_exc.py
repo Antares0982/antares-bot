@@ -6,7 +6,7 @@ from typing import Any
 
 from telegram.ext import Application, ExtBot
 
-_sentinel = getattr(traceback, "_sentinel")
+_sentinel = getattr(traceback, "_sentinel", None)
 _parse_value_tb = getattr(traceback, "_parse_value_tb")
 _pattern = re.compile(r"^([\s]*)File")
 
@@ -19,10 +19,10 @@ def _matcher(text: str) -> int:
         return -1
 
 
-def _short_format(val):
+def _short_format(val: Any):
     if isinstance(val, (Application, ExtBot)):
         # these may leak secrets, don't print them
-        return f"<{val.__class__.__name__} object>"
+        return "<object data hidden>"
     rep = str(val)
     if len(rep) > 256:
         suffix = "...<Too long to show>"
@@ -38,17 +38,29 @@ class _TracebackExceptionWithLocalVars(TracebackException):
         for val in super().format(chain=chain, _ctx=_ctx):
             yield val
             space_count = _matcher(val)
-            if tb is not None and tb is not _sentinel and space_count >= 0:
+            if tb is not None and frame is not None and tb is not _sentinel and space_count >= 0:
                 prefix = ' ' * (space_count + 2)
                 prefix2 = ' ' * (space_count + 4)
                 cur_locals = frame.f_locals
                 if len(cur_locals) > 0:
                     yield f"{prefix}Local variables:"
                     for k, v in cur_locals.items():
-                        yield f"{prefix2}{k} = {_short_format(v)}"
+                        yield prefix2 + self._get_local_value(k, v)
                     yield "\n"
                 tb = tb.tb_next
                 frame = tb.tb_frame if tb is not None else None
+
+    @classmethod
+    def _get_local_value(cls, key: str, value: Any):
+        try:
+            type_str = type(value).__name__
+        except Exception:
+            type_str = "error to get type"
+        try:
+            value_str = _short_format(value)
+        except Exception:
+            value_str = "error to get value"
+        return f"{key} = <{type_str}> {value_str}"
 
 
 def format_exception_with_local_vars(exc, /, value=_sentinel, tb=_sentinel, limit=None, chain=True):
