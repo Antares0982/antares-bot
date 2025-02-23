@@ -6,13 +6,7 @@ pypkgs: with pypkgs; [
     #   pname = "antares-ptb";
     #   hash = "";
     # };
-    src = pkgs.fetchFromGitHub {
-      # antares-ptb
-      owner = "Antares0982";
-      repo = "python-telegram-bot";
-      rev = "v21.10";
-      sha256 = "sha256-RwOroSWXB3TF4mzTOOrAo+j0Abuq9LmATXSuGaO8j6U=";
-    };
+    src = pkgs.fetchFromGitHub (import ./ptb-version.nix);
     doCheck = false;
     doInstallCheck = false;
     propagatedBuildInputs = super.propagatedBuildInputs ++ (with pypkgs; [ hatchling ]);
