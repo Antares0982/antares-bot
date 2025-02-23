@@ -27,7 +27,7 @@ builder {
 
   dependencies = [
     (python-telegram-bot.overrideAttrs (super: {
-      src = fetchFromGitHub (import ./ptb-version.nix);
+      src = fetchFromGitHub (import ./ptb-src.nix);
       doCheck = false;
       doInstallCheck = false;
       propagatedBuildInputs = super.propagatedBuildInputs ++ [ hatchling ];
