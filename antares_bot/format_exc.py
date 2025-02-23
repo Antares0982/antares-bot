@@ -34,6 +34,8 @@ def _short_format(val: Any):
 
 class _TracebackExceptionWithLocalVars(TracebackException):
     def format(self, *, tb: TracebackType | Any = _sentinel, chain=True, _ctx=None):
+        if tb is _sentinel:
+            return
         frame = tb.tb_frame
         for val in super().format(chain=chain, _ctx=_ctx):
             yield val

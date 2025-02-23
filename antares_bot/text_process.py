@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable
 
 from telegram import MessageEntity
 from telegram.constants import MessageEntityType
-
 
 MARKDOWN_SUPPORTED_LANGUAGES = {
     ".ignore",
@@ -625,7 +624,7 @@ MARKDOWN_SUPPORTED_LANGUAGES = {
 
 MARKDOWN_SUPPORTED_LANGUAGES = set(map(lambda x: x.lower(), MARKDOWN_SUPPORTED_LANGUAGES))
 
-TEXT_LENGTH_LIMIT = 4096
+TEXT_LENGTH_LIMIT = 4000
 
 
 def find_special_sequences(text: str):
@@ -679,10 +678,10 @@ def find_special_sequences(text: str):
     return results
 
 
-def force_longtext_split(txt: List[str]) -> List[str]:
+def force_longtext_split(txt: list[str]) -> list[str]:
     counting = 0
     i = 0
-    ans: List[str] = []
+    ans: list[str] = []
     sep_len = 0
     while i < len(txt):
         if counting + len(txt[i]) < TEXT_LENGTH_LIMIT - sep_len:
@@ -709,11 +708,11 @@ def force_longtext_split(txt: List[str]) -> List[str]:
     return ans
 
 
-def longtext_split(txt: str) -> List[str]:
+def longtext_split(txt: str) -> list[str]:
     if len(txt) < TEXT_LENGTH_LIMIT:
         return [txt]
     txts = txt.split("\n")
-    ans: List[str] = []
+    ans: list[str] = []
     # search for ``` of markdown block
     dotsss_start = -1
     dotsss_end = -1
