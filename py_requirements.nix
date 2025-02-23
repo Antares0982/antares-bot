@@ -10,8 +10,8 @@ pypkgs: with pypkgs; [
       # antares-ptb
       owner = "Antares0982";
       repo = "python-telegram-bot";
-      rev = "v21.7";
-      sha256 = "sha256-PMoJ3cSgLscUtiPf5JuxBM7exlqg7GTEX53KOUMaPeE=";
+      rev = "v21.10";
+      sha256 = "sha256-RwOroSWXB3TF4mzTOOrAo+j0Abuq9LmATXSuGaO8j6U=";
     };
     doCheck = false;
     doInstallCheck = false;
