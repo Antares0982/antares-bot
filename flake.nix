@@ -45,17 +45,15 @@
         in
         {
           default = python3Packages.callPackage ./. { };
+          ptb = python3Packages.python-telegram-bot.overrideAttrs {
+            src = pkgs.fetchFromGitHub (import ./ptb-src.nix);
+            doInstallCheck = false;
+          };
         }
       );
       modules.default = import ./.;
-      devShells = forAllSystems (
-        pkgs:
-        let
-          python3Packages = pkgs.python3Packages;
-        in
-        {
-          default = pkgs.callPackage ./shell.nix { };
-        }
-      );
+      devShells = forAllSystems (pkgs: {
+        default = pkgs.callPackage ./shell.nix { persist = true; };
+      });
     };
 }
