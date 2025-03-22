@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 from logging import DEBUG as LOGLEVEL_DEBUG
@@ -187,7 +188,7 @@ class TelegramBot(TelegramBotBase):
             try:
                 _LOGGER.critical("Error when running post init: %s", str(e))
                 _LOGGER.critical(format_traceback(type(e), e, e.__traceback__))
-                time.sleep(3)
+                await asyncio.sleep(3)
                 self.signal_stop(signal.SIGABRT)
             except Exception:
                 sys.exit(-1)
@@ -380,6 +381,7 @@ class TelegramBot(TelegramBotBase):
 
     def true_stop(self, *args, **kwargs):
         self._normal_exit_flag = True
+        self._guard_stop()
         self.application.stop_running()
 
     def signal_stop(self, sig, *args, **kwargs):
@@ -392,6 +394,28 @@ class TelegramBot(TelegramBotBase):
         if sig == signal.SIGTERM or sig == signal.SIGABRT:
             self._exit_fast = True
         self.true_stop()
+
+    @staticmethod
+    def _guard_stop():
+        pid = os.getpid()
+        start_time = int(subprocess.check_output("awk '{print $22}' " + f"/proc/{pid}/stat", shell=True, encoding="utf-8"))
+        sub_pid = os.fork()
+        if sub_pid == 0:
+            execute_shell = """
+            sleep 10
+            start_time=$(awk '{print $22}' /proc/%s/stat 2>/dev/null)
+            if [ -n "$start_time" ] && [ $start_time -eq %s ]; then
+                echo "process still running, kill with SIGKILL"
+                kill -KILL %s
+            fi
+            echo "removing tempfile %s"
+            rm "%s"
+            """
+            os.setsid()
+            fd, name = tempfile.mkstemp()
+            os.write(fd, (execute_shell % (pid, start_time, pid, name, name)).encode())
+            os.close(fd)
+            os.execvp("bash", ["bash", name])
 
     @property
     def exit_fast(self):
