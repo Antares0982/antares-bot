@@ -25,7 +25,7 @@
               }
             )
           );
-    in
+    in rec
     {
       apps = forAllSystems (
         pkgs:
@@ -55,5 +55,6 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.callPackage ./shell.nix { persist = true; };
       });
+      checks = packages;
     };
 }
