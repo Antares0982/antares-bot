@@ -181,7 +181,16 @@ class TelegramBot(TelegramBotBase):
             tasks.append(self._custom_post_init_task)
             self._custom_post_init_task = None
         tasks.append(self.send_init_hello())
-        await asyncio.gather(*tasks)
+        try:
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            try:
+                _LOGGER.error("Error when running post init: %s", str(e))
+                _LOGGER.error(format_traceback(type(e), e, e.__traceback__))
+                self.signal_stop(signal.SIGINT)
+            except Exception:
+                sys.exit(-1)
+            return
         time1 = time.time()
         _LOGGER.warning("Post init time: %.3fs", time1 - time0)
 
@@ -195,7 +204,15 @@ class TelegramBot(TelegramBotBase):
             await self._custom_post_stop_task
             self._custom_post_stop_task = None
         task_send_exit_msg = self.send_to(self.get_master_id(), Lang.t(Lang.SHUTDOWN_GOODBYTE))
-        await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
+        try:
+            await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
+        except Exception as e:
+            try:
+                _LOGGER.error("Error when running post stop: %s", str(e))
+                _LOGGER.error(format_traceback(type(e), e, e.__traceback__))
+            except Exception:
+                pass
+            sys.exit(-1)
         time1 = time.time()
         _LOGGER.warning("Post stop time: %.3fs", time1 - time0)
         task_stop_db = DataBasesManager.get_inst().shutdown()
