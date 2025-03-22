@@ -185,9 +185,10 @@ class TelegramBot(TelegramBotBase):
             await asyncio.gather(*tasks)
         except Exception as e:
             try:
-                _LOGGER.error("Error when running post init: %s", str(e))
-                _LOGGER.error(format_traceback(type(e), e, e.__traceback__))
-                self.signal_stop(signal.SIGINT)
+                _LOGGER.critical("Error when running post init: %s", str(e))
+                _LOGGER.critical(format_traceback(type(e), e, e.__traceback__))
+                time.sleep(3)
+                self.signal_stop(signal.SIGABRT)
             except Exception:
                 sys.exit(-1)
             return
@@ -208,8 +209,9 @@ class TelegramBot(TelegramBotBase):
             await asyncio.gather(*(module.do_stop() for module in self._module_keeper.get_all_enabled_modules()))
         except Exception as e:
             try:
-                _LOGGER.error("Error when running post stop: %s", str(e))
-                _LOGGER.error(format_traceback(type(e), e, e.__traceback__))
+                _LOGGER.critical("Error when running post stop: %s", str(e))
+                _LOGGER.critical(format_traceback(type(e), e, e.__traceback__))
+                time.sleep(3)
             except Exception:
                 pass
             sys.exit(-1)
@@ -366,7 +368,7 @@ class TelegramBot(TelegramBotBase):
                 print("Exiting immediately since exit_fast flag is set.")
                 sys.stdout.close()
                 sys.stderr.close()
-                exit(0)
+                sys.exit(0)
             # shutdown the stdout and stderr since the aiormq will still be printing rabbish
             sys.stdout.close()
             sys.stderr.close()
@@ -374,7 +376,7 @@ class TelegramBot(TelegramBotBase):
             print("Stopped unexpectedly.", file=sys.stderr)
             if self._exit_fast:
                 print("Exiting immediately with error code 1 since exit_fast flag is set.")
-                exit(1)
+                sys.exit(1)
 
     def true_stop(self, *args, **kwargs):
         self._normal_exit_flag = True
@@ -384,7 +386,7 @@ class TelegramBot(TelegramBotBase):
         global _PROGRAM_SHUTDOWN_STARTED
         if _PROGRAM_SHUTDOWN_STARTED:
             print("Shutdown requested repeatedly, exit now!")
-            exit(0 if self._normal_exit_flag else 1)
+            sys.exit(0 if self._normal_exit_flag else 1)
         _PROGRAM_SHUTDOWN_STARTED = True
         _LOGGER.warning("Application received stop signal %s. Shutting down.", signal.Signals(sig).name)
         if sig == signal.SIGTERM or sig == signal.SIGABRT:
