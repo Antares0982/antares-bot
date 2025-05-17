@@ -1,10 +1,17 @@
 from typing import Any, Generator, Literal, Optional, Sequence, Union
 
-from telegram import Document, Message, MessageEntity, PhotoSize
+from telegram import (
+    Document,
+    LinkPreviewOptions,
+    Message,
+    MessageEntity,
+    PhotoSize,
+    ReplyParameters,
+)
+from telegram._message import _ReplyKwargs
 from telegram._utils.defaultvalue import DEFAULT_NONE
 from telegram._utils.types import DVInput, FileInput, JSONDict, ODVInput, ReplyMarkup
 from telegram.ext._utils.types import RLARGS
-
 
 class TelegramBotBaseWrapper(object):
     @classmethod
@@ -14,23 +21,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Literal[True]:
-        ...
-
+    ) -> Literal[True]: ...
     @classmethod
     async def error_info(
         cls,
@@ -38,23 +48,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Literal[False]:
-        ...
-
+    ) -> Literal[False]: ...
     @classmethod
     async def reply_to(
         cls,
@@ -62,23 +75,25 @@ class TelegramBotBaseWrapper(object):
         text: str,
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
+        entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        message_thread_id: Optional[int] = None,
-        quote: Optional[bool] = None,
+        message_thread_id: ODVInput[int] = DEFAULT_NONE,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
+        disable_web_page_preview: Optional[bool] = None,
+        do_quote: Optional[Union[bool, _ReplyKwargs]] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-    ) -> int:
-        ...
-
+    ) -> int: ...
     @classmethod
     async def reply_to_v2(
         cls,
@@ -86,23 +101,25 @@ class TelegramBotBaseWrapper(object):
         text: str,
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
+        entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        message_thread_id: Optional[int] = None,
-        quote: Optional[bool] = None,
+        message_thread_id: ODVInput[int] = DEFAULT_NONE,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
+        disable_web_page_preview: Optional[bool] = None,
+        do_quote: Optional[Union[bool, _ReplyKwargs]] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-    ) -> list[int]:
-        ...
-
+    ) -> list[int]: ...
     @classmethod
     async def reply_to_v3(
         cls,
@@ -110,23 +127,25 @@ class TelegramBotBaseWrapper(object):
         text: str,
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
+        entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        message_thread_id: Optional[int] = None,
-        quote: Optional[bool] = None,
+        message_thread_id: ODVInput[int] = DEFAULT_NONE,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
+        disable_web_page_preview: Optional[bool] = None,
+        do_quote: Optional[Union[bool, _ReplyKwargs]] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-    ) -> Message:
-        ...
-
+    ) -> Message: ...
     @classmethod
     async def reply_to_v4(
         cls,
@@ -134,23 +153,25 @@ class TelegramBotBaseWrapper(object):
         text: str,
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
+        entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        message_thread_id: Optional[int] = None,
-        quote: Optional[bool] = None,
+        message_thread_id: ODVInput[int] = DEFAULT_NONE,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
+        disable_web_page_preview: Optional[bool] = None,
+        do_quote: Optional[Union[bool, _ReplyKwargs]] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-    ) -> list[Message]:
-        ...
-
+    ) -> list[Message]: ...
     @classmethod
     async def _reply_to(
         cls,
@@ -158,23 +179,25 @@ class TelegramBotBaseWrapper(object):
         text: str,
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
+        entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        message_thread_id: Optional[int] = None,
-        quote: Optional[bool] = None,
+        message_thread_id: ODVInput[int] = DEFAULT_NONE,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
+        disable_web_page_preview: Optional[bool] = None,
+        do_quote: Optional[Union[bool, _ReplyKwargs]] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-    ) -> Generator[Message, Any, None]:
-        ...
-
+    ) -> Generator[Message, Any, None]: ...
     @classmethod
     async def reply(
         cls,
@@ -182,23 +205,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> int:
-        ...
-
+    ) -> int: ...
     @classmethod
     async def reply_v2(
         cls,
@@ -206,23 +232,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> list[int]:
-        ...
-
+    ) -> list[int]: ...
     @classmethod
     async def reply_v3(
         cls,
@@ -230,23 +259,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Message:
-        ...
-
+    ) -> Message: ...
     @classmethod
     async def reply_v4(
         cls,
@@ -254,23 +286,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> list[Message]:
-        ...
-
+    ) -> list[Message]: ...
     @classmethod
     async def _reply(
         cls,
@@ -278,23 +313,26 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
+        entities: Optional[Sequence["MessageEntity"]] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Generator[Message, Any, None]:
-        ...
-
+    ) -> Generator[Message, Any, None]: ...
     @classmethod
     async def send_to(
         cls,
@@ -303,22 +341,25 @@ class TelegramBotBaseWrapper(object):
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> int:
-        ...
-
+    ) -> int: ...
     @classmethod
     async def send_to_v2(
         cls,
@@ -327,22 +368,25 @@ class TelegramBotBaseWrapper(object):
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> list[int]:
-        ...
-
+    ) -> list[int]: ...
     @classmethod
     async def send_to_v3(
         cls,
@@ -351,22 +395,25 @@ class TelegramBotBaseWrapper(object):
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Message:
-        ...
-
+    ) -> Message: ...
     @classmethod
     async def send_to_v4(
         cls,
@@ -375,22 +422,25 @@ class TelegramBotBaseWrapper(object):
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> list[Message]:
-        ...
-
+    ) -> list[Message]: ...
     @classmethod
     async def _send_to(
         cls,
@@ -399,23 +449,26 @@ class TelegramBotBaseWrapper(object):
         *,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         entities: Optional[Sequence[MessageEntity]] = None,
-        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         message_thread_id: Optional[int] = None,
+        link_preview_options: ODVInput["LinkPreviewOptions"] = DEFAULT_NONE,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
         write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Generator[Message, Any, None]:
-        ...
+    ) -> Generator[Message, Any, None]: ...
     ##############################
-
     @classmethod
     async def send_photo(
         cls,
@@ -423,25 +476,28 @@ class TelegramBotBaseWrapper(object):
         photo: Union[FileInput, PhotoSize],
         *,
         caption: Optional[str] = None,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
         message_thread_id: Optional[int] = None,
         has_spoiler: Optional[bool] = None,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        show_caption_above_media: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         filename: Optional[str] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
-        write_timeout: ODVInput[float] = 20,
+        write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-        rate_limit_args: Optional[RLARGS] = None
-    ) -> Message:
-        ...
-
+        rate_limit_args: Optional[RLARGS] = None,
+    ) -> Message: ...
     @classmethod
     async def reply_photo(
         cls,
@@ -449,25 +505,28 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         caption: Optional[str] = None,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
         message_thread_id: Optional[int] = None,
         has_spoiler: Optional[bool] = None,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        show_caption_above_media: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         filename: Optional[str] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
-        write_timeout: ODVInput[float] = 20,
+        write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
-        rate_limit_args: Optional[RLARGS] = None
-    ) -> Message:
-        ...
-
+        rate_limit_args: Optional[RLARGS] = None,
+    ) -> Message: ...
     @classmethod
     async def send_document(
         cls,
@@ -475,26 +534,28 @@ class TelegramBotBaseWrapper(object):
         document: Union[FileInput, Document],
         *,
         caption: Optional[str] = None,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         disable_content_type_detection: Optional[bool] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
         message_thread_id: Optional[int] = None,
         thumbnail: Optional[FileInput] = None,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         filename: Optional[str] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
-        write_timeout: ODVInput[float] = 20,
+        write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Message:
-        ...
-
+    ) -> Message: ...
     @classmethod
     async def reply_document(
         cls,
@@ -502,22 +563,25 @@ class TelegramBotBaseWrapper(object):
         *,
         chat_id: Union[int, str, None] = None,
         caption: Optional[str] = None,
-        disable_notification: DVInput[bool] = DEFAULT_NONE,
-        reply_to_message_id: Optional[int] = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: Optional[ReplyMarkup] = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         disable_content_type_detection: Optional[bool] = None,
-        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Optional[Sequence["MessageEntity"]] = None,
         protect_content: ODVInput[bool] = DEFAULT_NONE,
         message_thread_id: Optional[int] = None,
         thumbnail: Optional[FileInput] = None,
+        reply_parameters: Optional["ReplyParameters"] = None,
+        business_connection_id: Optional[str] = None,
+        message_effect_id: Optional[str] = None,
+        allow_paid_broadcast: Optional[bool] = None,
+        reply_to_message_id: Optional[int] = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         filename: Optional[str] = None,
         read_timeout: ODVInput[float] = DEFAULT_NONE,
-        write_timeout: ODVInput[float] = 20,
+        write_timeout: ODVInput[float] = DEFAULT_NONE,
         connect_timeout: ODVInput[float] = DEFAULT_NONE,
         pool_timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: Optional[JSONDict] = None,
         rate_limit_args: Optional[RLARGS] = None,
-    ) -> Message:
-        ...
+    ) -> Message: ...
