@@ -2,6 +2,6 @@
   # antares-ptb
   owner = "Antares0982";
   repo = "python-telegram-bot";
-  rev = "v22.2";
-  sha256 = "sha256-GL62HWbMqA8nIeNg/I9aJx7a4G3VS5F1PYgnZtqtPRs=";
+  rev = "v22.3";
+  sha256 = "sha256-zVAcl+3KfLgXQ7FcGVHgg2FZ4P7uewDKL47Jzy3gXKI=";
 }
