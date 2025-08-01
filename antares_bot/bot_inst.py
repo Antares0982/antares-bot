@@ -331,6 +331,10 @@ class TelegramBot(TelegramBotBase):
             # we don't care about that when normal exit
             if not self._normal_exit_flag:
                 raise
+        except Exception:
+            print("Fatal error occured, exiting!")
+            traceback.print_exc()
+            sys.exit(1)
 
         # post run
         self._post_run()
