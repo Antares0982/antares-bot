@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import os
 import tempfile
 from io import StringIO
@@ -11,7 +12,6 @@ from antares_bot.framework import command_callback_wrapper
 from antares_bot.module_base import TelegramBotModuleBase
 from antares_bot.permission_check import CheckLevel
 from antares_bot.utils import read_user_cfg
-
 
 if TYPE_CHECKING:
     from telegram import Update
@@ -32,6 +32,7 @@ class ObjGraph(TelegramBotModuleBase):
 
         async def _f(context: "RichCallbackContext"):
             await self.send_to(self.get_master_id(), ss)
+
         self.job_queue.run_once(_f, 10)
 
     def mark_handlers(self) -> List[Union["CallbackBase", "BaseHandler"]]:
@@ -64,11 +65,27 @@ class ObjGraph(TelegramBotModuleBase):
             return
         loop = asyncio.get_running_loop()
         loop.create_task(self.reply(f"found {len(objs)} objects in memory"))
+        if len(objs) > 10:
+            objs = objs[:10]
+        await asyncio.sleep(0.5)  # let the message send first
         file_name = os.path.join(temp_dir, "backrefs.svg")
-        objgraph.show_backrefs(objs, max_depth=5, filename=file_name)
-        del objs
+        await self._do_backrefs(loop, objs, file_name)
         await self.reply_document(file_name)
         os.remove(file_name)
+
+    async def _do_backrefs(
+        self, loop: asyncio.AbstractEventLoop, objs: list, file_name: str
+    ):
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                await loop.run_in_executor(
+                    pool,
+                    lambda: objgraph.show_backrefs(
+                        objs, max_depth=5, filename=file_name
+                    ),
+                )
+        finally:
+            del objs[:]
 
     @command_callback_wrapper
     async def tracemalloc(self, update: "Update", context: "RichCallbackContext"):
@@ -76,17 +93,18 @@ class ObjGraph(TelegramBotModuleBase):
         assert context.args is not None
         is_stop = len(context.args) > 0 and context.args[0] == "stop"
         import tracemalloc
+
         if is_stop:
             tracemalloc.stop()
             await self.reply("tracemalloc stopped")
             return
         if tracemalloc.is_tracing():
             snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.statistics('lineno')
+            top_stats = snapshot.statistics("lineno")
             loop = asyncio.get_running_loop()
             loop.create_task(self.reply(f"There is {len(top_stats)} tracemalloc stats"))
             top_stats = top_stats[:200]
-            stats_str = '\n'.join(str(stat) for stat in top_stats)
+            stats_str = "\n".join(str(stat) for stat in top_stats)
             await self.reply(stats_str)
             return
         else:
