@@ -14,7 +14,6 @@
           [
             "x86_64-linux"
             "aarch64-linux"
-            "x86_64-darwin"
             "aarch64-darwin"
           ]
           (
@@ -25,19 +24,8 @@
               }
             )
           );
-    in rec
-    {
-      apps = forAllSystems (
-        pkgs:
-        let
-          python3Packages = pkgs.python3Packages;
-        in
-        {
-          default = python3Packages.callPackage ./. {
-            builder = python3Packages.buildPythonApplication;
-          };
-        }
-      );
+    in
+    rec {
       packages = forAllSystems (
         pkgs:
         let
@@ -53,7 +41,7 @@
       );
       modules.default = import ./.;
       devShells = forAllSystems (pkgs: {
-        default = pkgs.callPackage ./shell.nix { persist = true; };
+        default = pkgs.callPackage ./shell.nix { };
       });
       checks = packages;
     };

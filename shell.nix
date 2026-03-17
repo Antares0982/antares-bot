@@ -1,7 +1,6 @@
 {
   pkgs ? import <nixpkgs> { },
   lib ? pkgs.lib,
-  persist ? false,
   mkShell ? pkgs.mkShell,
   callPackage ? pkgs.callPackage,
 }:
@@ -21,26 +20,18 @@ let
       nix-pyenv-directory
       pyenv
       usingPython
-      persist
       pkgs
       ;
   };
-  internalShell = mkShell (
-    {
-      packages = [ pyenv ];
-    }
-    // (optionalAttrs (!persist) {
-      shellHook = callPackage ./shellhook.nix callShellHookParam;
-    })
-  );
+  internalShell = mkShell ({
+    packages = [ pyenv ];
+  });
 in
-internalShell.overrideAttrs (
-  optionalAttrs persist {
-    shellHook = callPackage ./shellhook.nix (
-      callShellHookParam
-      // {
-        inherit (internalShell) inputDerivation;
-      }
-    );
-  }
-)
+internalShell.overrideAttrs {
+  shellHook = callPackage ./shellhook.nix (
+    callShellHookParam
+    // {
+      inherit (internalShell) inputDerivation;
+    }
+  );
+}

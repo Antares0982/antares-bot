@@ -1,6 +1,6 @@
 /.envrc
 /main.py
-.nix-pyenv/
+/.nix-pyenv
 test.py
 bot_cfg.py
 .vscode/
