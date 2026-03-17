@@ -10,7 +10,7 @@ let
   # define the nix-pyenv directory
   nix-pyenv-directory = ".nix-pyenv";
   # define version
-  usingPython = pkgs.python313;
+  usingPython = pkgs.python314;
   # import required python packages
   requiredPythonPackages = callPackage ./py_requirements.nix { };
   # create python environment

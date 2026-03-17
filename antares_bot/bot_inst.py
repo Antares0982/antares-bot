@@ -193,6 +193,9 @@ class TelegramBot(TelegramBotBase):
         return self.bot.bot.id
 
     async def _do_post_init(self, app: Application):
+        # use eager factory for python 3.12+
+        if sys.version_info >= (3, 12):
+            asyncio.get_running_loop().set_task_factory(asyncio.eager_task_factory)
         time0 = time.time()
         tasks: list[Awaitable] = [
             module.post_init(app)
@@ -355,10 +358,6 @@ class TelegramBot(TelegramBotBase):
         signal.signal(signal.SIGINT, self.signal_stop)
         signal.signal(signal.SIGTERM, self.signal_stop)
         signal.signal(signal.SIGABRT, self.signal_stop)
-
-        # use eager factory for python 3.12+
-        if sys.version_info >= (3, 12):
-            asyncio.get_event_loop().set_task_factory(asyncio.eager_task_factory)
 
         try:
             self.application.run_polling(
