@@ -19,9 +19,13 @@ class BasicLanguage:
         "zh-CN": "、",
         "en": ", ",
     }
-    STARTUP = {
-        "zh-CN": "Bot启动！",
-        "en": "Bot is live!",
+    STARTUP_PENDING = {
+        "zh-CN": "Bot 启动中……",
+        "en": "Bot is starting up...",
+    }
+    STARTUP_COMPLETE = {
+        "zh-CN": "Bot 启动完成！",
+        "en": "Bot startup complete!",
     }
     UNKNOWN_ERROR = {
         "zh-CN": "哎呀，出现了未知的错误呢……",

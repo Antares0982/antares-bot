@@ -181,15 +181,26 @@ class TelegramBot(TelegramBotBase):
         # use eager factory for python 3.12+
         if sys.version_info >= (3, 12):
             asyncio.get_running_loop().set_task_factory(asyncio.eager_task_factory)
+
+        await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP_PENDING))
+
         time0 = time.time()
+        module_timings: dict[str, float] = {}
+
+        async def timed_post_init(module_desc):
+            t0 = time.time()
+            await module_desc.post_init(app)
+            t1 = time.time()
+            module_timings[module_desc.top_name] = t1 - t0
+
         tasks: list[Awaitable] = [
-            module.post_init(app)
+            timed_post_init(module)
             for module in self._module_keeper.get_all_enabled_modules()
         ]
         if self._custom_post_init_task is not None:
             tasks.append(self._custom_post_init_task)
             self._custom_post_init_task = None
-        tasks.append(self.send_init_hello())
+
         try:
             await asyncio.gather(*tasks)
         except Exception as e:
@@ -201,11 +212,20 @@ class TelegramBot(TelegramBotBase):
             except Exception:
                 sys.exit(-1)
             return
-        time1 = time.time()
-        _LOGGER.warning("Post init time: %.3fs", time1 - time0)
 
-    async def send_init_hello(self) -> None:
-        await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP))
+        time1 = time.time()
+
+        await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP_COMPLETE))
+        total_time = time1 - time0
+        timing_lines = "\n".join(
+            f"  {name}: {elapsed:.3f}s"
+            for name, elapsed in sorted(
+                module_timings.items(), key=lambda x: x[1], reverse=True
+            )
+        )
+        _LOGGER.warning(
+            "Post init time (total: %.3fs):\n%s", total_time, timing_lines
+        )
 
     async def _do_post_stop(self, app: Application):
         _LOGGER.warning("Started post stop...")
@@ -216,10 +236,18 @@ class TelegramBot(TelegramBotBase):
         task_send_exit_msg = self.send_to(
             self.get_master_id(), Lang.t(Lang.SHUTDOWN_GOODBYTE)
         )
+        module_timings: dict[str, float] = {}
+
+        async def timed_do_stop(module_desc):
+            t0 = time.time()
+            await module_desc.do_stop()
+            t1 = time.time()
+            module_timings[module_desc.top_name] = t1 - t0
+
         try:
             await asyncio.gather(
                 *(
-                    module.do_stop()
+                    timed_do_stop(module)
                     for module in self._module_keeper.get_all_enabled_modules()
                 )
             )
@@ -232,7 +260,16 @@ class TelegramBot(TelegramBotBase):
                 pass
             sys.exit(-1)
         time1 = time.time()
-        _LOGGER.warning("Post stop time: %.3fs", time1 - time0)
+        total_time = time1 - time0
+        timing_lines = "\n".join(
+            f"  {name}: {elapsed:.3f}s"
+            for name, elapsed in sorted(
+                module_timings.items(), key=lambda x: x[1], reverse=True
+            )
+        )
+        _LOGGER.warning(
+            "Post stop time (total: %.3fs):\n%s", total_time, timing_lines
+        )
         task_stop_db = DataBasesManager.get_inst().shutdown()
         # pull the repo if _post_stop_gitpull_flag is set.
         # if exit_fast (SIGTERM, SIGABRT), do not pull
