@@ -525,7 +525,7 @@ class TelegramBot(TelegramBotBase):
             """
             os.setsid()
             fd, name = tempfile.mkstemp()
-            os.write(fd, (execute_shell % (pid, start_time, pid, name, name)).encode())
+            os.write(fd, (execute_shell % (pid, start_time, pid, name)).encode())
             os.close(fd)
             os.execvp("bash", ["bash", name])
 
