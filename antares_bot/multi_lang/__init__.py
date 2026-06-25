@@ -33,6 +33,8 @@ def t(d: dict[str, str], locale: str | None = None) -> str:
             # give the first value
             if (id(d), l_ct) not in _CACHE_LOGGED:
                 _CACHE_LOGGED.add((id(d), l_ct))
-                _LOGGER.warning("No text found in %s for locale %s, using the first value", d, l_ct)
+                _LOGGER.warning(
+                    "No text found in %s for locale %s, using the first value", d, l_ct
+                )
             ans = next(iter(d.values()))
     return ans

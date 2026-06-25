@@ -30,7 +30,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Conversation
 from antares_bot.basic_language import BasicLanguage as Lang
 from antares_bot.bot_base import TelegramBotBase
 from antares_bot.bot_default_cfg import AntaresBotConfig, BasicConfig
-from antares_bot.bot_logging import get_logger, stop_logger
+from antares_bot.bot_logging import get_logger, start_logger, stop_logger
 from antares_bot.callback_manager import CallbackDataManager
 from antares_bot.context import ChatData, RichCallbackContext, UserData
 from antares_bot.context_manager import ContextHelper, ContextReverseHelper, get_context
@@ -182,6 +182,9 @@ class TelegramBot(TelegramBotBase):
         if sys.version_info >= (3, 12):
             asyncio.get_running_loop().set_task_factory(asyncio.eager_task_factory)
 
+        # bring the (pika) logger online and flush records buffered at import time
+        await start_logger()
+
         await self.send_to(self.get_master_id(), Lang.t(Lang.STARTUP_PENDING))
 
         time0 = time.time()
@@ -223,9 +226,7 @@ class TelegramBot(TelegramBotBase):
                 module_timings.items(), key=lambda x: x[1], reverse=True
             )
         )
-        _LOGGER.warning(
-            "Post init time (total: %.3fs):\n%s", total_time, timing_lines
-        )
+        _LOGGER.warning("Post init time (total: %.3fs):\n%s", total_time, timing_lines)
 
     async def _do_post_stop(self, app: Application):
         _LOGGER.warning("Started post stop...")
@@ -267,9 +268,7 @@ class TelegramBot(TelegramBotBase):
                 module_timings.items(), key=lambda x: x[1], reverse=True
             )
         )
-        _LOGGER.warning(
-            "Post stop time (total: %.3fs):\n%s", total_time, timing_lines
-        )
+        _LOGGER.warning("Post stop time (total: %.3fs):\n%s", total_time, timing_lines)
         task_stop_db = DataBasesManager.get_inst().shutdown()
         # pull the repo if _post_stop_gitpull_flag is set.
         # if exit_fast (SIGTERM, SIGABRT), do not pull
@@ -299,7 +298,7 @@ class TelegramBot(TelegramBotBase):
         await asyncio.gather(task_send_exit_msg, task_stop_db, *additional_tasks)
         time1 = time.time()
         _LOGGER.warning("Finalize time: %.3fs", time1 - time0)
-        stop_logger()
+        await stop_logger()
 
     def custom_post_init(self, task: Awaitable):
         self._custom_post_init_task = task
@@ -522,12 +521,11 @@ class TelegramBot(TelegramBotBase):
                 echo "process still running, kill with SIGKILL"
                 kill -KILL %s
             fi
-            echo "removing tempfile %s"
             rm "%s"
             """
             os.setsid()
             fd, name = tempfile.mkstemp()
-            os.write(fd, (execute_shell % (pid, start_time, pid, name, name)).encode())
+            os.write(fd, (execute_shell % (pid, start_time, pid, name)).encode())
             os.close(fd)
             os.execvp("bash", ["bash", name])
 
@@ -577,6 +575,7 @@ class TelegramBot(TelegramBotBase):
                     if module.module_instance is not None
                 )
             )
+
 
 __bot_singleton = None
 

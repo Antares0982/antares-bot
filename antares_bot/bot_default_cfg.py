@@ -14,11 +14,12 @@ class BasicConfig(BaseConfig):
     Create a class with same name in bot_cfg.py to override the default value.
     TOKEN and MASTER_ID must be overriden.
     """
+
     non_empty = [
         "TOKEN",
         "MASTER_ID",
     ]
-    LOCALE = 'en'
+    LOCALE = "en"
     DATA_DIR = "data"
     TOKEN = "abcdef:123456"
     MASTER_ID = 123456789

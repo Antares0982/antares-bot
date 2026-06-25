@@ -3,8 +3,7 @@ import os
 import sys
 
 
-_BLANK_CFG = \
-    """\"\"\"Naming convention: as long as the config item can be retrieved like:
+_BLANK_CFG = """\"\"\"Naming convention: as long as the config item can be retrieved like:
 ```
 bot_cfg.<SectionName>.<ITEM_NAME>
 ```
@@ -63,7 +62,7 @@ def _hook_cfg():
     except ImportError:
         print(
             "./bot_cfg.py not found or cannot be imported, I will try to create one for you.",
-            file=sys.stderr
+            file=sys.stderr,
         )
         create_blank_cfg()
         exit(1)
@@ -73,19 +72,24 @@ def _hook_cfg():
         )
         exit(1)
     from antares_bot import bot_default_cfg
+
     BaseConfig = bot_default_cfg.BaseConfig
     # start checking
     for k in dir(bot_default_cfg):
         default_config_class = getattr(bot_default_cfg, k)
-        empty_checklist = getattr(default_config_class, 'non_empty', [])
-        if isinstance(default_config_class, type) and issubclass(default_config_class, BaseConfig) and default_config_class != BaseConfig:
+        empty_checklist = getattr(default_config_class, "non_empty", [])
+        if (
+            isinstance(default_config_class, type)
+            and issubclass(default_config_class, BaseConfig)
+            and default_config_class != BaseConfig
+        ):
             if not hasattr(cfg, k):
                 if len(empty_checklist) != 0:
                     print(
                         f"Please create {default_config_class.__name__} in bot_cfg.py and fill in the required fields first."
                         " See bot_default_cfg.py for more details."
                         " Or, you can remove the bot_cfg.py and run again to create a new one",
-                        file=sys.stderr
+                        file=sys.stderr,
                     )
                     exit(1)
                 setattr(cfg, k, default_config_class)
@@ -98,7 +102,7 @@ def _hook_cfg():
                             print(
                                 f"Please set {', '.join(empty_checklist)} in "
                                 f"{default_config_class.__name__} in bot_cfg.py. See bot_default_cfg.py for more details.",
-                                file=sys.stderr
+                                file=sys.stderr,
                             )
                             exit(1)
                         setattr(config_class, attr, getattr(default_config_class, attr))
@@ -106,6 +110,7 @@ def _hook_cfg():
 
 def read_user_cfg(cfg_class, section: str):
     import bot_cfg  # type: ignore
+
     class_name = cfg_class.__name__
     cfg = getattr(bot_cfg, class_name, None)
     return None if cfg is None else getattr(cfg, section, None)
@@ -113,19 +118,21 @@ def read_user_cfg(cfg_class, section: str):
 
 def create_blank_cfg():
     try:
-        with open("bot_cfg.py", "x", encoding="utf-8", opener=lambda x, y: os.open(x, y, 0o600)) as f:
+        with open(
+            "bot_cfg.py",
+            "x",
+            encoding="utf-8",
+            opener=lambda x, y: os.open(x, y, 0o600),
+        ) as f:
             f.write(_BLANK_CFG)
     except FileExistsError:
         print(
             "bot_cfg.py already exists but cannot be imported, skipping creation.\n"
             "Please remove/modify it before running.",
-            file=sys.stderr
+            file=sys.stderr,
         )
         return
-    print(
-        "bot_cfg.py created successfully."
-        " Please fill in the required fields."
-    )
+    print("bot_cfg.py created successfully. Please fill in the required fields.")
 
 
 _hook_cfg()

@@ -22,7 +22,7 @@ class ConditionLimit(Enum):
     CHANNEL = 4
     CALLBACK_QUERY = 8
     CHAT = GROUP | PRIVATE
-    ALL = 0xf
+    ALL = 0xF
 
 
 class PermissionState(Enum):
@@ -32,7 +32,11 @@ class PermissionState(Enum):
     IGNORE_CHANNEL = 3
 
 
-def permission_check(context: "RichCallbackContext", level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL):
+def permission_check(
+    context: "RichCallbackContext",
+    level: CheckLevel,
+    limit: ConditionLimit = ConditionLimit.ALL,
+):
     if context.is_private_chat():
         if 0 == (limit.value & ConditionLimit.PRIVATE.value):
             return PermissionState.INVALID_CHAT_TYPE

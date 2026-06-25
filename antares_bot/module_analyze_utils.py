@@ -29,7 +29,9 @@ def get_module_from_name(module_name: str):
         return None, False
 
 
-def get_module_class_from_module(module: ModuleType, instance_class: Optional[Type[_T]] = None) -> Optional[Type[_T]]:
+def get_module_class_from_module(
+    module: ModuleType, instance_class: Optional[Type[_T]] = None
+) -> Optional[Type[_T]]:
     """
     Return:
         kls
@@ -40,7 +42,7 @@ def get_module_class_from_module(module: ModuleType, instance_class: Optional[Ty
     try:
         modulefile_name = module.__name__.split(".")[-1]
         modulefile_names = modulefile_name.split("_")
-        class_name = ''.join([name.capitalize() for name in modulefile_names])
+        class_name = "".join([name.capitalize() for name in modulefile_names])
         kls = getattr(module, class_name, None)
         if instance_class is None:
             return kls
@@ -52,7 +54,9 @@ def get_module_class_from_module(module: ModuleType, instance_class: Optional[Ty
     return None
 
 
-def get_module_class_from_name(module_name: str, instance_class: Optional[Type[_T]] = None) -> Optional[Type[_T]]:
+def get_module_class_from_name(
+    module_name: str, instance_class: Optional[Type[_T]] = None
+) -> Optional[Type[_T]]:
     """
     Return:
         kls (optional)

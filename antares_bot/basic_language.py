@@ -97,4 +97,5 @@ class BasicLanguage:
         as long as the language dict `d` is not empty.
         """
         from antares_bot.multi_lang import t
+
         return t(d, locale)

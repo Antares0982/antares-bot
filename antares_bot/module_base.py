@@ -3,6 +3,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, cast
 
 from telegram import Message
+
 # from antares_bot.patching.conversation_handler_ex import ConversationHandlerEx
 from telegram.ext import ConversationHandlerEx
 
@@ -42,14 +43,11 @@ class TelegramBotModuleBase(TelegramBotBase):
         self._register_inst()
         self._handlers: Optional[List[Union["CallbackBase", "BaseHandler"]]] = None
 
-    def do_init(self) -> None:
-        ...
+    def do_init(self) -> None: ...
 
-    async def post_init(self, app: "Application") -> None:
-        ...
+    async def post_init(self, app: "Application") -> None: ...
 
-    async def do_stop(self) -> None:
-        ...
+    async def do_stop(self) -> None: ...
 
     async def daily_job(self) -> None:
         """
@@ -70,7 +68,9 @@ class TelegramBotModuleBase(TelegramBotBase):
 
     # -------------------------helper functions-------------------------
     # -------------------------DO NOT OVERRIDE--------------------------
-    def make_btn_callback(self, key: str, data: Iterable) -> Tuple[List[str], List[str]]:
+    def make_btn_callback(
+        self, key: str, data: Iterable
+    ) -> Tuple[List[str], List[str]]:
         """
         return a list of callback data strings, which can be used to retrieve data later.
         Need to call `cache_cb_keys_by_{}` to cache the keys after the message is sent.
@@ -91,16 +91,22 @@ class TelegramBotModuleBase(TelegramBotBase):
         get the callback data `xxx` after the colon.
         """
         assert query.data is not None
-        return query.data.split(':')[1]
+        return query.data.split(":")[1]
 
-    def get_btn_callback_data(self, query: "CallbackQuery", pop: bool = False, check_valid=False):
+    def get_btn_callback_data(
+        self, query: "CallbackQuery", pop: bool = False, check_valid=False
+    ):
         """
         get button callback data from callback manager from query.
         if `pop` is True, the data will be removed from callback manager.
         if `check_valid` is True, it will call `on_invalid_query` if the data is `None`.
         """
         k = self._get_cb_data_key(query)
-        ret = self.parent.callback_manager.pop_data(k) if pop else self.parent.callback_manager.peek_data(k)
+        ret = (
+            self.parent.callback_manager.pop_data(k)
+            if pop
+            else self.parent.callback_manager.peek_data(k)
+        )
         if ret is None and check_valid:
             loop = asyncio.get_running_loop()
             loop.create_task(self.on_invalid_query(query))
@@ -112,9 +118,11 @@ class TelegramBotModuleBase(TelegramBotBase):
         """
         a cancel callback for conversation handler.
         """
+
         async def cancel(x, y):
             await self.reply(L.t(L.CANCELLED))
             return ConversationHandlerEx.END
+
         return command_callback_wrapper(cancel)
 
     @property
@@ -124,7 +132,9 @@ class TelegramBotModuleBase(TelegramBotBase):
     async def _manual_handle_exception(self, logger: logging.Logger, e: Exception):
         return await exception_manual_handle(logger, e)
 
-    def cache_cb_keys_by_id(self, chat_id: int, msg_id: int, cb_keys: List[str]) -> None:
+    def cache_cb_keys_by_id(
+        self, chat_id: int, msg_id: int, cb_keys: List[str]
+    ) -> None:
         """
         cache the callback keys by message id.
         note the `key` here is the key of the callback manager.
@@ -153,7 +163,13 @@ class TelegramBotModuleBase(TelegramBotBase):
     def clean_cb_keys_by_message(self, message: Message) -> None:
         self.clean_cb_keys_by_id(message.chat_id, message.message_id)
 
-    async def query_remove_btn(self, query: "CallbackQuery", text: str = "", remove_message: bool = False, reply_markup: Optional["InlineKeyboardMarkup"] = None):
+    async def query_remove_btn(
+        self,
+        query: "CallbackQuery",
+        text: str = "",
+        remove_message: bool = False,
+        reply_markup: Optional["InlineKeyboardMarkup"] = None,
+    ):
         assert query.message
         assert isinstance(query.message, Message)
         self.clean_cb_keys_by_message(query.message)
@@ -166,7 +182,9 @@ class TelegramBotModuleBase(TelegramBotBase):
         """
         Call when the data in callback manager is removed.
         """
-        await self.query_remove_btn(query, text="这个按钮无效了呢……", remove_message=False)
+        await self.query_remove_btn(
+            query, text="这个按钮无效了呢……", remove_message=False
+        )
 
     def query_at_btn_index(self, query: "CallbackQuery") -> int:
         """
@@ -175,4 +193,5 @@ class TelegramBotModuleBase(TelegramBotBase):
         _, keyboard = self.get_btn_callback_data(query)
         keyboard = cast("PersistKeyboards", keyboard)
         return keyboard.idx(self._get_cb_data_key(query))
+
     # -----------------------helper functions end-----------------------
