@@ -622,7 +622,9 @@ MARKDOWN_SUPPORTED_LANGUAGES = {
     "zig",
 }
 
-MARKDOWN_SUPPORTED_LANGUAGES = set(map(lambda x: x.lower(), MARKDOWN_SUPPORTED_LANGUAGES))
+MARKDOWN_SUPPORTED_LANGUAGES = set(
+    map(lambda x: x.lower(), MARKDOWN_SUPPORTED_LANGUAGES)
+)
 
 TEXT_LENGTH_LIMIT = 4000
 
@@ -636,12 +638,47 @@ def find_special_sequences(text: str):
     # 定义一个函数来判断字符是否为特殊字符或空格
 
     def is_special_char(char):
-        return not ((ord('A') <= ord(char) <= ord('Z')) or (ord('a') <= ord(char) <= ord('z')) or (ord('0') <= ord(char) <= ord('9')) or '\u4e00' <= char <= '\u9fa5')
+        return not (
+            (ord("A") <= ord(char) <= ord("Z"))
+            or (ord("a") <= ord(char) <= ord("z"))
+            or (ord("0") <= ord(char) <= ord("9"))
+            or "\u4e00" <= char <= "\u9fa5"
+        )
 
     def is_true_special_char(char):
-        if char in ("`", "*", "_", "~", ";", ":", "(", ")", "[", "]", "{", "}", "<", ">", "#", "+", "-", "=", "|", ".", "!", "$", "%", ' ', '\n', '，', '！', '：'):
+        if char in (
+            "`",
+            "*",
+            "_",
+            "~",
+            ";",
+            ":",
+            "(",
+            ")",
+            "[",
+            "]",
+            "{",
+            "}",
+            "<",
+            ">",
+            "#",
+            "+",
+            "-",
+            "=",
+            "|",
+            ".",
+            "!",
+            "$",
+            "%",
+            " ",
+            "\n",
+            "，",
+            "！",
+            "：",
+        ):
             return False
         return is_special_char(char)
+
     for index, char in enumerate(text):
         if len(results) > 0 and results[-1][0] <= index < results[-1][1]:
             continue
@@ -727,7 +764,11 @@ def longtext_split(txt: str) -> list[str]:
         if dotsss_start == 0 and dotsss_end == len(txts) - 1:
             # cannot keep markdown block!!!
             return force_longtext_split(txts)
-        parts = txts[:dotsss_start], txts[dotsss_start:dotsss_end + 1], txts[dotsss_end + 1:]
+        parts = (
+            txts[:dotsss_start],
+            txts[dotsss_start : dotsss_end + 1],
+            txts[dotsss_end + 1 :],
+        )
         for i, part in enumerate(parts):
             if len(part) > 0:
                 if i == 0:
@@ -756,7 +797,7 @@ def trim_spaces_before_line(code: str):
     for line in lines:
         if not line.strip():
             continue
-        spaces_count = len(line) - len(line.lstrip(' '))
+        spaces_count = len(line) - len(line.lstrip(" "))
         common_spaces = min(common_spaces, spaces_count)
         if common_spaces == 0:
             return code
@@ -767,6 +808,7 @@ def trim_spaces_before_line(code: str):
         if not line.strip():
             return ""
         return line[common_spaces:]
+
     code = "\n".join(xstrip(line) for line in lines)
     return code
 
@@ -784,7 +826,12 @@ class MarkdownParser:
             self.cur_text_couting += len(text_object.text)
 
     @classmethod
-    def recursive_markdown_escape_except_block(cls, s: str, partition_func: Callable[[str], list[TextObject]], recursive_escape_func: Callable[[str], list[TextObject]]) -> list[TextObject]:
+    def recursive_markdown_escape_except_block(
+        cls,
+        s: str,
+        partition_func: Callable[[str], list[TextObject]],
+        recursive_escape_func: Callable[[str], list[TextObject]],
+    ) -> list[TextObject]:
         partitioned = partition_func(s)
         ret = []
         if len(partitioned) % 2 == 1:
@@ -812,13 +859,26 @@ class MarkdownParser:
         if is_codeblock:
             code, code_lang = self.get_code_lang(text)
             code = trim_spaces_before_line(code)
-            self.enqueue(TextObject(text=code, entity_type=MessageEntityType.PRE, code_language=code_lang))
+            self.enqueue(
+                TextObject(
+                    text=code,
+                    entity_type=MessageEntityType.PRE,
+                    code_language=code_lang,
+                )
+            )
         else:
             lines = text.split("\n")
             sep = ""
             for line in lines:
-                self.push_text(sep + line, [(self.split_special, None), ("`", MessageEntityType.CODE),
-                               ("**", MessageEntityType.BOLD), ("*", MessageEntityType.ITALIC)])
+                self.push_text(
+                    sep + line,
+                    [
+                        (self.split_special, None),
+                        ("`", MessageEntityType.CODE),
+                        ("**", MessageEntityType.BOLD),
+                        ("*", MessageEntityType.ITALIC),
+                    ],
+                )
                 sep = "\n"
         self.digest()
 
@@ -838,11 +898,11 @@ class MarkdownParser:
         ret = []
         left_over = ""
         for split_text in splitted:
-            if split_text.endswith('\\'):
+            if split_text.endswith("\\"):
                 # count last continuous backslash
                 count = 0
                 for i in range(len(split_text) - 1, -1, -1):
-                    if split_text[i] == '\\':
+                    if split_text[i] == "\\":
                         count += 1
                     else:
                         break
@@ -855,7 +915,13 @@ class MarkdownParser:
             ret.append(left_over)
         return ret
 
-    def push_text(self, text: str, split_config: list[tuple[str | Callable[[str], list[str]], MessageEntityType | None]]):
+    def push_text(
+        self,
+        text: str,
+        split_config: list[
+            tuple[str | Callable[[str], list[str]], MessageEntityType | None]
+        ],
+    ):
         splitter = split_config[0][0]
         if isinstance(splitter, str):
             splitted = text.split(splitter)
@@ -871,12 +937,16 @@ class MarkdownParser:
                     else:
                         self.push_text(sub_text, split_config[1:])
                 else:
-                    self.enqueue(TextObject(text=sub_text, entity_type=split_config[0][1]))
+                    self.enqueue(
+                        TextObject(text=sub_text, entity_type=split_config[0][1])
+                    )
             return
         self.enqueue(TextObject(text=text, entity_type=None))
 
     @classmethod
-    def _digest(cls, rest_text_object: list[TextObject]) -> tuple[str, list[MessageEntity], list[TextObject]]:
+    def _digest(
+        cls, rest_text_object: list[TextObject]
+    ) -> tuple[str, list[MessageEntity], list[TextObject]]:
         text = ""
         entities = []
         end_at = len(rest_text_object)
@@ -885,7 +955,12 @@ class MarkdownParser:
                 end_at = i
                 break
             if text_object.entity_type is not None:
-                new_entity = MessageEntity(text_object.entity_type, offset=len(text), length=len(text_object.text), language=text_object.code_language)
+                new_entity = MessageEntity(
+                    text_object.entity_type,
+                    offset=len(text),
+                    length=len(text_object.text),
+                    language=text_object.code_language,
+                )
                 entities.append(new_entity)
             text += text_object.text
         return text, entities, rest_text_object[end_at:]
@@ -908,8 +983,12 @@ class MarkdownParser:
 
     def force_split_up(self):
         text_objects = self.rest_text_object
-        self.rest_text_object = sum((self.force_split_up_text_object(x) for x in text_objects), [])
-        self.rest_text_object = list(filter(lambda x: len(x.text) > 0, self.rest_text_object))
+        self.rest_text_object = sum(
+            (self.force_split_up_text_object(x) for x in text_objects), []
+        )
+        self.rest_text_object = list(
+            filter(lambda x: len(x.text) > 0, self.rest_text_object)
+        )
         self._update_text_counting()
 
     def _update_text_counting(self):
@@ -926,7 +1005,9 @@ class MarkdownParser:
 
     def fix_entities_offset(self):
         for i, (text, entities) in enumerate(zip(self.texts, self.entities)):
-            new_entities = MessageEntity.adjust_message_entities_to_utf_16(text, entities)
+            new_entities = MessageEntity.adjust_message_entities_to_utf_16(
+                text, entities
+            )
             self.entities[i] = new_entities
 
     @classmethod
@@ -937,7 +1018,9 @@ class MarkdownParser:
         kwargs: dict = {"entity_type": text_object.entity_type}
         if text_object.entity_type == MessageEntityType.PRE:
             kwargs["code_language"] = text_object.code_language
-        return [TextObject(text=parted_1, **kwargs)] + cls.force_split_up_text_object(TextObject(text=parted_2, **kwargs))
+        return [TextObject(text=parted_1, **kwargs)] + cls.force_split_up_text_object(
+            TextObject(text=parted_2, **kwargs)
+        )
 
     @classmethod
     def split_2_parts(self, long_text: str) -> tuple[str, str]:

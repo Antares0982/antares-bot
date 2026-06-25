@@ -1,4 +1,3 @@
-
 class BaseBotFrameworkException(Exception):
     pass
 

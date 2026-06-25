@@ -55,4 +55,6 @@ class JobQueueEx(JobQueue):
 
 
 def fix_misfire_grace_time(d: dict[str, Any]):
-    d.setdefault("job_defaults", {}).setdefault("misfire_grace_time", _MISFIRE_GRACE_TIME)
+    d.setdefault("job_defaults", {}).setdefault(
+        "misfire_grace_time", _MISFIRE_GRACE_TIME
+    )

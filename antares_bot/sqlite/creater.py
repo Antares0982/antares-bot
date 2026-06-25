@@ -32,7 +32,15 @@ class DbCreationException(Exception):
 
 
 class ColumnDeclarer(object):
-    def __init__(self, column_name: str, column_type: str, is_primary: bool = False, is_not_null: bool = False, is_unique: bool = False, default: Any = None) -> None:
+    def __init__(
+        self,
+        column_name: str,
+        column_type: str,
+        is_primary: bool = False,
+        is_not_null: bool = False,
+        is_unique: bool = False,
+        default: Any = None,
+    ) -> None:
         self.column_name = column_name
         self.column_type = column_type
         self.is_primary = is_primary
@@ -51,10 +59,20 @@ class TableDeclarer(object):
         self.table_name = table_name
         return self
 
-    def declare_col(self, column_name: str, column_type: str, is_primary: bool = False, is_not_null: bool = False, is_unique: bool = False, default: Any = None):
+    def declare_col(
+        self,
+        column_name: str,
+        column_type: str,
+        is_primary: bool = False,
+        is_not_null: bool = False,
+        is_unique: bool = False,
+        default: Any = None,
+    ):
         if is_primary:
             self.pkey_count += 1
-        self.columns[column_name] = ColumnDeclarer(column_name, column_type, is_primary, is_not_null, is_unique, default)
+        self.columns[column_name] = ColumnDeclarer(
+            column_name, column_type, is_primary, is_not_null, is_unique, default
+        )
         return self
 
     def get_creation_cmd(self):
@@ -123,7 +141,9 @@ class TableDataCreator(object):
         for col in self.table.columns.values():
             if col.column_name not in self.data:
                 if col.is_not_null and col.default is None:
-                    raise RuntimeError("column {} is not nullable".format(col.column_name))
+                    raise RuntimeError(
+                        "column {} is not nullable".format(col.column_name)
+                    )
         return self.data
 
 
@@ -176,7 +196,9 @@ class DbDeclarer(object):
         conn = await aiosqlite.connect(self.db_path)
         c = await conn.cursor()
         for table in self.tables.values():
-            command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(table.table_name)
+            command = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(
+                table.table_name
+            )
             _LOGGER.debug(command)
             await c.execute(command)
             if not await c.fetchone():

@@ -112,9 +112,7 @@ class AntaresBuiltin(TelegramBotModuleBase):
                 exec(code_string)  # pylint: disable=exec-used
                 ans = await locals()["_t__"]()
         except Exception:
-            asyncio.get_running_loop().create_task(
-                self.reply(Lang.t(Lang.EXEC_FAILED))
-            )
+            asyncio.get_running_loop().create_task(self.reply(Lang.t(Lang.EXEC_FAILED)))
             raise
         await self.reply(
             Lang.t(Lang.EXEC_SUCCEEDED).format(ans), parse_mode="MarkdownV2"

@@ -1,6 +1,18 @@
 import bisect
 import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from telegram import InlineKeyboardButton
 
@@ -14,7 +26,7 @@ _DataType = TypeVar("_DataType")
 
 
 class CallbackHistoryManager:
-    __slots__ = ("history_queue")
+    __slots__ = "history_queue"
 
     def __init__(self) -> None:
         self.history_queue: List[Tuple[float, int]] = []
@@ -94,7 +106,9 @@ class PersistKeyboards(Generic[_DataType]):
         self.cb_manager = cb_manager
         self._idx_map: Dict[str, int] = dict()
 
-    def get_reply_markup(self, pattern_key: str, button_in_row: int) -> Optional["InlineKeyboardMarkup"]:
+    def get_reply_markup(
+        self, pattern_key: str, button_in_row: int
+    ) -> Optional["InlineKeyboardMarkup"]:
         """
         get the InlineKeyboardMarkup. return `None` if no callback data keys are set.
         """
@@ -103,9 +117,16 @@ class PersistKeyboards(Generic[_DataType]):
         return flatten_button(self._to_buttons(pattern_key), button_in_row)
 
     def _to_buttons(self, pattern_key: str) -> List[InlineKeyboardButton]:
-        return [InlineKeyboardButton(self._get_text(i), callback_data=f"{pattern_key}:{k}") for i, k in enumerate(self.cb_data_keys)]
+        return [
+            InlineKeyboardButton(self._get_text(i), callback_data=f"{pattern_key}:{k}")
+            for i, k in enumerate(self.cb_data_keys)
+        ]
 
-    def setup_use_data(self, data_list: Iterable[_DataType], repr_cb: Optional[Callable[[int, str, _DataType], str]] = None):
+    def setup_use_data(
+        self,
+        data_list: Iterable[_DataType],
+        repr_cb: Optional[Callable[[int, str, _DataType], str]] = None,
+    ):
         """
         setting up the keyboard.
         store all callback data into callback manager, store corresponding keys into persist keyboard, and set the `repr_cb` for formatting the button text.
@@ -117,7 +138,11 @@ class PersistKeyboards(Generic[_DataType]):
             cb_data_keys.append(self.store_data(data))
         self.setup_use_keys(cb_data_keys, repr_cb)
 
-    def setup_use_keys(self, cb_data_keys: List[str], repr_cb: Optional[Callable[[int, str, _DataType], str]] = None):
+    def setup_use_keys(
+        self,
+        cb_data_keys: List[str],
+        repr_cb: Optional[Callable[[int, str, _DataType], str]] = None,
+    ):
         """
         setting up the keyboard.
         store all callback data keys into persist keyboard, and set the `repr_cb` for formatting the button text.

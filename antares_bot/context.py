@@ -23,10 +23,10 @@ class UserData:
 
 class RichCallbackContext(CallbackContext[ExtBot, UserData, ChatData, dict]):
     def __init__(
-            self,
-            application: Application,
-            chat_id: int | None = None,
-            user_id: int | None = None
+        self,
+        application: Application,
+        chat_id: int | None = None,
+        user_id: int | None = None,
     ):
         super().__init__(application, chat_id, user_id)
         self._last_message_id: Optional[int] = None

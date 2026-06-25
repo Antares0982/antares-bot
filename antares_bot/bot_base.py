@@ -9,8 +9,17 @@ from antares_bot import utils
 from antares_bot.bot_default_cfg import BasicConfig
 from antares_bot.bot_logging import get_logger, get_root_logger
 from antares_bot.bot_method_wrapper import TelegramBotBaseWrapper
-from antares_bot.error import IgnoreChannelUpdateException, InvalidChatTypeException, UserPermissionException
-from antares_bot.permission_check import CheckLevel, ConditionLimit, PermissionState, permission_check
+from antares_bot.error import (
+    IgnoreChannelUpdateException,
+    InvalidChatTypeException,
+    UserPermissionException,
+)
+from antares_bot.permission_check import (
+    CheckLevel,
+    ConditionLimit,
+    PermissionState,
+    permission_check,
+)
 
 
 if TYPE_CHECKING:
@@ -23,7 +32,9 @@ DEBUG_LOGGER = get_logger("debug")
 
 class TelegramBotBase(TelegramBotBaseWrapper):
     @classmethod
-    def check(cls, level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL) -> None:
+    def check(
+        cls, level: CheckLevel, limit: ConditionLimit = ConditionLimit.ALL
+    ) -> None:
         check_result = permission_check(cls.get_context(), level, limit)
         cls._check_raise(check_result)
 
@@ -54,12 +65,15 @@ class TelegramBotBase(TelegramBotBaseWrapper):
     @classmethod
     async def del_msg(cls, chat_id: int, msgid: int, maxTries: int = 5) -> bool:
         from antares_bot.bot_inst import get_bot_instance
+
         if maxTries <= 0:
             raise ValueError("Invalid retry times")
 
         for i in range(maxTries):
             try:
-                await get_bot_instance().bot.delete_message(chat_id=chat_id, message_id=msgid)
+                await get_bot_instance().bot.delete_message(
+                    chat_id=chat_id, message_id=msgid
+                )
             except TelegramError:
                 if i == maxTries - 1:
                     return False
@@ -87,8 +101,12 @@ class TelegramBotBase(TelegramBotBaseWrapper):
         return ct.chat_id == master_id or ct.user_id == master_id
 
     @classmethod
-    def format_inline_keyboard_button(cls, text: str, callback_key_name: str, callback_arg: Any):
-        return InlineKeyboardButton(text, callback_data=f"{callback_key_name}:{callback_arg}")
+    def format_inline_keyboard_button(
+        cls, text: str, callback_key_name: str, callback_arg: Any
+    ):
+        return InlineKeyboardButton(
+            text, callback_data=f"{callback_key_name}:{callback_arg}"
+        )
 
     @classmethod
     def _is_debug_level(cls):
@@ -105,7 +123,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
         assert update.message.text is not None
         txt = update.message.text.strip()
         pre_command = txt.split()[0]
-        return txt[len(pre_command):].strip()
+        return txt[len(pre_command) :].strip()
 
     @property
     def bot_id(self):
