@@ -153,7 +153,10 @@ class PikaGlobalLoggerInstance(GlobalLoggerInstance):
     async def stop(self):
         consumer = self._consumer
         if self._loop is not None and self._queue is not None and consumer is not None:
-            self._queue.put_nowait(("", _SENTINEL))  # type: ignore[arg-type]
+            # go through call_soon_threadsafe like enqueue() does: a direct
+            # put_nowait would overtake the records whose callbacks are still
+            # pending and the consumer would exit before publishing them
+            self._loop.call_soon_threadsafe(self._put_nowait, "", _SENTINEL)  # type: ignore[arg-type]
             try:
                 await asyncio.wait_for(asyncio.shield(consumer), timeout=5)
             except Exception:

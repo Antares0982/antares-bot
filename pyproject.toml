@@ -54,6 +54,15 @@ antares_bot = "antares_bot.__main__:main"
 pika = [
     "aio-pika"
 ]
+test = [
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
 
 [tool.setuptools_scm]
 

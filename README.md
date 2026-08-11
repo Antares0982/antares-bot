@@ -37,7 +37,7 @@ class Echo(TelegramBotModuleBase):
         assert update.message.text is not None
         text = update.message.text.strip()
         if text.startswith("/echo"):
-            text = text[len("/echo"):].strip()
+            text = text[len("/echo") :].strip()
         if text:
             await self.reply(text)
 ```
@@ -84,6 +84,7 @@ class Timer(TelegramBotModuleBase):
         @callback_job_wrapper
         async def cb(context_new):
             await self.reply("Time up!")
+
         self.job_queue.run_once(cb, 5, name=f"{time.time()}")
         return True
 ```
@@ -94,6 +95,7 @@ i18n:
 
 ```python
 from antares_bot.basic_language import BasicLanguage as Lang
+
 await self.send_to(self.get_master_id(), Lang.t(Lang.UNKNOWN_ERROR))
 ```
 
@@ -131,6 +133,7 @@ Also, you can start the bot by yourself, without calling `antares_bot` in the co
 ```python
 if __name__ == "__main__":
     from antares_bot import __main__
+
     inst = __main__.bootstrap()
     inst.run()
 ```

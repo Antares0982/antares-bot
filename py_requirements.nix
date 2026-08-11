@@ -11,4 +11,7 @@ pypkgs: with pypkgs; [
   pytz
   # optional
   aio-pika
+  # test
+  pytest
+  pytest-asyncio
 ]

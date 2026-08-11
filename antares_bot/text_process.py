@@ -719,11 +719,12 @@ def force_longtext_split(txt: list[str]) -> list[str]:
     counting = 0
     i = 0
     ans: list[str] = []
-    sep_len = 0
     while i < len(txt):
-        if counting + len(txt[i]) < TEXT_LENGTH_LIMIT - sep_len:
-            counting += len(txt[i])
-            sep_len = 1
+        # `counting` must track the length of "\n".join(txt[:i]), separators
+        # included, or a chunk of many short lines overflows the limit
+        sep_len = 1 if i > 0 else 0
+        if counting + sep_len + len(txt[i]) < TEXT_LENGTH_LIMIT:
+            counting += sep_len + len(txt[i])
             i += 1
         else:
             if i == 0:
@@ -738,7 +739,6 @@ def force_longtext_split(txt: list[str]) -> list[str]:
                 ans.append("\n".join(txt[:i]))
                 txt = txt[i:]
                 i = 0
-                sep_len = 0
                 counting = 0
     if len(txt) > 0:
         ans.append("\n".join(txt))

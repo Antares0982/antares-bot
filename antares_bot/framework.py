@@ -14,6 +14,7 @@ from typing import (
 )
 
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import filters as filters_module
 
@@ -46,9 +47,10 @@ class CallbackBase(object):
 
     def __init__(self, func, *args, **kwargs):
         self._instance = None
+        # must be defaulted *before* on_init, which is what stores the real one
+        self._pre_executer = None
         self.on_init(*args, **kwargs)
         self._register_and_wrap(func)
-        self._pre_executer = None
 
     def on_init(self, *args, **kwargs):
         raise NotImplementedError
@@ -207,8 +209,15 @@ def general_callback_wrapper(handler_type, block=False, **kwargs):
 
 async def _btn_pre_executer(update: Update, context: "RichCallbackContext"):
     query = update.callback_query
-    assert query is not None and query.data is not None
-    await query.answer()
+    if query is None:
+        # a pattern-less btn_click_wrapper also matches game queries
+        return
+    try:
+        await query.answer()
+    except TelegramError as e:
+        # answering is cosmetic (it stops the client spinner); a stale or
+        # already-answered query must not take the handler down with it
+        _LOGGER.debug("failed to answer callback query: %s", e)
 
 
 def btn_click_wrapper(

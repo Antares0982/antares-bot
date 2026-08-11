@@ -5,9 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this repo is
 
 `antares_bot/` is a published PyPI package — a framework wrapping python-telegram-bot (PTB).
+`tests/` is tracked too, but is not packaged (`[tool.setuptools] packages = ["antares_bot"]`).
 Everything else at the root (`bot_cfg.py`, `main.py`, `modules/`, `data/`, `test.py`) is
 gitignored: it is a local sandbox for running the framework, not part of the deliverable.
-Changes belong in `antares_bot/` unless you are deliberately exercising the sandbox.
+Changes belong in `antares_bot/` (and `tests/`) unless you are deliberately exercising the sandbox.
 
 ## Environment & commands
 
@@ -15,6 +16,7 @@ Nix devshell (direnv, `use flake`); Python 3.14 lives at `.nix-pyenv/bin/python`
 
 ```bash
 .nix-pyenv/bin/python main.py     # run the bot (main.py calls bootstrap().run())
+.nix-pyenv/bin/python -m pytest   # run the test suite (from the repo root)
 nix build                         # build the package (default.nix)
 nix build .#ptb                   # build the PTB fork; test.sh copies its telegram/ out for stubs
 ```
@@ -22,9 +24,38 @@ nix build .#ptb                   # build the PTB fork; test.sh copies its teleg
 `python -m antares_bot` does **not** start anything — `__main__.py` has no `if __name__` guard;
 the real entry points are the `antares_bot` console script and `main.py`.
 
-There is no test suite, no CI, and no formatter/linter config beyond `[tool.pylint]` disables and
+There is no CI, and no formatter/linter config beyond `[tool.pylint]` disables and
 `[tool.autopep8] max-line-length = 160` in `pyproject.toml`. Root `test.py` is a scratch script for
-the fork-and-SIGKILL shutdown guard, not tests. Verify changes by running the bot.
+the fork-and-SIGKILL shutdown guard, not tests.
+
+## Tests
+
+`tests/` is a pytest suite (pytest + pytest-asyncio in `asyncio_mode = "auto"`, both in
+`py_requirements.nix` and the `test` extra). It is offline: no network, no Telegram token, no
+real RabbitMQ. Run it from the repo root — `pythonpath = ["."]` and `ModuleKeeper`'s relative
+`modules/` walk both depend on the CWD.
+
+`tests/conftest.py` installs a **synthetic `bot_cfg` module into `sys.modules` at import time**,
+before anything imports `antares_bot` — otherwise `init_hooks._hook_cfg()` would pick up the
+local sandbox `bot_cfg.py` (or `exit(1)`). Patch config with
+`monkeypatch.setattr(cfg.AntaresBotConfig, "KEY", v, raising=False)`; `read_user_cfg` re-reads the
+module each call. An autouse fixture saves/restores every process global
+(`GlobalLoggerInstance.INST`, `DataBasesManager.INST`, `LangContextManager.INST`,
+`bot_inst.__bot_singleton`, module `INST`s).
+
+Not covered, deliberately: `run()`/`run_polling`, `_guard_stop()` (forks + SIGKILLs), `_post_run`
+restart, `_do_post_init`/`_do_post_stop`, `obj_graph.py`, `fetch_url`.
+
+Three long-standing bugs the suite found and now pins down — do not "simplify" these back:
+
+- `force_longtext_split` must budget the `"\n"` separators into `counting`, not just subtract one
+  `sep_len`. Without it, many short lines produce chunks well over Telegram's hard 4096 cap.
+- `CallbackBase.__init__` must default `_pre_executer` **before** `on_init()`, which is what stores
+  the real one. It was the other way round from the day `_btn_pre_executer` was added (ed65814,
+  2023-12), so `btn_click_wrapper` never auto-answered a callback query.
+- `PikaGlobalLoggerInstance.stop()` must post its sentinel through `call_soon_threadsafe`, like
+  `enqueue()` does; a direct `put_nowait` overtakes records still pending and drops the last log
+  lines before shutdown.
 
 ## Hard dependency on a PTB fork
 
