@@ -8,6 +8,16 @@
   outputs =
     inputs@{ self, nixpkgs }:
     let
+      # nixpkgs' pythonMetadataCheckPhase rejects these: the upstream aiormq /
+      # aio-pika release tags carry a pyproject version that differs from the tag.
+      pythonMetadataFixes = final: prev: {
+        pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+          (pyfinal: pyprev: {
+            aiormq = pyprev.aiormq.overrideAttrs { dontCheckPythonMetadata = true; };
+            aio-pika = pyprev.aio-pika.overrideAttrs { dontCheckPythonMetadata = true; };
+          })
+        ];
+      };
       forAllSystems =
         function:
         nixpkgs.lib.genAttrs
@@ -21,6 +31,7 @@
             function (
               import nixpkgs {
                 inherit system;
+                overlays = [ pythonMetadataFixes ];
               }
             )
           );

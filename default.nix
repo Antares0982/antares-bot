@@ -30,6 +30,7 @@ builder {
       src = fetchFromGitHub (import ./ptb-src.nix);
       doCheck = false;
       doInstallCheck = false;
+      dontCheckPythonMetadata = true;
       propagatedBuildInputs = super.propagatedBuildInputs ++ [ hatchling ];
     }))
     aiosqlite
