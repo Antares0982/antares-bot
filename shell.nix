@@ -23,9 +23,9 @@ let
       pkgs
       ;
   };
-  internalShell = mkShell ({
+  internalShell = mkShell {
     packages = [ pyenv ];
-  });
+  };
 in
 internalShell.overrideAttrs {
   shellHook = callPackage ./shellhook.nix (

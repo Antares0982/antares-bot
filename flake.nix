@@ -29,7 +29,7 @@
       packages = forAllSystems (
         pkgs:
         let
-          python3Packages = pkgs.python3Packages;
+          inherit (pkgs) python3Packages;
         in
         {
           default = python3Packages.callPackage ./. { };
