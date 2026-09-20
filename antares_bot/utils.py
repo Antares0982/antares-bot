@@ -3,7 +3,7 @@ import os
 from typing import TYPE_CHECKING, List, Optional, cast
 
 import httpx
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.constants import ChatType
 
 from antares_bot.bot_default_cfg import AntaresBotConfig
@@ -95,11 +95,12 @@ def get_msg_id(update: Update) -> Optional[int]:
 def get_reply_to_msg_id(update: Update) -> Optional[int]:
     if update.message is not None and update.message.reply_to_message is not None:
         return update.message.reply_to_message.message_id
-    if (
-        update.callback_query is not None
-        and update.callback_query.message.reply_to_message is not None
-    ):  # type: ignore
-        return update.callback_query.message.reply_to_message.message_id  # type: ignore
+    if update.callback_query is not None and isinstance(
+        update.callback_query.message, Message
+    ):
+        reply = update.callback_query.message.reply_to_message
+        if reply is not None:
+            return reply.message_id
     if (
         update.channel_post is not None
         and update.channel_post.reply_to_message is not None

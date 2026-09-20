@@ -64,6 +64,10 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 
+[tool.pyright]
+include = ["antares_bot", "modules", "tests"]
+extraPaths = [".nix-pyenv/lib"]
+
 [tool.setuptools_scm]
 
 [tool.autopep8]

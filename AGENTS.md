@@ -17,6 +17,9 @@ Nix devshell (direnv, `use flake`); Python 3.14 lives at `.nix-pyenv/bin/python`
 ```bash
 .nix-pyenv/bin/python main.py     # run the bot (main.py calls bootstrap().run())
 .nix-pyenv/bin/python -m pytest   # run the test suite (from the repo root)
+pyright                           # type-check the entire repository
+ruff format .                     # format the entire repository
+ruff format --check .             # verify formatting without changes
 nix build                         # build the package (default.nix)
 nix build .#ptb                   # build the PTB fork; test.sh copies its telegram/ out for stubs
 ```
@@ -24,9 +27,9 @@ nix build .#ptb                   # build the PTB fork; test.sh copies its teleg
 `python -m antares_bot` does **not** start anything — `__main__.py` has no `if __name__` guard;
 the real entry points are the `antares_bot` console script and `main.py`.
 
-There is no CI, and no formatter/linter config beyond `[tool.pylint]` disables and
-`[tool.autopep8] max-line-length = 160` in `pyproject.toml`. Root `test.py` is a scratch script for
-the fork-and-SIGKILL shutdown guard, not tests.
+There is no CI. Every change must leave the entire repository passing default `pyright` checks and
+Ruff formatting; run `pyright` and `ruff format --check .` from the repository root before declaring
+work complete. Root `test.py` is a scratch script for the fork-and-SIGKILL shutdown guard, not tests.
 
 ## Tests
 
@@ -42,6 +45,9 @@ local sandbox `bot_cfg.py` (or `exit(1)`). Patch config with
 module each call. An autouse fixture saves/restores every process global
 (`GlobalLoggerInstance.INST`, `DataBasesManager.INST`, `LangContextManager.INST`,
 `bot_inst.__bot_singleton`, module `INST`s).
+
+Codex must run `.nix-pyenv/bin/python -m pytest` outside its Linux sandbox: sandboxed aiosqlite
+worker threads do not wake the asyncio loop. `.codex/rules/pytest.rules` grants only that prefix.
 
 Not covered, deliberately: `run()`/`run_polling`, `_post_run` restart,
 `_do_post_init`/`_do_post_stop`, `obj_graph.py`, `fetch_url`.

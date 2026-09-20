@@ -44,6 +44,9 @@ class CallbackBase(object):
     """
 
     handler_type: Type["BaseHandler"]
+    kwargs: Any
+    __wrapped__: Any
+    _pre_executer: Callable[[Any, "RichCallbackContext"], Any] | None
 
     def __init__(self, func, *args, **kwargs):
         self._instance = None
@@ -58,7 +61,7 @@ class CallbackBase(object):
     def _register_and_wrap(self, func):
         wraps(func)(self)
 
-    async def __call__(self, update: Update, context: "RichCallbackContext"):
+    async def __call__(self, update: Any, context: "RichCallbackContext"):
         # pre execute
         await self.pre_execute(update, context)
 
@@ -100,8 +103,8 @@ class CallbackBase(object):
         kwds.update(self.kwargs)
         return self.handler_type(callback=self, **kwds)
 
-    async def pre_execute(self, update: Update, context: "RichCallbackContext"):
-        if self._pre_executer:
+    async def pre_execute(self, update: Any, context: "RichCallbackContext"):
+        if self._pre_executer is not None:
             await self._pre_executer(update, context)
 
     def __repr__(self) -> str:
@@ -169,11 +172,11 @@ class GeneralCallbackWrapper(object):
 
 
 class ConditionFilter(filters_module.BaseFilter):
-    def __init__(self, condition: Callable[[Update], bool]):
+    def __init__(self, condition: Callable[[object], bool]):
         super().__init__()
         self.condition = condition
 
-    def check_update(self, update: Update) -> bool:
+    def check_update(self, update: object) -> bool:
         return self.condition(update)
 
 
@@ -185,7 +188,7 @@ def command_callback_wrapper(func: Callable) -> CommandCallback: ...
 def command_callback_wrapper(
     block: bool = False,
     filters: Optional[filters_module.BaseFilter] = None,
-) -> CommandCallback: ...
+) -> _CommandCallbackMethodDecor: ...
 
 
 def command_callback_wrapper(  # type: ignore
@@ -236,19 +239,14 @@ def btn_click_wrapper(
 
 @overload
 def msg_handle_wrapper(
-    filters: Callable[["Update"], Any],
-) -> GeneralCallbackWrapper: ...
-
-
-@overload
-def msg_handle_wrapper(
-    func: Callable[[Any, "Update", "RichCallbackContext"], Any],
+    func: Callable[..., Any],
 ) -> GeneralCallback: ...
 
 
 @overload
 def msg_handle_wrapper(
-    filters: Optional[filters_module.BaseFilter] = None,
+    *,
+    filters: filters_module.BaseFilter | Callable[[object], bool] | None = None,
 ) -> GeneralCallbackWrapper: ...
 
 

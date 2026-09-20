@@ -24,7 +24,11 @@ let
       ;
   };
   internalShell = mkShell {
-    packages = [ pyenv ];
+    packages = [
+      pyenv
+      pkgs.pyright
+      pkgs.ruff
+    ];
   };
 in
 internalShell.overrideAttrs {

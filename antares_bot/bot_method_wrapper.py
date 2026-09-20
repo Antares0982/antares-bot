@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -252,11 +253,13 @@ class TelegramBotBaseWrapper(object):
                     )
                 except Exception:
                     pass
-                _sleep_time = (
-                    e.retry_after + 1
-                    if isinstance(e, RetryAfter)
-                    else cls.RETRY_SLEEP_TIME
-                )
+                if isinstance(e, RetryAfter):
+                    retry_after = e.retry_after
+                    if isinstance(retry_after, datetime.timedelta):
+                        retry_after = retry_after.total_seconds()
+                    _sleep_time = retry_after + 1
+                else:
+                    _sleep_time = cls.RETRY_SLEEP_TIME
                 await asyncio.sleep(_sleep_time)
         raise RuntimeError(f"unreachable: RETRY_TIMES={cls.RETRY_TIMES}")
 

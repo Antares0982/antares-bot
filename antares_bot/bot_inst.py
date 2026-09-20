@@ -128,11 +128,14 @@ class TelegramBot(TelegramBotBase):
         from telegram.ext import Defaults
 
         defaults = Defaults(tzinfo=SYSTEM_TIME_ZONE)
+        token = read_user_cfg(BasicConfig, "TOKEN")
+        if not isinstance(token, str):
+            raise TypeError("BasicConfig.TOKEN must be a string")
         self.application = cast(
             "Application[ExtBot[None], RichCallbackContext, UserData, ChatData, dict, JobQueueEx]",
             Application.builder()
             # .application_class(ApplicationEx)
-            .token(read_user_cfg(BasicConfig, "TOKEN"))
+            .token(token)
             .context_types(context_types)
             .job_queue(JobQueueEx())
             .post_init(self._do_post_init)
@@ -319,6 +322,7 @@ class TelegramBot(TelegramBotBase):
 
         for module in self._module_keeper.get_all_enabled_modules():
             module_inst = module.module_instance
+            assert module_inst is not None
             for func in module_inst.collect_handlers():
                 if isinstance(func, CallbackBase):
                     handler = func.to_handler()
@@ -528,12 +532,14 @@ class TelegramBot(TelegramBotBase):
 
     @classmethod
     def data_dir(cls):
-        return os.path.join(os.path.curdir, read_user_cfg(BasicConfig, "DATA_DIR"))
+        data_dir = read_user_cfg(BasicConfig, "DATA_DIR")
+        if not isinstance(data_dir, str):
+            raise TypeError("BasicConfig.DATA_DIR must be a string")
+        return os.path.join(os.path.curdir, data_dir)
 
     async def _daily_job(self, context: RichCallbackContext):
         is_debug = self._is_debug_level()
-        if is_debug:
-            _debug_ids = []
+        _debug_ids = []
         for old_id in self.callback_manager.history.pop_before_keys(
             time.time() - TIME_IN_A_DAY
         ):

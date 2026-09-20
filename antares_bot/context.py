@@ -61,7 +61,7 @@ class RichCallbackContext(CallbackContext[ExtBot, UserData, ChatData, dict]):
         return self._type
 
     def is_callback_query(self):
-        return self._update.callback_query is not None
+        return self._update is not None and self._update.callback_query is not None
 
     def get_key(self):
         return (self.chat_id, self.user_id)

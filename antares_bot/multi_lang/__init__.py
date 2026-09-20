@@ -1,5 +1,3 @@
-from typing import cast
-
 from antares_bot.bot_logging import get_logger
 from antares_bot.multi_lang.context import get_default_locale, lang_context
 
@@ -23,12 +21,13 @@ def t(d: dict[str, str], locale: str | None = None) -> str:
     as long as the language dict `d` is not empty.
     """
     l_ct = lang_context() if locale is None else locale
-    ans: str | None = cast(str | None, d.get(l_ct, None))
+    ans = d.get(l_ct) if l_ct is not None else None
     if ans is None:
         if locale is not None:
             # specified a locale but not found. Should raise an error
             raise LocaleError(f"Locale {locale} not found in {d}")
-        ans = cast(str | None, d.get(get_default_locale(), None))  # type: ignore
+        default_locale = get_default_locale()
+        ans = d.get(default_locale) if default_locale is not None else None
         if ans is None:
             # give the first value
             if (id(d), l_ct) not in _CACHE_LOGGED:

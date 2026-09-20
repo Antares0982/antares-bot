@@ -166,3 +166,8 @@ def test_query_at_btn_index(module, dummy_parent):
     kb.setup_use_data(["a", "b", "c"])
     query = FakeQuery(f"pat:{kb.cb_data_keys[2]}")
     assert module.query_at_btn_index(query) == 2
+
+
+def test_query_at_btn_index_rejects_missing_data(module):
+    with pytest.raises(InvalidQueryException):
+        module.query_at_btn_index(FakeQuery("pat:999"))

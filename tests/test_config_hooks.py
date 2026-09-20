@@ -79,8 +79,8 @@ def test_hook_cfg_backfills_missing_keys(monkeypatch):
     assert not hasattr(UserBasic, "LOCALE")
     try:
         _hook_cfg()
-        assert UserBasic.LOCALE == BasicConfig.LOCALE
-        assert UserBasic.DATA_DIR == BasicConfig.DATA_DIR
+        assert getattr(UserBasic, "LOCALE") == BasicConfig.LOCALE
+        assert getattr(UserBasic, "DATA_DIR") == BasicConfig.DATA_DIR
         # user values are never overwritten
         assert UserBasic.TOKEN == "t"
     finally:

@@ -1,4 +1,16 @@
-from typing import Any, Generator, Literal, Optional, Sequence, Union
+import asyncio as asyncio
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Generator,
+    Literal,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from telegram import (
     Document,
@@ -13,7 +25,32 @@ from telegram._utils.defaultvalue import DEFAULT_NONE
 from telegram._utils.types import DVInput, FileInput, JSONDict, ODVInput, ReplyMarkup
 from telegram.ext._utils.types import RLARGS
 
+_T = TypeVar("_T")
+
 class TelegramBotBaseWrapper(object):
+    RETRY_TIMES: int
+    RETRY_SLEEP_TIME: float
+    @classmethod
+    def _sequence_send(
+        cls,
+        interface_func: Callable[..., Awaitable[Message]],
+        texts: list[str],
+        **kwargs: Any,
+    ) -> AsyncGenerator[Message, None]: ...
+    @classmethod
+    async def _retry_call(
+        cls,
+        func: Callable[..., Awaitable[_T]],
+        *args: Any,
+        **kwargs: Any,
+    ) -> _T: ...
+    @classmethod
+    async def _send_ignore_parsemode_or_replyto_exceptions(
+        cls,
+        interface_func: Callable[..., Awaitable[Message]],
+        _no_retry: bool = False,
+        **kwargs: Any,
+    ) -> Message: ...
     @classmethod
     async def success_info(
         cls,

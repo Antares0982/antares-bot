@@ -96,6 +96,18 @@ def test_data_dir_uses_the_config(cfg, monkeypatch):
     assert TelegramBot.data_dir().endswith("mydata")
 
 
+def test_data_dir_rejects_non_string(cfg, monkeypatch):
+    monkeypatch.setattr(cfg.BasicConfig, "DATA_DIR", None)
+    with pytest.raises(TypeError, match="DATA_DIR"):
+        TelegramBot.data_dir()
+
+
+def test_bot_rejects_non_string_token(cfg, monkeypatch):
+    monkeypatch.setattr(cfg.BasicConfig, "TOKEN", None)
+    with pytest.raises(TypeError, match="TOKEN"):
+        TelegramBot()
+
+
 def test_patch_traceback_flag_is_read(cfg, monkeypatch):
     import traceback
 

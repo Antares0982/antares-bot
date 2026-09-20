@@ -1,6 +1,6 @@
 import asyncio
 from types import TracebackType
-from typing import Any, Literal, Optional, cast
+from typing import Any, ClassVar, Literal, Optional, cast
 
 import aiosqlite
 
@@ -26,7 +26,7 @@ WHERE_PART_FORMAT = """ WHERE {where}"""
 
 
 class DataBasesManager:
-    INST: "DataBasesManager" = None  # type: ignore
+    INST: ClassVar["DataBasesManager | None"] = None
 
     @classmethod
     def get_inst(cls):
@@ -72,6 +72,7 @@ class TableProxy(TableDeclarer):
         )
         if is_primary:
             self.primary_keys.append(column_name)
+        return self
 
     def _get_parsed_where(self, pk_data: tuple | Any):
         if isinstance(pk_data, tuple):
@@ -159,6 +160,7 @@ class Database(object):
         """
         await self.close()
         self.conn = await aiosqlite.connect(self.db_path)
+        assert self.conn is not None
         self.conn.row_factory = aiosqlite.Row
         DataBasesManager.get_inst().register_database(self.db_path, self)
         await self.update_table_info()

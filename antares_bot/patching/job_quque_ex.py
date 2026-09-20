@@ -1,6 +1,9 @@
 import weakref
 from typing import TYPE_CHECKING, Any, Optional
 
+import pytz
+from apscheduler.executors.asyncio import AsyncIOExecutor
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram.ext import JobQueue
 
 from antares_bot.bot_default_cfg import AntaresBotConfig
@@ -8,14 +11,7 @@ from antares_bot.context_manager import ContextReverseHelper
 from antares_bot.utils import merge_dicts, read_user_cfg
 
 
-try:
-    import pytz  # type: ignore
-    from apscheduler.executors.asyncio import AsyncIOExecutor  # type: ignore
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore
-
-    APS_AVAILABLE = True
-except ImportError:
-    APS_AVAILABLE = False
+APS_AVAILABLE = True
 
 if TYPE_CHECKING:
     from telegram.ext import Application

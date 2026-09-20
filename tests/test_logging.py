@@ -22,12 +22,16 @@ from antares_bot.bot_logging import (
 
 
 def test_get_logger_prefixes_the_top_name():
-    top = GlobalLoggerInstance.INST.logger_top_name
+    inst = GlobalLoggerInstance.INST
+    assert inst is not None
+    top = inst.logger_top_name
     assert get_logger("some.module").name == f"{top}.some.module"
 
 
 def test_get_logger_strips_the_modules_prefix():
-    top = GlobalLoggerInstance.INST.logger_top_name
+    inst = GlobalLoggerInstance.INST
+    assert inst is not None
+    top = inst.logger_top_name
     assert get_logger("modules.my_mod").name == f"{top}.my_mod"
     # only a leading occurrence is stripped
     assert get_logger("x.modules.y").name == f"{top}.x.modules.y"
@@ -42,7 +46,9 @@ def test_get_logger_requires_initialisation():
 
 
 def test_get_root_logger_returns_the_configured_logger():
-    assert get_root_logger() is GlobalLoggerInstance.INST.root_logger
+    inst = GlobalLoggerInstance.INST
+    assert inst is not None
+    assert get_root_logger() is inst.root_logger
 
 
 # ------------------------------------------------------------------ _log_start
@@ -50,6 +56,7 @@ def test_get_root_logger_returns_the_configured_logger():
 
 def test_log_start_is_idempotent():
     existing = GlobalLoggerInstance.INST
+    assert existing is not None
     assert _log_start("something-else") is existing.root_logger
     assert GlobalLoggerInstance.INST is existing
 
@@ -86,7 +93,9 @@ def test_log_start_falls_back_when_aio_pika_is_missing(cfg, monkeypatch, capsys)
     monkeypatch.setattr(bl, "find_spec", lambda name: None)
     GlobalLoggerInstance.INST = None
     _log_start("test_top_nopika")
-    assert GlobalLoggerInstance.INST.pika_enabled is False
+    inst = GlobalLoggerInstance.INST
+    assert inst is not None
+    assert inst.pika_enabled is False
     assert "Pika not supported" in capsys.readouterr().err
 
 
@@ -174,6 +183,7 @@ class FakePublisher(PikaGlobalLoggerInstance):
         self.published: list[tuple[str, str]] = []
 
     async def _publish(self, routing_key, msg):
+        assert isinstance(msg, str)
         self.published.append((routing_key, msg))
 
     async def _close_channel(self):

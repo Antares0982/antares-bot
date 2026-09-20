@@ -93,8 +93,9 @@ async def test_retry_call_gives_up_after_retry_times():
     assert len(sender.calls) == W.RETRY_TIMES
 
 
-async def test_retry_call_honours_retry_after(no_sleep):
-    sender = Sender(RetryAfter(12), None)
+@pytest.mark.parametrize("retry_after", [12, datetime.timedelta(seconds=12)])
+async def test_retry_call_honours_retry_after(no_sleep, retry_after):
+    sender = Sender(RetryAfter(retry_after), None)
     await W._retry_call(sender)
     assert no_sleep == [13]
 

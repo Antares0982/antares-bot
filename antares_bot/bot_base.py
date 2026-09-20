@@ -1,5 +1,5 @@
 from logging import DEBUG as LOGLEVEL_DEBUG
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from telegram import InlineKeyboardButton
 from telegram.error import TelegramError
@@ -90,7 +90,7 @@ class TelegramBotBase(TelegramBotBaseWrapper):
 
     @classmethod
     def get_master_id(cls) -> int:
-        return utils.read_user_cfg(BasicConfig, "MASTER_ID")
+        return cast(int, utils.read_user_cfg(BasicConfig, "MASTER_ID"))
 
     @classmethod
     def is_master(cls, ct: "RichCallbackContext | None" = None) -> bool:

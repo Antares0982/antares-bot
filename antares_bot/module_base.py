@@ -1,6 +1,16 @@
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 from telegram import Message
 
@@ -41,7 +51,7 @@ class TelegramBotModuleBase(TelegramBotBase):
     def __init__(self, parent: "TelegramBot") -> None:
         self.parent = parent
         self._register_inst()
-        self._handlers: Optional[List[Union["CallbackBase", "BaseHandler"]]] = None
+        self._handlers: Optional[Sequence[Union["CallbackBase", "BaseHandler"]]] = None
 
     def do_init(self) -> None: ...
 
@@ -62,7 +72,7 @@ class TelegramBotModuleBase(TelegramBotBase):
             self._handlers = self.mark_handlers()
         return self._handlers
 
-    def mark_handlers(self) -> List[Union["CallbackBase", "BaseHandler"]]:
+    def mark_handlers(self) -> Sequence[Union["CallbackBase", "BaseHandler"]]:
         """Override to mark all handlers that will be collected."""
         return []
 
@@ -190,7 +200,10 @@ class TelegramBotModuleBase(TelegramBotBase):
         """
         Call when the query uses a keyboard.
         """
-        _, keyboard = self.get_btn_callback_data(query)
+        callback_data = self.get_btn_callback_data(query)
+        if callback_data is None:
+            raise InvalidQueryException
+        _, keyboard = callback_data
         keyboard = cast("PersistKeyboards", keyboard)
         return keyboard.idx(self._get_cb_data_key(query))
 

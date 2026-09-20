@@ -1008,7 +1008,7 @@ class MarkdownParser:
             new_entities = MessageEntity.adjust_message_entities_to_utf_16(
                 text, entities
             )
-            self.entities[i] = new_entities
+            self.entities[i] = list(new_entities)
 
     @classmethod
     def force_split_up_text_object(cls, text_object: TextObject) -> list[TextObject]:
@@ -1023,7 +1023,7 @@ class MarkdownParser:
         )
 
     @classmethod
-    def split_2_parts(self, long_text: str) -> tuple[str, str]:
+    def split_2_parts(cls, long_text: str) -> tuple[str, str]:
         long_text = long_text.strip()
         first_part = long_text[:TEXT_LENGTH_LIMIT]
         last_part = long_text[TEXT_LENGTH_LIMIT:]

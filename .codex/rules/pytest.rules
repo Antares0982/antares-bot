@@ -1,0 +1,13 @@
+prefix_rule(
+    pattern = [".nix-pyenv/bin/python", "-m", "pytest"],
+    decision = "allow",
+    justification = "aiosqlite tests require host thread wakeups",
+    match = [
+        ".nix-pyenv/bin/python -m pytest",
+        ".nix-pyenv/bin/python -m pytest -q",
+    ],
+    not_match = [
+        "python -m pytest",
+        ".nix-pyenv/bin/python main.py",
+    ],
+)

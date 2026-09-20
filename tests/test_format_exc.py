@@ -64,6 +64,7 @@ def _raise_with_locals():
 
 
 def test_format_exception_with_local_vars_reports_locals():
+    lines: list[str] = []
     try:
         _raise_with_locals()
     except ValueError as e:
@@ -77,6 +78,7 @@ def test_format_exception_with_local_vars_reports_locals():
 
 
 def test_format_exception_with_local_vars_accepts_a_single_argument():
+    lines: list[str] = []
     try:
         _raise_with_locals()
     except ValueError as e:

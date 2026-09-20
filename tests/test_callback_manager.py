@@ -131,6 +131,7 @@ def test_persist_keyboards_without_repr_cb_uses_indices():
     kb: PersistKeyboards[str] = PersistKeyboards(m)
     kb.setup_use_data(["a", "b"])
     markup = kb.get_reply_markup("pat", 5)
+    assert markup is not None
     assert [b.text for b in markup.inline_keyboard[0]] == ["0", "1"]
 
 
