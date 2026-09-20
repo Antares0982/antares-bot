@@ -289,6 +289,19 @@ def test_log_stacktrace_never_raises(bot_app, monkeypatch):
     bot_app.log_stacktrace()  # must not raise
 
 
+def test_guard_stop(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        bot_inst.faulthandler,
+        "dump_traceback_later",
+        lambda timeout, *, exit: calls.append((timeout, exit)),
+    )
+
+    TelegramBot._guard_stop()
+
+    assert calls == [(10, True)]
+
+
 # ------------------------------------------------------------ custom hooks
 
 

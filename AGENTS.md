@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents when working with code in this repository.
 
 ## What this repo is
 
@@ -43,8 +43,8 @@ module each call. An autouse fixture saves/restores every process global
 (`GlobalLoggerInstance.INST`, `DataBasesManager.INST`, `LangContextManager.INST`,
 `bot_inst.__bot_singleton`, module `INST`s).
 
-Not covered, deliberately: `run()`/`run_polling`, `_guard_stop()` (forks + SIGKILLs), `_post_run`
-restart, `_do_post_init`/`_do_post_stop`, `obj_graph.py`, `fetch_url`.
+Not covered, deliberately: `run()`/`run_polling`, `_post_run` restart,
+`_do_post_init`/`_do_post_stop`, `obj_graph.py`, `fetch_url`.
 
 Three long-standing bugs the suite found and now pins down — do not "simplify" these back:
 
@@ -74,8 +74,8 @@ rev + sha256 (`requirements.txt` carries a separate pip pin).
 callbacks to PTB handlers, registers `exception_handler`, schedules the daily job, then `run_polling`.
 `_do_post_init` / `_do_post_stop` fan out to every module and time each one.
 
-Shutdown: signal handlers → `true_stop()` → `_guard_stop()` forks a detached bash watchdog that
-`SIGKILL`s the process after 10s if it hasn't exited. `SIGTERM`/`SIGABRT` set `_exit_fast` (skips
+Shutdown: signal handlers → `true_stop()` → `_guard_stop()` arms a faulthandler watchdog that
+calls `os._exit(1)` after 10s if the process hasn't exited. `SIGTERM`/`SIGABRT` set `_exit_fast` (skips
 `git pull`). Restart uses `systemctl restart` when `SYSTEMD_SERVICE_NAME` is set, else re-execs
 `sys.orig_argv`.
 

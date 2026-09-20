@@ -1,10 +1,10 @@
 import asyncio
 import datetime
+import faulthandler
 import os
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 import traceback
 import types
@@ -506,28 +506,7 @@ class TelegramBot(TelegramBotBase):
 
     @staticmethod
     def _guard_stop():
-        pid = os.getpid()
-        start_time = int(
-            subprocess.check_output(
-                "awk '{print $22}' " + f"/proc/{pid}/stat", shell=True, encoding="utf-8"
-            )
-        )
-        sub_pid = os.fork()
-        if sub_pid == 0:
-            execute_shell = """
-            sleep 10
-            start_time=$(awk '{print $22}' /proc/%s/stat 2>/dev/null)
-            if [ -n "$start_time" ] && [ $start_time -eq %s ]; then
-                echo "process still running, kill with SIGKILL"
-                kill -KILL %s
-            fi
-            rm "%s"
-            """
-            os.setsid()
-            fd, name = tempfile.mkstemp()
-            os.write(fd, (execute_shell % (pid, start_time, pid, name)).encode())
-            os.close(fd)
-            os.execvp("bash", ["bash", name])
+        faulthandler.dump_traceback_later(10, exit=True)
 
     @property
     def exit_fast(self):
