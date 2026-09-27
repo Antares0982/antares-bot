@@ -1,4 +1,4 @@
-antares-ptb[job-queue]==22.8
+antares-ptb[job-queue,webhooks]==22.8
 aiosqlite
 objgraph
 aio-pika

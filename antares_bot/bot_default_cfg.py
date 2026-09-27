@@ -30,3 +30,8 @@ class AntaresBotConfig(BaseConfig):
     Config to control the bot behavior.
     Create a class with same name in bot_cfg.py to set the value.
     """
+
+    WEBHOOK_CONFIG = None
+    BOT_API_BASE_URL = None
+    BOT_API_BASE_FILE_URL = None
+    BOT_API_LOCAL_MODE = False

@@ -10,6 +10,7 @@
   objgraph,
   python-telegram-bot,
   pytz,
+  tornado,
   setuptools,
   setuptools-scm,
   ...
@@ -37,6 +38,7 @@ builder {
     objgraph
     apscheduler
     pytz
+    tornado
     aio-pika
   ];
 }

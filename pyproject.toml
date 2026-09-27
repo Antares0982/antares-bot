@@ -51,6 +51,9 @@ packages = ["antares_bot"]
 antares_bot = "antares_bot.__main__:main"
 
 [project.optional-dependencies]
+webhooks = [
+    "antares-ptb[webhooks]",
+]
 pika = [
     "aio-pika"
 ]

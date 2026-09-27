@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import faulthandler
+import importlib.util
+import inspect
 import os
 import signal
 import subprocess
@@ -131,11 +133,25 @@ class TelegramBot(TelegramBotBase):
         token = read_user_cfg(BasicConfig, "TOKEN")
         if not isinstance(token, str):
             raise TypeError("BasicConfig.TOKEN must be a string")
+        builder = Application.builder()
+        for name, setter in (
+            ("BOT_API_BASE_URL", builder.base_url),
+            ("BOT_API_BASE_FILE_URL", builder.base_file_url),
+        ):
+            value = read_user_cfg(AntaresBotConfig, name)
+            if value is not None:
+                if not isinstance(value, str):
+                    raise TypeError(f"AntaresBotConfig.{name} must be a string or None")
+                if not value.strip():
+                    raise ValueError(f"AntaresBotConfig.{name} must not be empty")
+                setter(value)
+        local_mode = read_user_cfg(AntaresBotConfig, "BOT_API_LOCAL_MODE")
+        if not isinstance(local_mode, bool):
+            raise TypeError("AntaresBotConfig.BOT_API_LOCAL_MODE must be a boolean")
+        builder.local_mode(local_mode)
         self.application = cast(
             "Application[ExtBot[None], RichCallbackContext, UserData, ChatData, dict, JobQueueEx]",
-            Application.builder()
-            # .application_class(ApplicationEx)
-            .token(token)
+            builder.token(token)
             .context_types(context_types)
             .job_queue(JobQueueEx())
             .post_init(self._do_post_init)
@@ -316,6 +332,28 @@ class TelegramBot(TelegramBotBase):
         self._custom_finalize_task = finalize_task
 
     def run(self):
+        webhook_config = read_user_cfg(AntaresBotConfig, "WEBHOOK_CONFIG")
+        webhook_options: dict[str, Any] | None = None
+        if webhook_config is not None:
+            if not isinstance(webhook_config, dict):
+                raise TypeError(
+                    "AntaresBotConfig.WEBHOOK_CONFIG must be a dict or None"
+                )
+            if "stop_signals" in webhook_config:
+                raise ValueError(
+                    "WEBHOOK_CONFIG.stop_signals is managed by the framework"
+                )
+            webhook_options = {
+                "allowed_updates": Update.ALL_TYPES,
+                "drop_pending_updates": True,
+                **webhook_config,
+                "stop_signals": (),
+            }
+            inspect.signature(self.application.run_webhook).bind(**webhook_options)
+            if importlib.util.find_spec("tornado") is None:
+                raise RuntimeError(
+                    "Webhook mode requires: pip install 'antares_bot[webhooks]'"
+                )
         self._module_keeper.load_all()
         for module in self._module_keeper.get_all_enabled_modules():
             module.do_init(self)
@@ -367,11 +405,14 @@ class TelegramBot(TelegramBotBase):
         signal.signal(signal.SIGABRT, self.signal_stop)
 
         try:
-            self.application.run_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-                stop_signals=(),
-            )
+            if webhook_options is None:
+                self.application.run_polling(
+                    allowed_updates=Update.ALL_TYPES,
+                    drop_pending_updates=True,
+                    stop_signals=(),
+                )
+            else:
+                self.application.run_webhook(**webhook_options)
         except NetworkError:
             # catches the NetworkError when the bot is turned off.
             # we don't care about that when normal exit
@@ -478,7 +519,7 @@ class TelegramBot(TelegramBotBase):
         stop_index = None
         for i, f in enumerate(stacktrace_lst):
             funcname = f.f_code.co_name
-            if funcname == "run_polling":
+            if funcname in ("run_polling", "run_webhook"):
                 stop_index = i - 1
         if stop_index is not None and stop_index > 0:
             stacktrace_lst = stacktrace_lst[stop_index:]

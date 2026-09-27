@@ -342,3 +342,127 @@ def test_custom_hooks_are_stored(bot_app):
         bot_app._custom_post_stop_task = None
         bot_app._custom_restart_command = None
         bot_app._custom_finalize_task = None
+
+
+@pytest.mark.parametrize("custom", [False, True])
+def test_api_config(cfg, monkeypatch, custom):
+    if custom:
+        monkeypatch.setattr(
+            cfg.AntaresBotConfig, "BOT_API_BASE_URL", "http://localhost:8081/bot"
+        )
+        monkeypatch.setattr(
+            cfg.AntaresBotConfig,
+            "BOT_API_BASE_FILE_URL",
+            "http://localhost:8081/file/bot",
+        )
+        monkeypatch.setattr(cfg.AntaresBotConfig, "BOT_API_LOCAL_MODE", True)
+    bot = TelegramBot().bot
+    host = "http://localhost:8081" if custom else "https://api.telegram.org"
+    assert bot.base_url == f"{host}/bot{cfg.BasicConfig.TOKEN}"
+    assert bot.base_file_url == f"{host}/file/bot{cfg.BasicConfig.TOKEN}"
+    assert bot.local_mode is custom
+
+
+@pytest.mark.parametrize(
+    "name,value,error",
+    [
+        ("BOT_API_BASE_URL", 42, TypeError),
+        ("BOT_API_BASE_URL", " ", ValueError),
+        ("BOT_API_BASE_FILE_URL", False, TypeError),
+        ("BOT_API_BASE_FILE_URL", "", ValueError),
+        ("BOT_API_LOCAL_MODE", "false", TypeError),
+        ("BOT_API_LOCAL_MODE", None, TypeError),
+    ],
+)
+def test_invalid_api(cfg, monkeypatch, name, value, error):
+    monkeypatch.setattr(cfg.AntaresBotConfig, name, value)
+    with pytest.raises(error, match=name):
+        TelegramBot()
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        None,
+        {},
+        {
+            "listen": "127.0.0.1",
+            "port": 8080,
+            "url_path": "updates",
+            "webhook_url": "https://example.com/updates",
+            "secret_token": "test-secret",
+            "allowed_updates": ["message"],
+            "drop_pending_updates": False,
+        },
+        {"cert": "cert.pem", "key": "key.pem", "port": 8443},
+    ],
+)
+@pytest.mark.parametrize("network_error", [False, True])
+def test_run_modes(cfg, monkeypatch, config, network_error):
+    from functools import wraps
+    from unittest.mock import Mock
+
+    from telegram import Update
+    from telegram.ext import Application
+
+    bot = TelegramBot()
+    monkeypatch.setattr(cfg.AntaresBotConfig, "WEBHOOK_CONFIG", config)
+    original = None if config is None else config.copy()
+    calls = []
+
+    def record(mode, kwargs):
+        calls.append((mode, kwargs))
+        if network_error:
+            bot._normal_exit_flag = True
+            raise NetworkError("stopped")
+
+    @wraps(Application.run_webhook)
+    def webhook(self, **kwargs):
+        record("webhook", kwargs)
+
+    def polling(self, **kwargs):
+        record("polling", kwargs)
+
+    monkeypatch.setattr(Application, "run_webhook", webhook)
+    monkeypatch.setattr(Application, "run_polling", polling)
+    monkeypatch.setattr(bot_inst.importlib.util, "find_spec", lambda name: object())
+    monkeypatch.setattr(bot._module_keeper, "load_all", lambda: None)
+    monkeypatch.setattr(bot._module_keeper, "get_all_enabled_modules", lambda: [])
+    monkeypatch.setattr(bot_inst.signal, "signal", lambda *args: None)
+    monkeypatch.setattr(JobQueueEx, "run_daily", lambda *args, **kwargs: None)
+    finalize = Mock()
+    monkeypatch.setattr(bot, "_post_run", finalize)
+    bot.run()
+    expected = {
+        "allowed_updates": Update.ALL_TYPES,
+        "drop_pending_updates": True,
+        "stop_signals": (),
+    }
+    expected.update(config or {})
+    assert calls == [("polling" if config is None else "webhook", expected)]
+    assert config == original
+    finalize.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "config,error,match",
+    [
+        (False, TypeError, "WEBHOOK_CONFIG"),
+        ([], TypeError, "WEBHOOK_CONFIG"),
+        ({"stop_signals": ()}, ValueError, "stop_signals"),
+        ({"unknown": 1}, TypeError, "unknown"),
+        ({1: "value"}, TypeError, "keywords must be strings"),
+        ({}, RuntimeError, "antares_bot\\[webhooks\\]"),
+    ],
+)
+def test_invalid_webhook(cfg, monkeypatch, config, error, match):
+    from unittest.mock import Mock
+
+    bot = TelegramBot()
+    monkeypatch.setattr(cfg.AntaresBotConfig, "WEBHOOK_CONFIG", config)
+    monkeypatch.setattr(bot_inst.importlib.util, "find_spec", lambda name: None)
+    load = Mock()
+    monkeypatch.setattr(bot._module_keeper, "load_all", load)
+    with pytest.raises(error, match=match):
+        bot.run()
+    load.assert_not_called()

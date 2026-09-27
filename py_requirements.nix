@@ -11,6 +11,7 @@ pypkgs: with pypkgs; [
   # deps for job-queue
   apscheduler
   pytz
+  tornado
   # optional
   aio-pika
   # test

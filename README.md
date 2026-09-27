@@ -11,6 +11,74 @@ A Telegram bot framework wrapping many things.
 
 ### Examples
 
+#### Webhook mode
+
+Install `pip install 'antares_bot[webhooks]'` and add `WEBHOOK_CONFIG` to your
+existing `AntaresBotConfig` in `bot_cfg.py`. For HTTPS terminated by a reverse proxy:
+
+```python
+class AntaresBotConfig:
+    WEBHOOK_CONFIG = {
+        "listen": "127.0.0.1",
+        "port": 8080,
+        "url_path": "telegram-updates",
+        "webhook_url": "https://bot.example.com/telegram-updates",
+        "secret_token": "replace-with-a-random-secret",
+        "drop_pending_updates": False,
+    }
+```
+
+Forward that public URL to `http://127.0.0.1:8080/telegram-updates`, preserving
+the `X-Telegram-Bot-Api-Secret-Token` header. PTB registers the webhook and checks
+the secret on incoming requests. Use a secret containing only letters, digits,
+underscores and hyphens (1–256 characters).
+
+For direct HTTPS, use a publicly reachable listener and provide the certificate
+and private key:
+
+```python
+class AntaresBotConfig:
+    WEBHOOK_CONFIG = {
+        "listen": "0.0.0.0",
+        "port": 8443,
+        "url_path": "telegram-updates",
+        "webhook_url": "https://bot.example.com:8443/telegram-updates",
+        "cert": "/etc/bot/cert.pem",
+        "key": "/etc/bot/key.pem",
+        "secret_token": "replace-with-a-random-secret",
+    }
+```
+
+`WEBHOOK_CONFIG = None` (the default) uses polling. Any dictionary, including
+`{}`, selects webhook mode. Keys follow PTB's
+[`Application.run_webhook`](https://docs.python-telegram-bot.org/en/stable/telegram.ext.application.html#telegram.ext.Application.run_webhook)
+parameters, except `stop_signals`, which the framework manages and rejects in
+the dictionary. All update types are enabled and pending updates are dropped
+by default, matching polling; override `allowed_updates` and
+`drop_pending_updates` in the dictionary as needed. Other defaults come from PTB.
+
+#### Custom Bot API server
+
+These settings work with both polling and webhook mode:
+
+```python
+class AntaresBotConfig:
+    BOT_API_BASE_URL = "http://localhost:8081/bot"
+    BOT_API_BASE_FILE_URL = "http://localhost:8081/file/bot"
+    BOT_API_LOCAL_MODE = True
+```
+
+The URL prefixes exclude the bot token; PTB appends it. Configure both URLs
+when using a custom server: each unset URL independently uses Telegram's public
+API default. `BOT_API_LOCAL_MODE` defaults to `False`; enable it for a Bot API
+server running with `--local`. Local file paths must be accessible at the same
+paths by the bot and server, including shared mounts when using containers.
+
+Before migrating from the public API to a local server, call `log_out` against
+the public API as part of deployment. The framework does not migrate sessions
+automatically. See Telegram's
+[local server instructions](https://core.telegram.org/bots/api#using-a-local-bot-api-server).
+
 The documentation is far from completed, so here we only introduce a small part of features. We assume that you are already familiar with [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot).
 
 Creating a bot with command `/echo`. First create a file `modules/echo.py`.
@@ -143,4 +211,3 @@ if __name__ == "__main__":
 ### Note
 
 * Only support Python version >= 3.10
-
