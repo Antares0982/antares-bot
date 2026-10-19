@@ -298,3 +298,128 @@ def test_markdown_split_long_input_produces_multiple_messages():
 
 def test_markdown_split_empty_input():
     assert longtext_markdown_split("") == ([], [])
+
+
+@pytest.mark.parametrize(
+    "source,label,url",
+    [
+        ("[说明](https://example.com)", "说明", "https://example.com"),
+        (
+            "[说明](https://example.com/a_(b)?a=x_y&b=2#part)",
+            "说明",
+            "https://example.com/a_(b)?a=x_y&b=2#part",
+        ),
+        (r"[a\[b\]](https://example.com/a\(b\))", "a[b]", "https://example.com/a(b)"),
+        (
+            "[**说明** `code`](https://example.com)",
+            "**说明** `code`",
+            "https://example.com",
+        ),
+        (
+            "[a [b]](tg://resolve?domain=example)",
+            "a [b]",
+            "tg://resolve?domain=example",
+        ),
+    ],
+)
+def test_markdown_plain_text_link(source, label, url):
+    texts, groups = longtext_markdown_split(source)
+    assert texts == [label]
+    assert groups == [
+        [MessageEntity(MessageEntityType.TEXT_LINK, 0, len(label), url=url)]
+    ]
+
+
+def test_markdown_links_with_surrounding_formatting_and_emoji():
+    texts, groups = longtext_markdown_split(
+        "😀 **粗体** [中😀](https://example.com/1)[二](https://example.com/2) *斜体*"
+    )
+    assert texts == ["😀 粗体 中😀二 斜体"]
+    assert _entity_texts(texts[0], groups[0]) == [
+        (MessageEntityType.BOLD, "粗体"),
+        (MessageEntityType.TEXT_LINK, "中😀"),
+        (MessageEntityType.TEXT_LINK, "二"),
+        (MessageEntityType.ITALIC, "斜体"),
+    ]
+    links = [e for e in groups[0] if e.type == MessageEntityType.TEXT_LINK]
+    assert [(e.offset, e.length, e.url) for e in links] == [
+        (6, 3, "https://example.com/1"),
+        (9, 1, "https://example.com/2"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "[text](https://example.com",
+        "[text]",
+        "[](https://example.com)",
+        "[text]()",
+        "![text](https://example.com)",
+        r"\[text](https://example.com)",
+        '[text](https://example.com "title")',
+        "[text\nmore](https://example.com)",
+        "[text](https://example.com\n/path)",
+        "[text][reference]",
+    ],
+)
+def test_markdown_unsupported_link_is_literal(source):
+    texts, groups = longtext_markdown_split(source)
+    assert texts == [source]
+    assert groups == [[]]
+
+
+@pytest.mark.parametrize("wrapper", ["`{}`", "```\n{}\n```"])
+def test_markdown_link_in_code_is_literal(wrapper):
+    source = "[text](https://example.com)"
+    texts, groups = longtext_markdown_split(wrapper.format(source))
+    assert texts == [source]
+    assert _entity_texts(texts[0], groups[0]) == [
+        (MessageEntityType.CODE if wrapper == "`{}`" else MessageEntityType.PRE, source)
+    ]
+
+
+def test_markdown_code_then_link_and_literal_backticks_in_label():
+    texts, groups = longtext_markdown_split(
+        "`[code](https://example.com)` [a `b`](https://example.com/link)"
+    )
+    assert texts == ["[code](https://example.com) a `b`"]
+    assert _entity_texts(texts[0], groups[0]) == [
+        (MessageEntityType.CODE, "[code](https://example.com)"),
+        (MessageEntityType.TEXT_LINK, "a `b`"),
+    ]
+    assert groups[0][1].url == "https://example.com/link"
+
+
+@pytest.mark.parametrize("length", [3999, 4000, 4001, 8005])
+@pytest.mark.parametrize("prefix", ["", "prefix " * 570])
+def test_markdown_long_link_keeps_url_across_chunks(length, prefix):
+    label = "x" * length
+    url = "https://example.com"
+    texts, groups = longtext_markdown_split(prefix + f"[{label}]({url})")
+    assert "".join(texts) == prefix + label
+    assert len(texts) == len(groups)
+    linked_text = []
+    for text, entities in zip(texts, groups):
+        assert len(text) <= TEXT_LENGTH_LIMIT
+        for entity in entities:
+            assert entity.type == MessageEntityType.TEXT_LINK
+            assert entity.url == url
+            assert 0 <= entity.offset < entity.offset + entity.length <= len(text)
+        linked_text.extend(value for _, value in _entity_texts(text, entities))
+    assert "".join(linked_text) == label
+
+
+def test_markdown_long_link_label_preserves_spaces():
+    label = " " + "word " * 1700
+    url = "https://example.com"
+    texts, groups = longtext_markdown_split(f"[{label}]({url})")
+    assert "".join(texts) == label
+    assert all(e.url == url for group in groups for e in group)
+
+
+def test_markdown_escaped_backtick_does_not_end_code_before_link_syntax():
+    source = r"`a\` [text](https://example.com)`"
+    texts, groups = longtext_markdown_split(source)
+    assert all(e.type != MessageEntityType.TEXT_LINK for group in groups for e in group)
+    assert "[text](https://example.com)" in texts[0]

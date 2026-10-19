@@ -786,6 +786,7 @@ class TextObject:
     text: str
     entity_type: MessageEntityType | None
     code_language: str | None = None
+    url: str | None = None
 
 
 def trim_spaces_before_line(code: str):
@@ -870,17 +871,92 @@ class MarkdownParser:
             lines = text.split("\n")
             sep = ""
             for line in lines:
-                self.push_text(
-                    sep + line,
-                    [
-                        (self.split_special, None),
-                        ("`", MessageEntityType.CODE),
-                        ("**", MessageEntityType.BOLD),
-                        ("*", MessageEntityType.ITALIC),
-                    ],
-                )
+                self.push_inline(sep + line)
                 sep = "\n"
         self.digest()
+
+    @staticmethod
+    def _bracket_end(text: str, start: int, opening: str, closing: str) -> int:
+        depth = 1
+        index = start + 1
+        while index < len(text):
+            char = text[index]
+            if char == "\\":
+                index += 2
+                continue
+            if char == opening:
+                depth += 1
+            elif char == closing:
+                depth -= 1
+                if depth == 0:
+                    return index
+            index += 1
+        return -1
+
+    @staticmethod
+    def _unescape_link(text: str) -> str:
+        result = []
+        index = 0
+        while index < len(text):
+            if (
+                text[index] == "\\"
+                and index + 1 < len(text)
+                and text[index + 1] in "\\[]()"
+            ):
+                index += 1
+            result.append(text[index])
+            index += 1
+        return "".join(result)
+
+    def push_inline(self, text: str):
+        config: list[
+            tuple[str | Callable[[str], list[str]], MessageEntityType | None]
+        ] = [
+            (self.split_special, None),
+            ("`", MessageEntityType.CODE),
+            ("**", MessageEntityType.BOLD),
+            ("*", MessageEntityType.ITALIC),
+        ]
+        start = index = 0
+        while index < len(text):
+            if text[index] == "\\":
+                index += 2
+                continue
+            if text[index] == "`":
+                end = text.find("`", index + 1)
+                while end != -1:
+                    backslashes = len(text[:end]) - len(text[:end].rstrip("\\"))
+                    if backslashes % 2 == 0:
+                        break
+                    end = text.find("`", end + 1)
+                if end != -1:
+                    index = end + 1
+                    continue
+            if text[index] != "[":
+                index += 1
+                continue
+            label_end = self._bracket_end(text, index, "[", "]")
+            if label_end == -1 or text[label_end + 1 : label_end + 2] != "(":
+                index += 1
+                continue
+            url_end = self._bracket_end(text, label_end + 1, "(", ")")
+            if url_end == -1:
+                index += 1
+                continue
+            label = self._unescape_link(text[index + 1 : label_end])
+            url = self._unescape_link(text[label_end + 2 : url_end])
+            if (
+                (index > 0 and text[index - 1] == "!")
+                or not label
+                or not url
+                or any(char.isspace() for char in url)
+            ):
+                index = url_end + 1
+                continue
+            self.push_text(text[start:index], config)
+            self.enqueue(TextObject(label, MessageEntityType.TEXT_LINK, url=url))
+            start = index = url_end + 1
+        self.push_text(text[start:], config)
 
     @classmethod
     def get_code_lang(cls, text: str):
@@ -951,7 +1027,7 @@ class MarkdownParser:
         entities = []
         end_at = len(rest_text_object)
         for i, text_object in enumerate(rest_text_object):
-            if len(text + text_object.text) >= TEXT_LENGTH_LIMIT:
+            if len(text + text_object.text) > TEXT_LENGTH_LIMIT:
                 end_at = i
                 break
             if text_object.entity_type is not None:
@@ -960,6 +1036,7 @@ class MarkdownParser:
                     offset=len(text),
                     length=len(text_object.text),
                     language=text_object.code_language,
+                    url=text_object.url,
                 )
                 entities.append(new_entity)
             text += text_object.text
@@ -1014,8 +1091,17 @@ class MarkdownParser:
     def force_split_up_text_object(cls, text_object: TextObject) -> list[TextObject]:
         if len(text_object.text) < TEXT_LENGTH_LIMIT:
             return [text_object]
+        if text_object.entity_type == MessageEntityType.TEXT_LINK:
+            return [
+                TextObject(
+                    text_object.text[index : index + TEXT_LENGTH_LIMIT],
+                    MessageEntityType.TEXT_LINK,
+                    url=text_object.url,
+                )
+                for index in range(0, len(text_object.text), TEXT_LENGTH_LIMIT)
+            ]
         parted_1, parted_2 = cls.split_2_parts(text_object.text)
-        kwargs: dict = {"entity_type": text_object.entity_type}
+        kwargs: dict = {"entity_type": text_object.entity_type, "url": text_object.url}
         if text_object.entity_type == MessageEntityType.PRE:
             kwargs["code_language"] = text_object.code_language
         return [TextObject(text=parted_1, **kwargs)] + cls.force_split_up_text_object(
@@ -1048,5 +1134,12 @@ class MarkdownParser:
 
 
 def longtext_markdown_split(txt: str) -> tuple[list[str], list[list[MessageEntity]]]:
+    """Split Markdown into text and Telegram entities.
+
+    Inline links use single-line ``[label](url)`` syntax with nonempty labels
+    and whitespace-free URLs. Labels are literal text, not nested Markdown.
+    Code spans and blocks do not interpret links; images, reference links,
+    and link titles are unsupported.
+    """
     splitter = MarkdownParser()
     return splitter.parse(txt)
