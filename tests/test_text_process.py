@@ -304,6 +304,8 @@ def test_markdown_split_empty_input():
     "source,label,url",
     [
         ("[说明](https://example.com)", "说明", "https://example.com"),
+        ("[说明](http://example.com)", "说明", "http://example.com"),
+        ("[邮件](mailto:dev@example.com)", "邮件", "mailto:dev@example.com"),
         (
             "[说明](https://example.com/a_(b)?a=x_y&b=2#part)",
             "说明",
@@ -367,6 +369,41 @@ def test_markdown_unsupported_link_is_literal(source):
     texts, groups = longtext_markdown_split(source)
     assert texts == [source]
     assert groups == [[]]
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/home/agent/agent_work/.agents/skills/github-pr/skill.md",
+        "./src/file.py:12",
+        "../README.md",
+        "#section",
+        "//example.com/file",
+        "file:///home/agent/file.md",
+        "https:///missing-host",
+        "https://",
+        "https://[invalid",
+        "https://example.com/\x00bad",
+        "mailto:",
+        "javascript:alert(1)",
+    ],
+)
+def test_markdown_invalid_url_is_literal(url):
+    source = f"[本地文件]({url})"
+    texts, groups = longtext_markdown_split(source)
+    assert texts == [source]
+    assert groups == [[]]
+
+
+def test_markdown_local_and_web_links():
+    source = "😀 **查看** [文件](/home/a_b/file.md) [网站](https://example.com)"
+    texts, groups = longtext_markdown_split(source)
+    assert texts == ["😀 查看 [文件](/home/a_b/file.md) 网站"]
+    assert _entity_texts(texts[0], groups[0]) == [
+        (MessageEntityType.BOLD, "查看"),
+        (MessageEntityType.TEXT_LINK, "网站"),
+    ]
+    assert groups[0][-1].url == "https://example.com"
 
 
 @pytest.mark.parametrize("wrapper", ["`{}`", "```\n{}\n```"])
