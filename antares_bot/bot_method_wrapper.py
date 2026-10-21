@@ -275,6 +275,16 @@ class TelegramBotBaseWrapper(object):
                 return await interface_func(**kwargs)
             return await cls._retry_call(interface_func, **kwargs)
         except BadRequest as e:
+            error = str(e).lower()
+            if "entity" in error or "entities" in error:
+                if kwargs.get("entities") or kwargs.get("caption_entities"):
+                    kwargs.pop("entities", None)
+                    kwargs.pop("caption_entities", None)
+                    kwargs["parse_mode"] = None
+                    _LOGGER.error("send message failed, retrying without entities")
+                    return await cls._send_ignore_parsemode_or_replyto_exceptions(
+                        interface_func, _no_retry, **kwargs
+                    )
             if str(e).find("reply") != -1:
                 _LOGGER.error(
                     "send message failed, retrying by popping reply_to_message_id"

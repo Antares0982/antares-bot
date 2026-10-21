@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
+from urllib.parse import urlsplit
 
 from telegram import MessageEntity
 from telegram.constants import MessageEntityType
@@ -815,6 +816,18 @@ def trim_spaces_before_line(code: str):
 
 
 class MarkdownParser:
+    @staticmethod
+    def _is_link_url(url: str) -> bool:
+        if any(ord(char) < 32 or ord(char) == 127 for char in url):
+            return False
+        try:
+            parts = urlsplit(url)
+            if parts.scheme == "mailto":
+                return bool(parts.path)
+            return parts.scheme in {"http", "https", "tg"} and bool(parts.hostname)
+        except ValueError:
+            return False
+
     def __init__(self) -> None:
         self.texts: list[str] = []
         self.entities: list[list[MessageEntity]] = []
@@ -954,7 +967,10 @@ class MarkdownParser:
                 index = url_end + 1
                 continue
             self.push_text(text[start:index], config)
-            self.enqueue(TextObject(label, MessageEntityType.TEXT_LINK, url=url))
+            if self._is_link_url(url):
+                self.enqueue(TextObject(label, MessageEntityType.TEXT_LINK, url=url))
+            else:
+                self.enqueue(TextObject(text[index : url_end + 1], None))
             start = index = url_end + 1
         self.push_text(text[start:], config)
 
@@ -1137,7 +1153,8 @@ def longtext_markdown_split(txt: str) -> tuple[list[str], list[list[MessageEntit
     """Split Markdown into text and Telegram entities.
 
     Inline links use single-line ``[label](url)`` syntax with nonempty labels
-    and whitespace-free URLs. Labels are literal text, not nested Markdown.
+    and whitespace-free HTTP(S), tg or mailto URLs. Other targets stay literal.
+    Labels are literal text, not nested Markdown.
     Code spans and blocks do not interpret links; images, reference links,
     and link titles are unsupported.
     """
