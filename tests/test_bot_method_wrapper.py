@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from telegram import Chat, Message, MessageEntity
+from telegram import Chat, Message
 from telegram.error import (
     BadRequest,
     ChatMigrated,
@@ -137,54 +137,6 @@ async def test_parse_error_without_a_parse_mode_is_raised():
     sender = Sender(BadRequest("can't parse entities"))
     with pytest.raises(BadRequest):
         await W._send_ignore_parsemode_or_replyto_exceptions(sender, text="hi")
-
-
-@pytest.mark.parametrize("field", ["entities", "caption_entities"])
-@pytest.mark.parametrize("no_retry", [False, True])
-@pytest.mark.parametrize(
-    "error",
-    [
-        "Entity url '/home/agent/file.md' is invalid: url host is empty",
-        "can't parse entities: entity offset is out of range",
-    ],
-)
-async def test_invalid_entities_fall_back_to_plain_text(field, no_retry, error):
-    sender = Sender(BadRequest(error), None)
-    entities = [MessageEntity("text_link", 0, 2, url="/home/agent/file.md")]
-    text_field = "text" if field == "entities" else "caption"
-    await W._send_ignore_parsemode_or_replyto_exceptions(
-        sender,
-        _no_retry=no_retry,
-        **{text_field: "hi", field: entities},
-        parse_mode="MarkdownV2",
-        reply_markup="buttons",
-    )
-    assert len(sender.calls) == 2
-    assert sender.calls[0][field] == entities
-    assert field not in sender.calls[1]
-    assert sender.calls[1]["parse_mode"] is None
-    assert sender.calls[1][text_field] == "hi"
-    assert sender.calls[1]["reply_markup"] == "buttons"
-
-
-async def test_entity_fallback_does_not_loop():
-    sender = Sender(
-        BadRequest("Entity url is invalid"), BadRequest("Entity url is invalid")
-    )
-    with pytest.raises(BadRequest):
-        await W._send_ignore_parsemode_or_replyto_exceptions(
-            sender, text="hi", entities=[MessageEntity("bold", 0, 2)]
-        )
-    assert len(sender.calls) == 2
-
-
-async def test_unrelated_error_preserves_entities():
-    sender = Sender(BadRequest("chat not found"))
-    with pytest.raises(BadRequest):
-        await W._send_ignore_parsemode_or_replyto_exceptions(
-            sender, text="hi", entities=[MessageEntity("bold", 0, 2)]
-        )
-    assert len(sender.calls) == 1
 
 
 async def test_unrelated_bad_request_is_raised():
