@@ -17,7 +17,13 @@ After changing dependencies in `pyproject.toml`, run `uv lock`, commit `uv.lock`
 and re-enter the shell. `nix build` produces a runtime with webhook and RabbitMQ
 support and the `result/bin/antares_bot` entry point.
 
-To use a Git revision in a downstream uv2nix project, add these entries to its
+For a flake-pinned framework, apply `antares-bot.overlays.uv2nix` to your
+pyproject.nix Python package set before your application overlay. Include
+`antares-bot = [ "pika" "webhooks" ];` in the `mkVirtualEnv` dependency set,
+choosing the extras your application uses. Update the framework with
+`nix flake update antares-bot`.
+
+To pin a Git revision with uv, add these entries to your application's
 `pyproject.toml`, replace the placeholder with the full commit SHA, and run
 `uv lock` in that project.
 

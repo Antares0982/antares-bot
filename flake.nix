@@ -51,6 +51,7 @@
       );
     in
     rec {
+      overlays.uv2nix = overlay;
       packages = forAllSystems (
         system:
         let
