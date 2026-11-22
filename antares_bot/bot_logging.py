@@ -28,12 +28,13 @@ class SustainedChannel:
         self.channel: "AbstractChannel | None" = None
 
     @classmethod
-    async def create(cls, **kwargs) -> "SustainedChannel":
+    async def create(cls, **kwargs: Any) -> "SustainedChannel":
         from aio_pika import connect_robust
 
         ret = cls()
-        ret.conn = await connect_robust(**kwargs)
-        ret.channel = await ret.conn.channel()
+        connection: AbstractConnection = await connect_robust(**kwargs)
+        ret.conn = connection
+        ret.channel = await connection.channel()
         return ret
 
     async def close(self):

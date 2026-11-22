@@ -9,6 +9,26 @@ A Telegram bot framework wrapping many things.
 * Write your module in `modules` directory under working directory
 * Run `antares_bot` to start your bot
 
+### Developing with Nix
+
+Run `nix develop` to enter the Python 3.14 environment with the local framework
+installed in editable mode. Run `python -m pytest` from the repository root.
+After changing dependencies in `pyproject.toml`, run `uv lock`, commit `uv.lock`,
+and re-enter the shell. `nix build` produces a runtime with webhook and RabbitMQ
+support and the `result/bin/antares_bot` entry point.
+
+To use a Git revision in a downstream uv2nix project, add these entries to its
+`pyproject.toml`, replace the placeholder with the full commit SHA, and run
+`uv lock` in that project.
+
+```toml
+[project]
+dependencies = ["antares-bot"]
+
+[tool.uv.sources]
+antares-bot = { git = "https://github.com/Antares0982/antares-bot.git", rev = "<full-commit-sha>" }
+```
+
 ### Examples
 
 #### Webhook mode

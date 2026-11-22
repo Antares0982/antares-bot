@@ -1,3 +1,3 @@
-nix build .#ptb
-cp -r --no-preserve=mode ./result/lib/python3.12/site-packages/telegram ./telegram
-rm result
+set -eu
+ptb=$(nix build .#ptb --no-link --print-out-paths)
+cp -RL --no-preserve=mode "$ptb"/lib/python*/site-packages/telegram/. ./telegram

@@ -5,14 +5,15 @@ This file provides guidance to coding agents when working with code in this repo
 ## What this repo is
 
 `antares_bot/` is a published PyPI package — a framework wrapping python-telegram-bot (PTB).
-`tests/` is tracked too, but is not packaged (`[tool.setuptools] packages = ["antares_bot"]`).
+`uv_build` packages the root-level `antares_bot/` tree. The tracked `tests/` suite runs from the checkout.
 Everything else at the root (`bot_cfg.py`, `main.py`, `modules/`, `data/`, `test.py`) is
 gitignored: it is a local sandbox for running the framework, not part of the deliverable.
 Changes belong in `antares_bot/` (and `tests/`) unless you are deliberately exercising the sandbox.
 
 ## Environment & commands
 
-Nix devshell (direnv, `use flake`); Python 3.14 lives at `.nix-pyenv/bin/python`.
+`nix develop` (or direnv's `use flake`) links the uv2nix Python 3.14 environment at `.nix-pyenv`.
+Declare Python dependencies in `pyproject.toml` and run `uv lock` after changes.
 
 ```bash
 .nix-pyenv/bin/python main.py     # run the bot (main.py calls bootstrap().run())
@@ -20,7 +21,7 @@ Nix devshell (direnv, `use flake`); Python 3.14 lives at `.nix-pyenv/bin/python`
 pyright                           # type-check the entire repository
 ruff format .                     # format the entire repository
 ruff format --check .             # verify formatting without changes
-nix build                         # build the package (default.nix)
+nix build                         # build the runtime with pika and webhooks
 nix build .#ptb                   # build the PTB fork; test.sh copies its telegram/ out for stubs
 ```
 
@@ -34,7 +35,7 @@ work complete. Root `test.py` is a scratch script for the fork-and-SIGKILL shutd
 ## Tests
 
 `tests/` is a pytest suite (pytest + pytest-asyncio in `asyncio_mode = "auto"`, both in
-`py_requirements.nix` and the `test` extra). It is offline: no network, no Telegram token, no
+the `test` extra). It is offline: no network, no Telegram token, no
 real RabbitMQ. Run it from the repo root — `pythonpath = ["."]` and `ModuleKeeper`'s relative
 `modules/` walk both depend on the CWD.
 
@@ -65,10 +66,9 @@ Three long-standing bugs the suite found and now pins down — do not "simplify"
 
 ## Hard dependency on a PTB fork
 
-Requires `antares-ptb` (github.com/Antares0982/python-telegram-bot, pinned in `ptb-src.nix`,
-currently `v22.7`), not upstream PTB. It supplies APIs upstream lacks, e.g.
-`from telegram.ext import ConversationHandlerEx`. Bumping the fork means editing `ptb-src.nix`
-rev + sha256 (`requirements.txt` carries a separate pip pin).
+The PyPI distribution `antares-ptb` supplies `from telegram.ext import ConversationHandlerEx`.
+Bump its pin in `pyproject.toml`, then regenerate `uv.lock`. The framework's own version is
+also set explicitly in `pyproject.toml`.
 
 ## Architecture
 
